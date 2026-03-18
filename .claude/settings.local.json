@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan migrate --force)",
+      "Bash(php artisan migrate)",
+      "Bash(php -r \"echo php_ini_loaded_file\\(\\) . PHP_EOL; echo ini_get\\(''memory_limit''\\) . PHP_EOL;\")",
+      "Bash(\"/c/Users/mhdali/AppData/Local/Programs/Herd/resources/bin/php/8.2/php\" -r \"echo php_ini_loaded_file\\(\\) . PHP_EOL;\")",
+      "Read(//c/Users/mhdali/**)"
+    ]
+  }
+}

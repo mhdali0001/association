@@ -1,0 +1,55 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Member extends Model
+{
+    protected $fillable = [
+        'full_name', 'age', 'gender', 'mother_name', 'national_id',
+        'verification_status_id', 'dossier_number', 'current_address',
+        'marital_status', 'disease_type', 'other_association', 'phone',
+        'representative_id', 'delegate', 'network', 'provider_status', 'job',
+        'housing_status', 'dependents_count', 'illness_details',
+        'special_cases', 'special_cases_description', 'score',
+        'estimated_amount', 'sham_cash_account', 'association_id',
+    ];
+
+    protected $casts = [
+        'other_association' => 'boolean',
+        'special_cases'     => 'boolean',
+        'sham_cash_account' => 'boolean',
+        'estimated_amount'  => 'decimal:2',
+    ];
+
+    public function representative()
+    {
+        return $this->belongsTo(User::class, 'representative_id');
+    }
+
+    public function verificationStatus()
+    {
+        return $this->belongsTo(VerificationStatus::class, 'verification_status_id');
+    }
+
+    public function scores()
+    {
+        return $this->hasOne(MemberScore::class);
+    }
+
+    public function paymentInfo()
+    {
+        return $this->hasOne(PaymentInfo::class);
+    }
+
+    public function association()
+    {
+        return $this->belongsTo(Association::class);
+    }
+
+    public function associations()
+    {
+        return $this->belongsToMany(Association::class, 'member_associations');
+    }
+}
