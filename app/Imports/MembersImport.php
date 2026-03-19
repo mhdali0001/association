@@ -120,7 +120,7 @@ class MembersImport implements ToCollection, WithHeadingRow, WithChunkReading
                 ]);
 
                 $workScore            = is_numeric($row['درجة_العمل']             ?? $row['work_score']             ?? '') ? (int)($row['درجة_العمل']             ?? $row['work_score'])             : 0;
-                $housingScore         = is_numeric($row['درجة_السكن']             ?? $row['housing_score']          ?? '') ? (int)($row['درجة_السكن']             ?? $row['housing_score'])          : 0;
+                $housingScore         = is_numeric($row['درجة_السكن']             ?? $row['housing_score']          ?? '') ? min(4, (int)($row['درجة_السكن']     ?? $row['housing_score']))          : 0;
                 $dependentsScore      = is_numeric($row['درجة_المعالين']          ?? $row['dependents_score']       ?? '') ? (int)($row['درجة_المعالين']          ?? $row['dependents_score'])       : 0;
                 $dependentStatusScore = is_numeric($row['درجة_حالة_المعيل']      ?? $row['dependent_status_score'] ?? '') ? min(2, (int)($row['درجة_حالة_المعيل'] ?? $row['dependent_status_score'])) : 0;
                 $illnessScore         = is_numeric($row['درجة_المرض']             ?? $row['illness_score']          ?? '') ? (int)($row['درجة_المرض']             ?? $row['illness_score'])          : 0;

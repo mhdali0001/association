@@ -100,7 +100,7 @@ class MemberRowImporter
             ]);
 
             $workScore            = min(2,  $this->toInt($row['درجة_العمل']           ?? $row['work_score']             ?? null) ?? 0);
-            $housingScore         = min(2,  $this->toInt($row['درجة_السكن']           ?? $row['housing_score']          ?? null) ?? 0);
+            $housingScore         = min(4,  $this->toInt($row['درجة_السكن']           ?? $row['housing_score']          ?? null) ?? 0);
             $dependentsScore      = min(20, $this->toInt($row['درجة_المعالين']        ?? $row['dependents_score']       ?? null) ?? 0);
             $dependentStatusScore = min(2,  $this->toInt($row['درجة_حالة_المعيل']    ?? $row['dependent_status_score'] ?? null) ?? 0);
             $illnessScore         = min(5,  $this->toInt($row['درجة_المرض']           ?? $row['illness_score']          ?? null) ?? 0);

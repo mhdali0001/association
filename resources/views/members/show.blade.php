@@ -249,7 +249,7 @@
                 @php
                     $scoreItems = [
                         ['label' => 'نقاط العمل',           'value' => $member->scores->work_score,          'max' => 2],
-                        ['label' => 'نقاط السكن',           'value' => $member->scores->housing_score,        'max' => 2],
+                        ['label' => 'نقاط السكن',           'value' => $member->scores->housing_score,        'max' => 4],
                         ['label' => 'نقاط عدد الأفراد',    'value' => $member->scores->dependents_score,          'max' => 20],
                         ['label' => 'نقاط حالة المعيل',    'value' => $member->scores->dependent_status_score,   'max' => 2],
                         ['label' => 'نقاط المرض',           'value' => $member->scores->illness_score,            'max' => 5],

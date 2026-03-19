@@ -105,7 +105,7 @@ class MemberController extends Controller
             'association_id'             => 'nullable|exists:associations,id',
             // scores
             'work_score'                 => 'nullable|integer|min:0|max:2',
-            'housing_score'              => 'nullable|integer|min:0|max:2',
+            'housing_score'              => 'nullable|integer|min:0|max:4',
             'dependents_score'           => 'nullable|integer|min:0|max:20',
             'dependent_status_score'     => 'nullable|integer|min:0|max:2',
             'illness_score'              => 'nullable|integer|min:0|max:5',
@@ -118,7 +118,7 @@ class MemberController extends Controller
         ]);
 
         $workScore              = min(2,  (int)($request->work_score ?? 0));
-        $housingScore           = min(2,  (int)($request->housing_score ?? 0));
+        $housingScore           = min(4,  (int)($request->housing_score ?? 0));
         $dependentsScore        = min(20, (int)($request->dependents_score ?? 0));
         $dependentStatusScore   = min(2,  (int)($request->dependent_status_score ?? 0));
         $illnessScore           = min(5,  (int)($request->illness_score ?? 0));
@@ -222,7 +222,7 @@ class MemberController extends Controller
             'delegate'                   => 'nullable|string|max:255',
             'association_id'             => 'nullable|exists:associations,id',
             'work_score'                 => 'nullable|integer|min:0|max:2',
-            'housing_score'              => 'nullable|integer|min:0|max:2',
+            'housing_score'              => 'nullable|integer|min:0|max:4',
             'dependents_score'           => 'nullable|integer|min:0|max:20',
             'dependent_status_score'     => 'nullable|integer|min:0|max:2',
             'illness_score'              => 'nullable|integer|min:0|max:5',
@@ -234,7 +234,7 @@ class MemberController extends Controller
         ]);
 
         $workScore            = min(2,  (int)($request->work_score ?? 0));
-        $housingScore         = min(2,  (int)($request->housing_score ?? 0));
+        $housingScore         = min(4,  (int)($request->housing_score ?? 0));
         $dependentsScore      = min(20, (int)($request->dependents_score ?? 0));
         $dependentStatusScore = min(2,  (int)($request->dependent_status_score ?? 0));
         $illnessScore         = min(5,  (int)($request->illness_score ?? 0));

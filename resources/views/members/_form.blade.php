@@ -306,9 +306,9 @@
 
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
-                نقاط السكن <span class="text-xs text-gray-400">(أقصى 2)</span>
+                نقاط السكن <span class="text-xs text-gray-400">(أقصى 4)</span>
             </label>
-            <input type="number" name="housing_score" min="0" max="2" oninput="calcTotal()"
+            <input type="number" name="housing_score" min="0" max="4" oninput="calcTotal()"
                    value="{{ old('housing_score', $scores ? $scores->housing_score : 0) }}"
                    class="w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-500">
         </div>
