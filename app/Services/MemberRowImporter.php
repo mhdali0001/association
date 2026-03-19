@@ -52,16 +52,25 @@ class MemberRowImporter
                 ? ($this->verificationMap->get($verName)?->id ?? $this->defaultVerificationId)
                 : $this->defaultVerificationId;
 
-            $otherAssoc     = trim($row['منتسب_لجمعية_أخرى'] ?? $row['other_association'] ?? '');
-            $otherAssocBool = in_array(mb_strtolower($otherAssoc), ['نعم', 'yes', '1', 'true'], true);
+            $otherAssocRaw   = trim($row['منتسب_لجمعية_أخرى'] ?? $row['other_association'] ?? '');
+            $otherAssocLower = mb_strtolower($otherAssocRaw);
+            $knownBoolValues = ['نعم', 'لا', 'yes', 'no', '1', '0', 'true', 'false', ''];
+
+            if ($otherAssocRaw !== '' && !in_array($otherAssocLower, $knownBoolValues, true)) {
+                // Value is an association name — use it and force other_association = true
+                $otherAssocBool = true;
+                $assocName      = $otherAssocLower;
+            } else {
+                $otherAssocBool = in_array($otherAssocLower, ['نعم', 'yes', '1', 'true'], true);
+                $assocName      = mb_strtolower(trim($row['الجمعية'] ?? $row['association'] ?? ''));
+            }
 
             $shamCash     = trim($row['حساب_شام_كاش'] ?? $row['sham_cash_account'] ?? '');
-            $shamCashBool = in_array(mb_strtolower($shamCash), ['نعم', 'yes', '1', 'true'], true);
+            $shamCashBool = in_array(mb_strtolower($shamCash), ['نعم', 'تم', 'yes', '1', 'true'], true);
 
             $networkRaw = strtoupper(trim($row['الشبكة'] ?? $row['network'] ?? ''));
             $network    = in_array($networkRaw, ['MTN', 'SYRIATEL']) ? $networkRaw : null;
 
-            $assocName     = mb_strtolower(trim($row['الجمعية'] ?? $row['association'] ?? ''));
             $associationId = $assocName !== '' ? ($this->associationMap->get($assocName)?->id ?? null) : null;
 
             $delegate = trim($row['مندوب_خارجي'] ?? $row['delegate'] ?? '') ?: null;
@@ -71,7 +80,7 @@ class MemberRowImporter
                 'national_id'               => $nationalId,
                 'phone'                     => trim($row['رقم_الهاتف']         ?? $row['phone']           ?? '') ?: null,
                 'dossier_number'            => trim($row['رقم_الملف']          ?? $row['dossier_number']  ?? '') ?: null,
-                'age'                       => is_numeric($row['العمر']        ?? $row['age'] ?? '') ? (int)($row['العمر'] ?? $row['age']) : null,
+                'age'                       => $this->toInt($row['العمر'] ?? $row['age'] ?? null),
                 'gender'                    => trim($row['الجنس']              ?? $row['gender']          ?? '') ?: null,
                 'marital_status'            => trim($row['الحالة_الاجتماعية'] ?? $row['marital_status']  ?? '') ?: null,
                 'disease_type'              => trim($row['نوع_المرض']          ?? $row['disease_type']    ?? '') ?: null,
@@ -79,7 +88,7 @@ class MemberRowImporter
                 'mother_name'               => trim($row['اسم_الأم']           ?? $row['mother_name']     ?? '') ?: null,
                 'job'                       => trim($row['الوظيفة']            ?? $row['job']             ?? '') ?: null,
                 'housing_status'            => trim($row['وضع_السكن']          ?? $row['housing_status']  ?? '') ?: null,
-                'dependents_count'          => is_numeric($row['عدد_المعالين'] ?? $row['dependents_count'] ?? '') ? (int)($row['عدد_المعالين'] ?? $row['dependents_count']) : null,
+                'dependents_count'          => $this->toInt($row['عدد_المعالين'] ?? $row['dependents_count'] ?? null),
                 'network'                   => $network,
                 'other_association'         => $otherAssocBool,
                 'special_cases_description' => trim($row['وصف_الحالات_الخاصة'] ?? $row['special_cases_description'] ?? '') ?: null,
@@ -90,12 +99,12 @@ class MemberRowImporter
                 'association_id'            => $associationId,
             ]);
 
-            $workScore            = is_numeric($row['درجة_العمل']           ?? $row['work_score']             ?? '') ? min(2,  (int)($row['درجة_العمل']           ?? $row['work_score']))             : 0;
-            $housingScore         = is_numeric($row['درجة_السكن']           ?? $row['housing_score']          ?? '') ? min(2,  (int)($row['درجة_السكن']           ?? $row['housing_score']))          : 0;
-            $dependentsScore      = is_numeric($row['درجة_المعالين']        ?? $row['dependents_score']       ?? '') ? min(20, (int)($row['درجة_المعالين']        ?? $row['dependents_score']))       : 0;
-            $dependentStatusScore = is_numeric($row['درجة_حالة_المعيل']    ?? $row['dependent_status_score'] ?? '') ? min(2,  (int)($row['درجة_حالة_المعيل']    ?? $row['dependent_status_score'])) : 0;
-            $illnessScore         = is_numeric($row['درجة_المرض']           ?? $row['illness_score']          ?? '') ? min(5,  (int)($row['درجة_المرض']           ?? $row['illness_score']))          : 0;
-            $specialScore         = is_numeric($row['درجة_الحالات_الخاصة'] ?? $row['special_cases_score']    ?? '') ? min(10, (int)($row['درجة_الحالات_الخاصة'] ?? $row['special_cases_score']))    : 0;
+            $workScore            = min(2,  $this->toInt($row['درجة_العمل']           ?? $row['work_score']             ?? null) ?? 0);
+            $housingScore         = min(2,  $this->toInt($row['درجة_السكن']           ?? $row['housing_score']          ?? null) ?? 0);
+            $dependentsScore      = min(20, $this->toInt($row['درجة_المعالين']        ?? $row['dependents_score']       ?? null) ?? 0);
+            $dependentStatusScore = min(2,  $this->toInt($row['درجة_حالة_المعيل']    ?? $row['dependent_status_score'] ?? null) ?? 0);
+            $illnessScore         = min(5,  $this->toInt($row['درجة_المرض']           ?? $row['illness_score']          ?? null) ?? 0);
+            $specialScore         = min(10, $this->toInt($row['درجة_الحالات_الخاصة'] ?? $row['special_cases_score']    ?? null) ?? 0);
             $totalScore           = $workScore + $housingScore + $dependentsScore + $dependentStatusScore + $illnessScore + $specialScore;
 
             $member->update([
@@ -124,5 +133,31 @@ class MemberRowImporter
         } catch (\Throwable $e) {
             return ['imported' => null, 'error' => "الصف {$rowNum} ({$fullName}): {$e->getMessage()}"];
         }
+    }
+
+    /**
+     * Convert any cell value to int — handles int, float, numeric strings,
+     * strings with extra text (e.g. "45 سنة"), and ignores dates/objects.
+     */
+    private function toInt(mixed $value): ?int
+    {
+        if ($value === null || $value === '' || $value instanceof \DateTimeInterface) {
+            return null;
+        }
+        if (is_int($value)) {
+            return $value;
+        }
+        if (is_float($value)) {
+            return (int) $value;
+        }
+        $str = trim((string) $value);
+        if (is_numeric($str)) {
+            return (int) $str;
+        }
+        // Extract leading digits (e.g. "45 سنة" → 45)
+        if (preg_match('/^\d+/', $str, $m)) {
+            return (int) $m[0];
+        }
+        return null;
     }
 }

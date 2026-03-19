@@ -73,16 +73,25 @@ class MembersImport implements ToCollection, WithHeadingRow, WithChunkReading
                     ? ($this->verificationMap->get($verName)?->id ?? $this->defaultVerificationId)
                     : $this->defaultVerificationId;
 
-                $otherAssoc = trim($row['منتسب_لجمعية_أخرى'] ?? $row['other_association'] ?? '');
-                $otherAssocBool = in_array(mb_strtolower($otherAssoc), ['نعم', 'yes', '1', 'true'], true);
+                $otherAssocRaw  = trim($row['منتسب_لجمعية_أخرى'] ?? $row['other_association'] ?? '');
+                $otherAssocLower = mb_strtolower($otherAssocRaw);
+                $knownBoolValues = ['نعم', 'لا', 'yes', 'no', '1', '0', 'true', 'false', ''];
+
+                if (!in_array($otherAssocLower, $knownBoolValues, true)) {
+                    // Value is an association name — use it as association and force other_association = true
+                    $otherAssocBool = true;
+                    $assocName = $otherAssocLower;
+                } else {
+                    $otherAssocBool = in_array($otherAssocLower, ['نعم', 'yes', '1', 'true'], true);
+                    $assocName = mb_strtolower(trim($row['الجمعية'] ?? $row['association'] ?? ''));
+                }
 
                 $shamCash = trim($row['حساب_شام_كاش'] ?? $row['sham_cash_account'] ?? '');
-                $shamCashBool = in_array(mb_strtolower($shamCash), ['نعم', 'yes', '1', 'true'], true);
+                $shamCashBool = in_array(mb_strtolower($shamCash), ['نعم', 'تم', 'yes', '1', 'true'], true);
 
                 $networkRaw = strtoupper(trim($row['الشبكة'] ?? $row['network'] ?? ''));
                 $network = in_array($networkRaw, ['MTN', 'SYRIATEL']) ? $networkRaw : null;
 
-                $assocName = mb_strtolower(trim($row['الجمعية'] ?? $row['association'] ?? ''));
                 $associationId = $assocName !== '' ? ($this->associationMap->get($assocName)?->id ?? null) : null;
 
                 $member = Member::create([

@@ -201,7 +201,7 @@ class MemberImportController extends Controller
                 $values = array_map(fn($cell) => $cell->getValue(), $row->getCells());
 
                 if ($firstRow) {
-                    $headers  = $values;
+                    $headers  = array_map(fn($h) => trim((string) ($h ?? '')), $values);
                     $firstRow = false;
                     continue;
                 }
