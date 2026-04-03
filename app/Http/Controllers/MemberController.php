@@ -359,7 +359,7 @@ class MemberController extends Controller
             'illness_details'           => $request->input('illness_details'),
             'special_cases'             => $request->boolean('special_cases'),
             'special_cases_description' => $request->input('special_cases_description'),
-            'sham_cash_account'         => $request->boolean('sham_cash_account'),
+            'sham_cash_account'         => in_array($request->input('sham_cash_account'), ['done','manual']) ? $request->input('sham_cash_account') : null,
             'other_association'         => !empty($request->association_ids),
             'representative_id'         => $request->input('representative_id'),
             'delegate'                  => $request->input('delegate'),

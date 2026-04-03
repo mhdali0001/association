@@ -645,20 +645,24 @@ function toggleDuplicates() {
                             <td class="px-4 py-4 text-center">
                                 @if($member->sham_cash_account)
                                     @php
-                                        $memberIban = trim($member->paymentInfo?->iban ?? '');
+                                        $memberIban    = trim($member->paymentInfo?->iban ?? '');
                                         $ibanDuplicated = $memberIban !== '' && isset($duplicateIbans[$memberIban]);
+                                        $shamLabel     = $member->sham_cash_account === 'manual' ? 'يدوي' : 'نعم';
+                                        $shamBadgeClass = $member->sham_cash_account === 'manual'
+                                            ? 'text-amber-700 bg-amber-50 border-amber-300'
+                                            : 'text-emerald-700 bg-emerald-50 border-emerald-200';
                                     @endphp
                                     @if($ibanDuplicated)
                                         <a href="{{ route('payment-review.duplicate-ibans', ['search' => $memberIban]) }}"
                                            title="آيبان مكرر: {{ $memberIban }}"
                                            class="inline-flex items-center gap-1 text-sm font-semibold text-red-700 bg-red-50 border border-red-300 rounded-full px-2.5 py-0.5 hover:bg-red-100 transition-colors">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-                                            نعم
+                                            {{ $shamLabel }}
                                         </a>
                                     @else
-                                        <span class="inline-flex items-center gap-1 text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-0.5">
+                                        <span class="inline-flex items-center gap-1 text-sm font-semibold {{ $shamBadgeClass }} border rounded-full px-2.5 py-0.5">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                            نعم
+                                            {{ $shamLabel }}
                                         </span>
                                     @endif
                                 @else

@@ -19,7 +19,7 @@ class Member extends Model
     protected $casts = [
         'other_association' => 'boolean',
         'special_cases'     => 'boolean',
-        'sham_cash_account' => 'boolean',
+        // sham_cash_account is enum('done','manual') nullable — no cast needed
         'estimated_amount'  => 'decimal:2',
     ];
 

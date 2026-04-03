@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(timeout 60:*)",
+      "Bash(\"/c/Users/mhdali/.config/herd/bin/php.bat\" read_excel_fast.php)",
+      "Bash(grep -v \"^$\")",
+      "Bash(\"/c/Users/mhdali/.config/herd/bin/php.bat\" artisan tinker --execute=\":*)",
+      "Bash(\"/c/Users/mhdali/.config/herd/bin/php.bat\" artisan:*)",
+      "Bash(\"/c/Users/mhdali/.config/herd/bin/php.bat\" -r \":*)",
+      "Bash(1:*)"
+    ]
+  }
+}

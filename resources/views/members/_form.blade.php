@@ -314,12 +314,19 @@
         </div>
 
         <div class="lg:col-span-4">
-            <label class="flex items-center gap-3 cursor-pointer bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 hover:bg-emerald-100 transition-colors w-fit">
-                <input type="checkbox" name="sham_cash_account" id="sham_cash_account" value="1"
-                       {{ old('sham_cash_account', $isEdit ? $member->sham_cash_account : false) ? 'checked' : '' }}
-                       class="h-4 w-4 rounded text-emerald-600 border-gray-300 focus:ring-2 focus:ring-emerald-500">
-                <span class="text-sm font-semibold text-emerald-700">يمتلك حساب شام كاش</span>
-            </label>
+            @php $shamVal = old('sham_cash_account', $isEdit ? ($member->sham_cash_account ?? '') : ''); @endphp
+            <label class="{{ $labelClass }}">شام كاش</label>
+            <div class="flex items-center gap-3 flex-wrap mt-1">
+                @foreach(['' => 'لا', 'done' => 'نعم (تم)', 'manual' => 'يدوي'] as $optVal => $optLabel)
+                <label class="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-xl border text-sm font-medium transition-colors
+                    {{ $shamVal === $optVal ? 'bg-emerald-50 border-emerald-400 text-emerald-700' : 'bg-white border-gray-200 text-gray-600 hover:border-emerald-300' }}">
+                    <input type="radio" name="sham_cash_account" value="{{ $optVal }}"
+                           {{ $shamVal === $optVal ? 'checked' : '' }}
+                           class="text-emerald-600 focus:ring-emerald-500">
+                    {{ $optLabel }}
+                </label>
+                @endforeach
+            </div>
         </div>
 
         {{-- Score & Amount (readonly) --}}

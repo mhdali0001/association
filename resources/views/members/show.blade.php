@@ -265,22 +265,28 @@
                 @endif
 
                 <div class="space-y-2">
+                    {{-- Sham Cash --}}
                     @php
-                        $flags = [
-                            ['label' => 'حساب شام كاش', 'value' => $member->sham_cash_account,  'color' => 'emerald'],
-                            ['label' => 'جمعية أخرى',    'value' => $member->other_association,  'color' => 'blue'],
-                        ];
+                        $shamLabels = ['done' => ['label' => 'نعم (تم)', 'color' => 'emerald'], 'manual' => ['label' => 'يدوي', 'color' => 'amber']];
+                        $shamInfo = $shamLabels[$member->sham_cash_account] ?? null;
                     @endphp
-                    @foreach($flags as $flag)
-                        <div class="flex items-center justify-between p-2.5 rounded-xl {{ $flag['value'] ? 'bg-'.$flag['color'].'-50' : 'bg-gray-50' }}">
-                            <span class="text-sm font-medium {{ $flag['value'] ? 'text-'.$flag['color'].'-700' : 'text-gray-500' }}">{{ $flag['label'] }}</span>
-                            @if($flag['value'])
-                                <span class="text-xs bg-{{ $flag['color'] }}-100 text-{{ $flag['color'] }}-700 border border-{{ $flag['color'] }}-200 rounded-full px-2.5 py-0.5 font-bold">نعم</span>
-                            @else
-                                <span class="text-xs bg-gray-100 text-gray-400 rounded-full px-2.5 py-0.5 font-medium">لا</span>
-                            @endif
-                        </div>
-                    @endforeach
+                    <div class="flex items-center justify-between p-2.5 rounded-xl {{ $shamInfo ? 'bg-emerald-50' : 'bg-gray-50' }}">
+                        <span class="text-sm font-medium {{ $shamInfo ? 'text-emerald-700' : 'text-gray-500' }}">حساب شام كاش</span>
+                        @if($shamInfo)
+                            <span class="text-xs bg-{{ $shamInfo['color'] }}-100 text-{{ $shamInfo['color'] }}-700 border border-{{ $shamInfo['color'] }}-200 rounded-full px-2.5 py-0.5 font-bold">{{ $shamInfo['label'] }}</span>
+                        @else
+                            <span class="text-xs bg-gray-100 text-gray-400 rounded-full px-2.5 py-0.5 font-medium">لا</span>
+                        @endif
+                    </div>
+                    {{-- Other Association --}}
+                    <div class="flex items-center justify-between p-2.5 rounded-xl {{ $member->other_association ? 'bg-blue-50' : 'bg-gray-50' }}">
+                        <span class="text-sm font-medium {{ $member->other_association ? 'text-blue-700' : 'text-gray-500' }}">جمعية أخرى</span>
+                        @if($member->other_association)
+                            <span class="text-xs bg-blue-100 text-blue-700 border border-blue-200 rounded-full px-2.5 py-0.5 font-bold">نعم</span>
+                        @else
+                            <span class="text-xs bg-gray-100 text-gray-400 rounded-full px-2.5 py-0.5 font-medium">لا</span>
+                        @endif
+                    </div>
                 </div>
 
                 @if($member->representative)
