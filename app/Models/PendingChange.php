@@ -1,0 +1,442 @@
+<?php
+
+namespace App\Models;
+
+use App\Models\Association;
+use App\Models\Donation;
+use App\Models\MaritalStatus;
+use App\Models\MemberImage;
+use App\Models\VerificationStatus;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+
+class PendingChange extends Model
+{
+    protected $fillable = [
+        'model_type', 'model_id', 'action', 'payload', 'original',
+        'requested_by', 'status', 'reviewed_by', 'reviewed_at', 'reviewer_notes',
+    ];
+
+    protected $casts = [
+        'payload'     => 'array',
+        'original'    => 'array',
+        'reviewed_at' => 'datetime',
+    ];
+
+    public function requester()
+    {
+        return $this->belongsTo(User::class, 'requested_by');
+    }
+
+    public function reviewer()
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function isPending(): bool  { return $this->status === 'pending'; }
+    public function isApproved(): bool { return $this->status === 'approved'; }
+    public function isRejected(): bool { return $this->status === 'rejected'; }
+
+    /** Arabic action label */
+    public function actionLabel(): string
+    {
+        return match($this->action) {
+            'create'       => 'إضافة',
+            'update'       => 'تعديل',
+            'delete'       => 'حذف',
+            'bulk_amount'  => 'تعديل جماعي للمبلغ',
+            default        => $this->action,
+        };
+    }
+
+    /** Arabic model label */
+    public function modelLabel(): string
+    {
+        return match($this->model_type) {
+            'member'       => 'مستفيد',
+            'donation'            => 'تبرع',
+            'member_image'        => 'ملف / صورة',
+            'marital_status'      => 'حالة اجتماعية',
+            'association'         => 'جمعية',
+            'verification_status' => 'حالة تحقق',
+            default               => $this->model_type,
+        };
+    }
+
+    /** A short description for list views */
+    public function summary(): string
+    {
+        if ($this->action === 'bulk_amount') {
+            return "{$this->actionLabel()}: " . ($this->payload['label'] ?? '');
+        }
+
+        $name = match($this->model_type) {
+            'member'              => $this->payload['full_name']   ?? $this->original['full_name']   ?? "#{$this->model_id}",
+            'donation'            => $this->payload['member_name'] ?? $this->original['member_name'] ?? "#{$this->model_id}",
+            'member_image'        => $this->payload['member_name'] ?? $this->original['member_name'] ?? "#{$this->model_id}",
+            'marital_status',
+            'association',
+            'verification_status' => $this->payload['name'] ?? $this->original['name'] ?? "#{$this->model_id}",
+            default               => "#{$this->model_id}",
+        };
+        return "{$this->actionLabel()} {$this->modelLabel()}: {$name}";
+    }
+
+    /**
+     * Apply the pending change to the database.
+     * Only call this after confirming the user is an admin.
+     */
+    public function apply(): void
+    {
+        if ($this->action === 'bulk_amount') {
+            $this->applyBulkAmount();
+        } else {
+            match($this->model_type) {
+                'member'              => $this->applyMember(),
+                'donation'            => $this->applyDonation(),
+                'member_image'        => $this->applyMemberImage(),
+                'marital_status'      => $this->applyMaritalStatus(),
+                'association'         => $this->applyAssociation(),
+                'verification_status' => $this->applyVerificationStatus(),
+                default               => throw new \RuntimeException("Unknown model type: {$this->model_type}"),
+            };
+        }
+
+        $this->update([
+            'status'      => 'approved',
+            'reviewed_by' => Auth::id(),
+            'reviewed_at' => now(),
+        ]);
+    }
+
+    private function applyBulkAmount(): void
+    {
+        $p         = $this->payload ?? [];
+        $operation = $p['operation'];
+        $amount    = (float) $p['amount'];
+        $ids       = $p['member_ids'] ?? [];
+
+        if (empty($ids)) {
+            return;
+        }
+
+        $query = Member::whereIn('id', $ids);
+
+        switch ($operation) {
+            case 'add':
+                $query->update(['estimated_amount' => \Illuminate\Support\Facades\DB::raw('COALESCE(estimated_amount, 0) + ' . $amount)]);
+                break;
+            case 'subtract':
+                $query->update(['estimated_amount' => \Illuminate\Support\Facades\DB::raw('GREATEST(COALESCE(estimated_amount, 0) - ' . $amount . ', 0)')]);
+                break;
+            default: // set
+                $query->update(['estimated_amount' => $amount]);
+        }
+    }
+
+    /** Delete uploaded file when a pending image-upload is rejected */
+    public function cleanup(): void
+    {
+        if ($this->model_type === 'member_image' && $this->action === 'create') {
+            $path = $this->payload['file_path'] ?? null;
+            if ($path) {
+                Storage::disk('public')->delete($path);
+            }
+        }
+    }
+
+    private function applyMember(): void
+    {
+        $p = $this->payload ?? [];
+
+        if ($this->action === 'delete') {
+            Member::find($this->model_id)?->delete();
+            return;
+        }
+
+        // Scores
+        $scores = $p['scores'] ?? [];
+        $workScore            = (int)($scores['work_score']             ?? 0);
+        $housingScore         = (int)($scores['housing_score']          ?? 0);
+        $dependentsScore      = (int)($scores['dependents_score']       ?? 0);
+        $dependentStatusScore = (int)($scores['dependent_status_score'] ?? 0);
+        $illnessScore         = (int)($scores['illness_score']          ?? 0);
+        $specialScore         = (int)($scores['special_cases_score']    ?? 0);
+        $totalScore           = $workScore + $housingScore + $dependentsScore + $dependentStatusScore + $illnessScore + $specialScore;
+
+        $memberData = [
+            'full_name'                 => $p['full_name']                 ?? null,
+            'age'                       => $p['age']                       ?? null,
+            'gender'                    => $p['gender']                    ?? null,
+            'mother_name'               => $p['mother_name']               ?? null,
+            'national_id'               => $p['national_id']               ?? null,
+            'verification_status_id'    => $p['verification_status_id']    ?? null,
+            'dossier_number'            => $p['dossier_number']            ?? null,
+            'current_address'           => $p['current_address']           ?? null,
+            'marital_status'            => $p['marital_status']            ?? null,
+            'disease_type'              => $p['disease_type']              ?? null,
+            'other_association'         => $p['other_association']         ?? false,
+            'phone'                     => $p['phone']                     ?? null,
+            'representative_id'         => $p['representative_id']         ?? null,
+            'delegate'                  => $p['delegate']                  ?? null,
+            'association_id'            => $p['association_id']            ?? null,
+            'network'                   => $p['network']                   ?? null,
+            'provider_status'           => $p['provider_status']           ?? null,
+            'job'                       => $p['job']                       ?? null,
+            'housing_status'            => $p['housing_status']            ?? null,
+            'dependents_count'          => $p['dependents_count']          ?? null,
+            'illness_details'           => $p['illness_details']           ?? null,
+            'special_cases'             => $p['special_cases']             ?? false,
+            'special_cases_description' => $p['special_cases_description'] ?? null,
+            'sham_cash_account'         => $p['sham_cash_account']         ?? false,
+            'score'                     => $totalScore,
+            'estimated_amount'          => $totalScore * 500,
+        ];
+
+        $scoresData = [
+            'work_score'             => $workScore,
+            'housing_score'          => $housingScore,
+            'dependents_score'       => $dependentsScore,
+            'dependent_status_score' => $dependentStatusScore,
+            'illness_score'          => $illnessScore,
+            'special_cases_score'    => $specialScore,
+            'total_score'            => $totalScore,
+        ];
+
+        $payment = $p['payment'] ?? [];
+
+        if ($this->action === 'create') {
+            $member = Member::create($memberData);
+            MemberScore::create(array_merge($scoresData, ['member_id' => $member->id]));
+            PaymentInfo::create(array_merge([
+                'member_id'     => $member->id,
+                'iban'          => $payment['iban']          ?? null,
+                'barcode'       => $payment['barcode']       ?? null,
+                'iban_image'    => $payment['iban_image']    ?? null,
+                'barcode_image' => $payment['barcode_image'] ?? null,
+            ]));
+            if (!empty($p['association_ids'])) {
+                $member->associations()->sync($p['association_ids']);
+            }
+        } elseif ($this->action === 'update') {
+            $member = Member::findOrFail($this->model_id);
+            $member->update($memberData);
+
+            $s = $member->scores ?? new MemberScore(['member_id' => $member->id]);
+            $s->fill(array_merge($scoresData, ['member_id' => $member->id]))->save();
+
+            $pay = $member->paymentInfo ?? new PaymentInfo(['member_id' => $member->id]);
+            $pay->fill([
+                'member_id'     => $member->id,
+                'iban'          => $payment['iban']    ?? $pay->iban,
+                'barcode'       => $payment['barcode'] ?? $pay->barcode,
+                'iban_image'    => $payment['iban_image']    ?? $pay->iban_image,
+                'barcode_image' => $payment['barcode_image'] ?? $pay->barcode_image,
+            ])->save();
+
+            if (isset($p['association_ids'])) {
+                $member->associations()->sync($p['association_ids']);
+            }
+        }
+    }
+
+    private function applyDonation(): void
+    {
+        $p = $this->payload ?? [];
+
+        if ($this->action === 'delete') {
+            Donation::find($this->model_id)?->delete();
+            return;
+        }
+
+        $data = [
+            'member_id'        => $p['member_id'],
+            'amount'           => $p['amount'],
+            'donation_month'   => $p['donation_month'],
+            'type'             => $p['type'],
+            'status'           => $p['status'],
+            'reference_number' => $p['reference_number'] ?? null,
+            'notes'            => $p['notes']            ?? null,
+            'user_id'          => $p['user_id']          ?? Auth::id(),
+        ];
+
+        if ($this->action === 'create') {
+            Donation::create($data);
+        } elseif ($this->action === 'update') {
+            Donation::findOrFail($this->model_id)->update($data);
+        }
+    }
+
+    private function applyMemberImage(): void
+    {
+        $p = $this->payload ?? [];
+
+        if ($this->action === 'delete') {
+            $img = MemberImage::find($this->model_id);
+            if ($img) {
+                Storage::disk('public')->delete($img->file_path);
+                $img->delete();
+            }
+            return;
+        }
+
+        if ($this->action === 'create') {
+            MemberImage::create([
+                'member_id'   => $p['member_id'],
+                'title'       => $p['title']       ?? null,
+                'file_path'   => $p['file_path'],
+                'file_name'   => $p['file_name'],
+                'file_size'   => $p['file_size']   ?? null,
+                'mime_type'   => $p['mime_type']   ?? null,
+                'uploaded_by' => $p['uploaded_by'] ?? Auth::id(),
+            ]);
+        } elseif ($this->action === 'update') {
+            MemberImage::findOrFail($this->model_id)->update(['title' => $p['title'] ?? null]);
+        }
+    }
+
+    /** Arabic labels for diff display */
+    public static function memberFieldLabels(): array
+    {
+        return [
+            'full_name'                 => 'الاسم الكامل',
+            'age'                       => 'العمر',
+            'gender'                    => 'الجنس',
+            'mother_name'               => 'اسم الأم',
+            'national_id'               => 'رقم الهوية',
+            'verification_status_id'    => 'حالة التحقق',
+            'dossier_number'            => 'رقم الاضبارة',
+            'current_address'           => 'العنوان الحالي',
+            'marital_status'            => 'الحالة الاجتماعية',
+            'disease_type'              => 'نوع المرض',
+            'phone'                     => 'الهاتف',
+            'network'                   => 'نوع الشبكة',
+            'provider_status'           => 'حالة المعيل',
+            'job'                       => 'العمل',
+            'housing_status'            => 'حالة السكن',
+            'dependents_count'          => 'عدد المعالين',
+            'illness_details'           => 'تفاصيل المرض',
+            'special_cases'             => 'حالة خاصة',
+            'special_cases_description' => 'وصف الحالة الخاصة',
+            'sham_cash_account'         => 'حساب شام كاش',
+            'other_association'         => 'جمعية أخرى',
+            'representative_id'         => 'الممثل المسؤول',
+            'delegate'                  => 'المندوب الخارجي',
+            'association_id'            => 'الجمعية',
+            'score'                     => 'مجموع النقاط',
+            'estimated_amount'          => 'المبلغ المقدر',
+            'scores.work_score'             => 'نقاط العمل',
+            'scores.housing_score'          => 'نقاط السكن',
+            'scores.dependents_score'       => 'نقاط عدد الأفراد',
+            'scores.dependent_status_score' => 'نقاط حالة المعيل',
+            'scores.illness_score'          => 'نقاط المرض',
+            'scores.special_cases_score'    => 'نقاط الحالات الخاصة',
+            'payment.iban'                  => 'رقم الآيبان',
+            'payment.barcode'               => 'الباركود',
+        ];
+    }
+
+    public static function donationFieldLabels(): array
+    {
+        return [
+            'member_name'      => 'العضو',
+            'amount'           => 'المبلغ (ل.س)',
+            'donation_month'   => 'شهر التبرع',
+            'type'             => 'النوع',
+            'status'           => 'الحالة',
+            'reference_number' => 'رقم المرجع',
+            'notes'            => 'ملاحظات',
+        ];
+    }
+
+    public static function memberImageFieldLabels(): array
+    {
+        return [
+            'member_name' => 'العضو',
+            'title'       => 'العنوان / الوصف',
+            'file_name'   => 'اسم الملف',
+            'mime_type'   => 'نوع الملف',
+            'file_size'   => 'الحجم',
+        ];
+    }
+
+    private function applyMaritalStatus(): void
+    {
+        $p = $this->payload ?? [];
+
+        if ($this->action === 'delete') {
+            MaritalStatus::find($this->model_id)?->delete();
+            return;
+        }
+
+        $data = ['name' => $p['name'], 'is_active' => $p['is_active'] ?? 1];
+
+        if ($this->action === 'create') {
+            MaritalStatus::create($data);
+        } elseif ($this->action === 'update') {
+            MaritalStatus::findOrFail($this->model_id)->update($data);
+        }
+    }
+
+    private function applyAssociation(): void
+    {
+        $p = $this->payload ?? [];
+
+        if ($this->action === 'delete') {
+            Association::find($this->model_id)?->delete();
+            return;
+        }
+
+        $data = ['name' => $p['name'], 'is_active' => $p['is_active'] ?? true];
+
+        if ($this->action === 'create') {
+            Association::create($data);
+        } elseif ($this->action === 'update') {
+            Association::findOrFail($this->model_id)->update($data);
+        }
+    }
+
+    private function applyVerificationStatus(): void
+    {
+        $p = $this->payload ?? [];
+
+        if ($this->action === 'delete') {
+            VerificationStatus::find($this->model_id)?->delete();
+            return;
+        }
+
+        $data = ['name' => $p['name'], 'color' => $p['color'] ?? 'gray', 'is_active' => $p['is_active'] ?? true];
+
+        if ($this->action === 'create') {
+            VerificationStatus::create($data);
+        } elseif ($this->action === 'update') {
+            VerificationStatus::findOrFail($this->model_id)->update($data);
+        }
+    }
+
+    public static function maritalStatusFieldLabels(): array
+    {
+        return [
+            'name'      => 'الاسم',
+            'is_active' => 'نشط',
+        ];
+    }
+
+    public static function associationFieldLabels(): array
+    {
+        return [
+            'name'      => 'الاسم',
+            'is_active' => 'نشط',
+        ];
+    }
+
+    public static function verificationStatusFieldLabels(): array
+    {
+        return [
+            'name'      => 'الاسم',
+            'color'     => 'اللون',
+            'is_active' => 'نشط',
+        ];
+    }
+}

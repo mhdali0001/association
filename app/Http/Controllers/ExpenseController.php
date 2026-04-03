@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Beneficiary;
 use App\Models\Expense;
 use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
@@ -47,21 +48,28 @@ class ExpenseController extends Controller
         return view('expenses.index', compact('expenses', 'total', 'categories', 'search', 'category', 'from', 'to'));
     }
 
+    private function beneficiaries(): \Illuminate\Database\Eloquent\Collection
+    {
+        return Beneficiary::where('user_id', Auth::id())->orderBy('name')->get();
+    }
+
     public function create()
     {
-        $categories = $this->categories();
-        return view('expenses.create', compact('categories'));
+        $categories    = $this->categories();
+        $beneficiaries = $this->beneficiaries();
+        return view('expenses.create', compact('categories', 'beneficiaries'));
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'title'       => 'required|string|max:255',
-            'amount'      => 'required|numeric|min:0',
-            'category'    => 'nullable|string|max:100',
-            'date'        => 'required|date',
-            'description' => 'nullable|string',
-            'recipient'   => 'nullable|string|max:255',
+            'title'          => 'required|string|max:255',
+            'amount'         => 'required|numeric|min:0',
+            'category'       => 'nullable|string|max:100',
+            'date'           => 'required|date',
+            'description'    => 'nullable|string',
+            'recipient'      => 'nullable|string|max:255',
+            'beneficiary_id' => 'nullable|exists:beneficiaries,id',
         ]);
 
         $expense = Expense::create(array_merge($data, ['user_id' => Auth::id()]));
@@ -77,19 +85,21 @@ class ExpenseController extends Controller
 
     public function edit(Expense $expense)
     {
-        $categories = $this->categories();
-        return view('expenses.edit', compact('expense', 'categories'));
+        $categories    = $this->categories();
+        $beneficiaries = $this->beneficiaries();
+        return view('expenses.edit', compact('expense', 'categories', 'beneficiaries'));
     }
 
     public function update(Request $request, Expense $expense)
     {
         $data = $request->validate([
-            'title'       => 'required|string|max:255',
-            'amount'      => 'required|numeric|min:0',
-            'category'    => 'nullable|string|max:100',
-            'date'        => 'required|date',
-            'description' => 'nullable|string',
-            'recipient'   => 'nullable|string|max:255',
+            'title'          => 'required|string|max:255',
+            'amount'         => 'required|numeric|min:0',
+            'category'       => 'nullable|string|max:100',
+            'date'           => 'required|date',
+            'description'    => 'nullable|string',
+            'recipient'      => 'nullable|string|max:255',
+            'beneficiary_id' => 'nullable|exists:beneficiaries,id',
         ]);
 
         $expense->update($data);

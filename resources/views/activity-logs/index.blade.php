@@ -9,19 +9,25 @@
 @section('content')
 
 {{-- Header --}}
-<div class="flex items-start justify-between mb-6">
-    <div>
-        <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <span class="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
-                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
-                </svg>
-            </span>
-            سجل النشاط
-        </h1>
-        <p class="text-sm text-gray-400 mt-1 mr-12">
-            إجمالي السجلات: <span class="font-semibold text-gray-600">{{ $logs->total() }}</span>
-        </p>
+<div class="relative bg-gradient-to-l from-indigo-600 via-indigo-500 to-violet-600 rounded-3xl p-6 mb-6 overflow-hidden shadow-lg">
+    <div class="absolute inset-0 opacity-10">
+        <div class="absolute -top-6 -left-6 w-36 h-36 bg-white rounded-full"></div>
+        <div class="absolute -bottom-8 left-16 w-48 h-48 bg-white rounded-full"></div>
+        <div class="absolute top-4 right-12 w-20 h-20 bg-white rounded-full"></div>
+    </div>
+    <div class="relative flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-black text-white">سجل النشاط</h1>
+            <p class="text-indigo-200 text-sm mt-0.5">
+                إجمالي السجلات:
+                <span class="font-black text-white">{{ number_format($logs->total()) }}</span>
+            </p>
+        </div>
+        <div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-white/30">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+            </svg>
+        </div>
     </div>
 </div>
 
@@ -29,9 +35,7 @@
 <form method="GET" action="{{ route('activity-logs.index') }}"
       class="bg-white border border-gray-100 rounded-2xl shadow-sm p-5 mb-6">
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-
-        {{-- Search --}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
         <div class="lg:col-span-2 relative">
             <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none">
                 <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -43,8 +47,6 @@
                    class="w-full pr-10 pl-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50
                           focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white transition">
         </div>
-
-        {{-- Action filter --}}
         <div>
             <select name="action"
                     class="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
@@ -58,29 +60,22 @@
                 <option value="viewed"  {{ $action === 'viewed'  ? 'selected' : '' }}>عرض</option>
             </select>
         </div>
-
-        {{-- User filter --}}
         <div>
             <select name="user_id"
                     class="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
                            focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white transition">
                 <option value="">— كل المستخدمين —</option>
                 @foreach($users as $u)
-                    <option value="{{ $u->id }}" {{ $userId == $u->id ? 'selected' : '' }}>
-                        {{ $u->name }}
-                    </option>
+                    <option value="{{ $u->id }}" {{ $userId == $u->id ? 'selected' : '' }}>{{ $u->name }}</option>
                 @endforeach
             </select>
         </div>
-
     </div>
 
     <div class="flex items-center gap-2">
-        {{-- Date --}}
         <input type="date" name="date" value="{{ $date ?? '' }}"
                class="text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
                       focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white transition">
-
         <button type="submit"
                 class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -88,7 +83,6 @@
             </svg>
             تصفية
         </button>
-
         @if($action || $userId || $search || $date)
             <a href="{{ route('activity-logs.index') }}"
                class="bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium px-5 py-2.5 rounded-xl transition-colors flex items-center gap-2">
@@ -103,43 +97,64 @@
 
 {{-- Table --}}
 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    {{-- Section header --}}
+    <div class="flex items-center gap-2.5 px-6 py-4 border-b border-gray-100 bg-gradient-to-l from-gray-50 to-white">
+        <div class="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center">
+            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+            </svg>
+        </div>
+        <span class="text-sm font-bold text-gray-700">السجلات</span>
+    </div>
+
     @if($logs->isEmpty())
         <div class="text-center py-20">
-            <svg class="w-12 h-12 text-gray-200 mx-auto mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-            </svg>
-            <p class="text-gray-400 text-sm">لا توجد سجلات مطابقة</p>
+            <div class="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+            </div>
+            <p class="text-gray-400 text-sm font-medium">لا توجد سجلات مطابقة</p>
         </div>
     @else
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
-                <thead class="bg-gray-50 border-b border-gray-100">
-                    <tr>
-                        <th class="text-right px-4 py-3 font-semibold text-gray-500 text-xs">الإجراء</th>
-                        <th class="text-right px-4 py-3 font-semibold text-gray-500 text-xs">الوصف</th>
-                        <th class="text-right px-4 py-3 font-semibold text-gray-500 text-xs">المستخدم</th>
-                        <th class="text-right px-4 py-3 font-semibold text-gray-500 text-xs">العنصر المرتبط</th>
-                        <th class="text-right px-4 py-3 font-semibold text-gray-500 text-xs">عنوان IP</th>
-                        <th class="text-right px-4 py-3 font-semibold text-gray-500 text-xs">التاريخ والوقت</th>
+                <thead>
+                    <tr class="bg-gray-50/70 border-b border-gray-100">
+                        <th class="text-right px-5 py-3.5 font-semibold text-gray-400 text-xs">الإجراء</th>
+                        <th class="text-right px-5 py-3.5 font-semibold text-gray-400 text-xs">الوصف</th>
+                        <th class="text-right px-5 py-3.5 font-semibold text-gray-400 text-xs">المستخدم</th>
+                        <th class="text-right px-5 py-3.5 font-semibold text-gray-400 text-xs">العنصر المرتبط</th>
+                        <th class="text-right px-5 py-3.5 font-semibold text-gray-400 text-xs">IP</th>
+                        <th class="text-right px-5 py-3.5 font-semibold text-gray-400 text-xs">التاريخ</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
                     @foreach($logs as $log)
                     @php
                         $color = $log->actionColor();
-                        $colorMap = [
-                            'emerald' => 'bg-emerald-50 text-emerald-700',
-                            'gray'    => 'bg-gray-100 text-gray-600',
-                            'blue'    => 'bg-blue-50 text-blue-700',
-                            'yellow'  => 'bg-yellow-50 text-yellow-700',
-                            'red'     => 'bg-red-50 text-red-700',
-                            'purple'  => 'bg-purple-50 text-purple-700',
+                        $badgeMap = [
+                            'emerald' => 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+                            'gray'    => 'bg-gray-100 text-gray-600 border border-gray-200',
+                            'blue'    => 'bg-blue-50 text-blue-700 border border-blue-200',
+                            'yellow'  => 'bg-amber-50 text-amber-700 border border-amber-200',
+                            'red'     => 'bg-red-50 text-red-700 border border-red-200',
+                            'purple'  => 'bg-purple-50 text-purple-700 border border-purple-200',
                         ];
-                        $badge = $colorMap[$color] ?? 'bg-gray-100 text-gray-600';
+                        $rowMap = [
+                            'emerald' => 'hover:bg-emerald-50/30',
+                            'gray'    => 'hover:bg-gray-50/50',
+                            'blue'    => 'hover:bg-blue-50/30',
+                            'yellow'  => 'hover:bg-amber-50/30',
+                            'red'     => 'hover:bg-red-50/30',
+                            'purple'  => 'hover:bg-purple-50/30',
+                        ];
+                        $badge = $badgeMap[$color] ?? 'bg-gray-100 text-gray-600';
+                        $rowHover = $rowMap[$color] ?? 'hover:bg-gray-50/50';
                     @endphp
-                    <tr class="hover:bg-gray-50 transition-colors">
-                        <td class="px-4 py-3">
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold {{ $badge }}">
+                    <tr class="transition-colors {{ $rowHover }}">
+                        <td class="px-5 py-3.5">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold {{ $badge }}">
                                 @if($log->action === 'login')
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14"/></svg>
                                 @elseif($log->action === 'logout')
@@ -156,17 +171,17 @@
                                 {{ $log->actionLabel() }}
                             </span>
                         </td>
-                        <td class="px-4 py-3 text-gray-700 max-w-xs">
-                            <p class="truncate">{{ $log->description }}</p>
+                        <td class="px-5 py-3.5 text-gray-700 max-w-xs">
+                            <p class="truncate text-sm">{{ $log->description }}</p>
                         </td>
-                        <td class="px-4 py-3">
+                        <td class="px-5 py-3.5">
                             @if($log->user)
-                                <div class="flex items-center gap-2">
-                                    <div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
-                                        <span class="text-indigo-700 font-bold text-xs">{{ mb_substr($log->user->name, 0, 1) }}</span>
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center shrink-0 shadow-sm">
+                                        <span class="text-white font-black text-xs">{{ mb_substr($log->user->name, 0, 1) }}</span>
                                     </div>
                                     <div>
-                                        <p class="text-xs font-semibold text-gray-800">{{ $log->user->name }}</p>
+                                        <p class="text-xs font-bold text-gray-800">{{ $log->user->name }}</p>
                                         <p class="text-xs text-gray-400">{{ $log->user->email }}</p>
                                     </div>
                                 </div>
@@ -174,26 +189,25 @@
                                 <span class="text-gray-300 text-xs">—</span>
                             @endif
                         </td>
-                        <td class="px-4 py-3">
+                        <td class="px-5 py-3.5">
                             @if($log->subject_label)
-                                <div>
-                                    <p class="text-xs font-medium text-gray-700">{{ $log->subject_label }}</p>
-                                    @if($log->subject_type)
-                                        <p class="text-xs text-gray-400">{{ $log->subject_type }}
-                                            @if($log->subject_id) #{{ $log->subject_id }} @endif
-                                        </p>
-                                    @endif
-                                </div>
+                                <p class="text-xs font-semibold text-gray-700">{{ $log->subject_label }}</p>
+                                @if($log->subject_type)
+                                    <p class="text-xs text-gray-400">
+                                        {{ $log->subject_type }}
+                                        @if($log->subject_id) <span class="font-mono">#{{ $log->subject_id }}</span> @endif
+                                    </p>
+                                @endif
                             @else
                                 <span class="text-gray-300 text-xs">—</span>
                             @endif
                         </td>
-                        <td class="px-4 py-3 text-gray-400 font-mono text-xs">
+                        <td class="px-5 py-3.5 text-gray-400 font-mono text-xs">
                             {{ $log->ip_address ?? '—' }}
                         </td>
-                        <td class="px-4 py-3">
-                            <p class="text-xs font-medium text-gray-700">{{ $log->created_at->format('Y/m/d') }}</p>
-                            <p class="text-xs text-gray-400">{{ $log->created_at->format('H:i:s') }}</p>
+                        <td class="px-5 py-3.5">
+                            <p class="text-xs font-semibold text-gray-700">{{ $log->created_at->format('Y/m/d') }}</p>
+                            <p class="text-xs text-gray-400">{{ $log->created_at->format('H:i') }}</p>
                         </td>
                     </tr>
                     @endforeach

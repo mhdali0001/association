@@ -51,27 +51,24 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $data = $request->validate([
-            'name'                  => ['required', 'string', 'max:255'],
-            'email'                 => ['required', 'email', 'unique:users,email'],
-            'phone'                 => ['nullable', 'string', 'max:50'],
-            'role'                  => ['required', 'in:admin,user'],
-            'password'              => ['required', 'string', 'min:8', 'confirmed'],
+            'name'     => ['required', 'string', 'max:255'],
+            'email'    => ['required', 'email', 'unique:users,email'],
+            'role'     => ['required', 'in:admin,user'],
+            'password' => ['required', 'string', 'min:8'],
         ], [
-            'name.required'         => 'الاسم مطلوب',
-            'email.required'        => 'البريد الإلكتروني مطلوب',
-            'email.email'           => 'البريد الإلكتروني غير صالح',
-            'email.unique'          => 'البريد الإلكتروني مسجل مسبقاً',
-            'role.required'         => 'الصلاحية مطلوبة',
-            'role.in'               => 'الصلاحية غير صالحة',
-            'password.required'     => 'كلمة المرور مطلوبة',
-            'password.min'          => 'كلمة المرور يجب أن تكون 8 أحرف على الأقل',
-            'password.confirmed'    => 'تأكيد كلمة المرور غير متطابق',
+            'name.required'     => 'الاسم مطلوب',
+            'email.required'    => 'البريد الإلكتروني مطلوب',
+            'email.email'       => 'البريد الإلكتروني غير صالح',
+            'email.unique'      => 'البريد الإلكتروني مسجل مسبقاً',
+            'role.required'     => 'الصلاحية مطلوبة',
+            'role.in'           => 'الصلاحية غير صالحة',
+            'password.required' => 'كلمة المرور مطلوبة',
+            'password.min'      => 'كلمة المرور يجب أن تكون 8 أحرف على الأقل',
         ]);
 
         $user = User::create([
             'name'     => $data['name'],
             'email'    => $data['email'],
-            'phone'    => $data['phone'] ?? null,
             'role'     => $data['role'],
             'password' => Hash::make($data['password']),
         ]);

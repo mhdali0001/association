@@ -1,9 +1,9 @@
 @extends('layouts.app')
 
-@section('title', 'حالات التحقق — مسالك النور')
+@section('title', 'الحالات النهائية — مسالك النور')
 
 @section('breadcrumb')
-    <span class="text-gray-700">حالات التحقق</span>
+    <span class="text-gray-700">الحالات النهائية</span>
 @endsection
 
 @section('content')
@@ -12,9 +12,18 @@
 
     {{-- Header --}}
     <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">حالات التحقق</h1>
-        <p class="text-sm text-gray-400 mt-0.5">إدارة قائمة حالات التحقق وألوانها</p>
+        <h1 class="text-2xl font-bold text-gray-900">الحالات النهائية</h1>
+        <p class="text-sm text-gray-400 mt-0.5">إدارة قائمة الحالات النهائية للأعضاء وألوانها</p>
     </div>
+
+    @if(session('success'))
+    <div class="flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium rounded-2xl px-5 py-3.5 mb-5">
+        <svg class="w-5 h-5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        {{ session('success') }}
+    </div>
+    @endif
 
     {{-- Add form --}}
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-6">
@@ -22,10 +31,10 @@
             <h2 class="text-sm font-semibold text-gray-700">إضافة حالة جديدة</h2>
         </div>
         <div class="p-5">
-            <form method="POST" action="{{ route('verification-statuses.store') }}" class="flex gap-3 items-start">
+            <form method="POST" action="{{ route('final-statuses.store') }}" class="flex gap-3 items-start">
                 @csrf
                 <div class="flex-1">
-                    <input type="text" name="name" value="{{ old('name') }}" placeholder="اسم الحالة (مثال: تم التحقق، قيد المراجعة…)"
+                    <input type="text" name="name" value="{{ old('name') }}" placeholder="مثال: مستمر، موقوف، مرفوض…"
                            class="w-full border-2 border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 @error('name') border-red-400 @enderror">
                     @error('name') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
@@ -62,7 +71,7 @@
                     <div class="flex items-center gap-3 view-mode-{{ $status->id }}">
                         <span class="w-4 h-4 rounded-full shrink-0 border border-white shadow-sm"
                               style="background-color: {{ $status->color }}"></span>
-                        <a href="{{ route('members.index', ['verification_status_id[]' => $status->id]) }}"
+                        <a href="{{ route('members.index', ['final_status_id[]' => $status->id]) }}"
                            class="text-sm font-medium text-gray-800 hover:text-emerald-600 hover:underline transition-colors">
                             {{ $status->name }}
                         </a>
@@ -73,7 +82,7 @@
                     </div>
 
                     {{-- Edit mode --}}
-                    <form method="POST" action="{{ route('verification-statuses.update', $status) }}"
+                    <form method="POST" action="{{ route('final-statuses.update', $status) }}"
                           class="flex items-center gap-2 flex-1 mr-4 hidden edit-mode-{{ $status->id }}">
                         @csrf @method('PUT')
                         <input type="text" name="name" value="{{ $status->name }}"
@@ -98,7 +107,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                             </svg>
                         </button>
-                        <form method="POST" action="{{ route('verification-statuses.destroy', $status) }}"
+                        <form method="POST" action="{{ route('final-statuses.destroy', $status) }}"
                               onsubmit="return confirm('هل أنت متأكد من حذف «{{ $status->name }}»؟')">
                             @csrf @method('DELETE')
                             <button type="submit"

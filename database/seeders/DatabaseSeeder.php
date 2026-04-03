@@ -13,7 +13,6 @@ class DatabaseSeeder extends Seeder
             MaritalStatusSeeder::class,
             VerificationStatusSeeder::class,
             AssociationSeeder::class,
-            MemberSeeder::class,
         ]);
     }
 }

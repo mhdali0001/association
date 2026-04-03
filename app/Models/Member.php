@@ -8,7 +8,7 @@ class Member extends Model
 {
     protected $fillable = [
         'full_name', 'age', 'gender', 'mother_name', 'national_id',
-        'verification_status_id', 'dossier_number', 'current_address',
+        'verification_status_id', 'final_status_id', 'dossier_number', 'current_address',
         'marital_status', 'disease_type', 'other_association', 'phone',
         'representative_id', 'delegate', 'network', 'provider_status', 'job',
         'housing_status', 'dependents_count', 'illness_details',
@@ -33,6 +33,11 @@ class Member extends Model
         return $this->belongsTo(VerificationStatus::class, 'verification_status_id');
     }
 
+    public function finalStatus()
+    {
+        return $this->belongsTo(FinalStatus::class, 'final_status_id');
+    }
+
     public function scores()
     {
         return $this->hasOne(MemberScore::class);
@@ -43,6 +48,16 @@ class Member extends Model
         return $this->hasOne(PaymentInfo::class);
     }
 
+    public function paymentInfoAI()
+    {
+        return $this->hasOne(PaymentInfoAI::class);
+    }
+
+    public function paymentReview()
+    {
+        return $this->hasOne(PaymentReview::class);
+    }
+
     public function association()
     {
         return $this->belongsTo(Association::class);
@@ -51,5 +66,10 @@ class Member extends Model
     public function associations()
     {
         return $this->belongsToMany(Association::class, 'member_associations');
+    }
+
+    public function images()
+    {
+        return $this->hasMany(MemberImage::class)->latest();
     }
 }

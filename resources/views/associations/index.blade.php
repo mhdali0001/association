@@ -60,7 +60,10 @@
                     {{-- View mode --}}
                     <div class="flex items-center gap-3 view-mode-{{ $assoc->id }}">
                         <span class="w-2 h-2 rounded-full {{ $assoc->is_active ? 'bg-emerald-400' : 'bg-gray-300' }}"></span>
-                        <span class="text-sm font-medium text-gray-800">{{ $assoc->name }}</span>
+                        <a href="{{ route('members.index', ['association_id[]' => $assoc->id]) }}"
+                           class="text-sm font-medium text-gray-800 hover:text-emerald-600 hover:underline transition-colors">
+                            {{ $assoc->name }}
+                        </a>
                         @if(!$assoc->is_active)
                             <span class="text-xs text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">معطّل</span>
                         @endif
