@@ -8,13 +8,23 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Fix column type (may be BIGINT from a failed prior attempt) then add FK
-        \Illuminate\Support\Facades\DB::statement(
-            'ALTER TABLE members MODIFY final_status_id INT UNSIGNED NULL'
-        );
         Schema::table('members', function (Blueprint $table) {
-            $table->foreign('final_status_id')->references('id')->on('final_statuses')->nullOnDelete();
+            if (!Schema::hasColumn('members', 'final_status_id')) {
+                $table->unsignedInteger('final_status_id')->nullable()->after('verification_status_id');
+            }
         });
+
+        // Add foreign key if not already present
+        $fks = collect(\Illuminate\Support\Facades\DB::select(
+            "SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'members' AND COLUMN_NAME = 'final_status_id' AND REFERENCED_TABLE_NAME IS NOT NULL"
+        ))->pluck('CONSTRAINT_NAME');
+
+        if ($fks->isEmpty()) {
+            Schema::table('members', function (Blueprint $table) {
+                $table->foreign('final_status_id')->references('id')->on('final_statuses')->nullOnDelete();
+            });
+        }
     }
 
     public function down(): void
