@@ -1,0 +1,1 @@
+DB::table('members')- . ' null, ' . DB::table('members')-, 1)- . ' true, ' . DB::table('members')-, 0)- . " false\n";

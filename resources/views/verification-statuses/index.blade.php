@@ -46,7 +46,12 @@
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div class="bg-gray-50 border-b border-gray-100 px-6 py-3 flex items-center justify-between">
             <h2 class="text-sm font-semibold text-gray-700">القائمة الحالية</h2>
-            <span class="text-xs text-gray-400 bg-gray-100 rounded-full px-2.5 py-0.5">{{ $statuses->count() }} حالة</span>
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-400 bg-gray-100 rounded-full px-2.5 py-0.5">{{ $statuses->count() }} حالة</span>
+                <span class="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-0.5">
+                    المجموع: {{ number_format($statuses->sum('members_count')) }} عضو
+                </span>
+            </div>
         </div>
 
         @if($statuses->isEmpty())
@@ -66,6 +71,10 @@
                            class="text-sm font-medium text-gray-800 hover:text-emerald-600 hover:underline transition-colors">
                             {{ $status->name }}
                         </a>
+                        <span class="inline-flex items-center justify-center min-w-[24px] h-5 px-1.5 rounded-full text-xs font-bold"
+                              style="background:{{ $status->color }}20; color:{{ $status->color }}; border:1px solid {{ $status->color }}40">
+                            {{ $status->members_count }}
+                        </span>
                         <span class="text-xs font-mono text-gray-400">{{ $status->color }}</span>
                         @if(!$status->is_active)
                             <span class="text-xs text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">معطّل</span>

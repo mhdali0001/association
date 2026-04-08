@@ -88,6 +88,12 @@
         <p class="text-2xl font-black">{{ $member->estimated_amount ? number_format($member->estimated_amount, 0) : '—' }}</p>
         <p class="text-blue-200 text-xs mt-0.5">ل.س</p>
     </div>
+    <div class="relative bg-gradient-to-br from-purple-500 to-purple-700 rounded-2xl p-4 text-white shadow-md overflow-hidden">
+        <div class="absolute -bottom-3 -left-3 w-16 h-16 bg-white/10 rounded-full"></div>
+        <p class="text-purple-100 text-xs font-medium mb-1">المبلغ النهائي</p>
+        <p class="text-2xl font-black">{{ $member->final_amount ? number_format($member->final_amount, 0) : '—' }}</p>
+        <p class="text-purple-200 text-xs mt-0.5">ل.س</p>
+    </div>
     <div class="relative bg-gradient-to-br from-violet-500 to-violet-700 rounded-2xl p-4 text-white shadow-md overflow-hidden">
         <div class="absolute -bottom-3 -left-3 w-16 h-16 bg-white/10 rounded-full"></div>
         <p class="text-violet-100 text-xs font-medium mb-1">عدد المعالين</p>
@@ -128,8 +134,8 @@
                         'رقم الهاتف'         => $member->phone,
                         'الحالة الاجتماعية'  => $member->marital_status,
                         'الحالة النهائية'    => $member->finalStatus?->name,
-                        'المندوب'            => $member->representative?->name,
-                        'مندوب خارجي'        => $member->delegate,
+                        'المدخل'             => $member->representative?->name,
+                        'مندوب'              => $member->delegate,
                         'العنوان'            => $member->current_address,
                     ];
                 @endphp
@@ -347,7 +353,7 @@
         @endif
 
         {{-- معلومات الدفع AI --}}
-        @if($member->paymentInfoAI && ($member->paymentInfoAI->iban || $member->paymentInfoAI->barcode))
+        @if($member->paymentInfoAI && ($member->paymentInfoAI->iban || $member->paymentInfoAI->barcode || $member->paymentInfoAI->recipient_name))
         <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <div class="flex items-center gap-2.5 bg-gradient-to-l from-violet-50 to-purple-50 border-b border-violet-100 px-6 py-3.5">
                 <div class="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center">
@@ -358,6 +364,12 @@
                 <h2 class="text-sm font-bold text-violet-700">معلومات الدفع AI</h2>
             </div>
             <div class="p-5 space-y-4">
+                @if($member->paymentInfoAI->recipient_name)
+                    <div>
+                        <p class="text-xs text-gray-400 mb-1 font-medium">اسم المستلم AI</p>
+                        <p class="text-sm font-semibold text-gray-800 bg-violet-50 rounded-xl px-3 py-2 border border-violet-100">{{ $member->paymentInfoAI->recipient_name }}</p>
+                    </div>
+                @endif
                 @if($member->paymentInfoAI->iban)
                     <div>
                         <p class="text-xs text-gray-400 mb-1 font-medium">رقم الآيبان AI</p>
@@ -375,7 +387,7 @@
         @endif
 
         {{-- معلومات الدفع --}}
-        @if($member->paymentInfo && ($member->paymentInfo->iban || $member->paymentInfo->barcode || $member->paymentInfo->iban_image || $member->paymentInfo->barcode_image))
+        @if($member->paymentInfo && ($member->paymentInfo->iban || $member->paymentInfo->barcode || $member->paymentInfo->iban_image || $member->paymentInfo->barcode_image || $member->paymentInfo->recipient_name))
         <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <div class="flex items-center gap-2.5 bg-gradient-to-l from-slate-50 to-gray-50 border-b border-gray-100 px-6 py-3.5">
                 <div class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center">
@@ -386,6 +398,12 @@
                 <h2 class="text-sm font-bold text-slate-700">معلومات الدفع</h2>
             </div>
             <div class="p-5 space-y-4">
+                @if($member->paymentInfo->recipient_name)
+                    <div>
+                        <p class="text-xs text-gray-400 mb-1 font-medium">اسم المستلم</p>
+                        <p class="text-sm font-semibold text-gray-800 bg-slate-50 rounded-xl px-3 py-2 border border-slate-100">{{ $member->paymentInfo->recipient_name }}</p>
+                    </div>
+                @endif
                 @if($member->paymentInfo->iban)
                     <div>
                         <p class="text-xs text-gray-400 mb-1 font-medium">رقم الآيبان</p>
@@ -422,6 +440,183 @@
 
     </div>
 
+</div>
+
+{{-- ── الجولات الميدانية ── --}}
+<div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mt-6">
+    <div class="flex items-center gap-2.5 bg-gradient-to-l from-indigo-50 to-violet-50 border-b border-indigo-100 px-6 py-3.5">
+        <div class="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center">
+            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+        </div>
+        <h2 class="text-sm font-bold text-indigo-700">الجولات الميدانية</h2>
+        <span class="text-xs text-indigo-500 bg-indigo-100 rounded-full px-2 py-0.5 font-semibold">{{ $member->fieldVisits->count() }}</span>
+    </div>
+
+    <div class="p-5 space-y-4">
+
+        {{-- Existing visits --}}
+        @forelse($member->fieldVisits as $visit)
+        <div class="border border-gray-100 rounded-xl p-4 bg-gray-50/50 group relative" id="visit-{{ $visit->id }}">
+            <div class="flex items-start justify-between gap-3">
+                <div class="flex-1 space-y-2">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        @if($visit->status)
+                            <span class="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full text-white"
+                                  style="background: {{ $visit->status->color }}">
+                                {{ $visit->status->name }}
+                            </span>
+                        @endif
+                        @if($visit->visit_date)
+                            <span class="text-xs text-gray-500 font-medium">
+                                <svg class="w-3 h-3 inline ml-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                {{ $visit->visit_date->format('Y/m/d') }}
+                            </span>
+                        @endif
+                        @if($visit->visitor)
+                            <span class="text-xs text-gray-500">
+                                <svg class="w-3 h-3 inline ml-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                {{ $visit->visitor }}
+                            </span>
+                        @endif
+                    </div>
+                    @if($visit->estimated_amount !== null)
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-black text-emerald-700">{{ number_format($visit->estimated_amount) }} ل.س</span>
+                            @if($visit->amount_reason)
+                                <span class="text-xs text-gray-500 italic">— {{ $visit->amount_reason }}</span>
+                            @endif
+                        </div>
+                    @endif
+                    @if($visit->notes)
+                        <p class="text-xs text-gray-600 bg-white rounded-lg px-3 py-2 border border-gray-100">{{ $visit->notes }}</p>
+                    @endif
+                </div>
+                <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    <button onclick="toggleEditVisit({{ $visit->id }})"
+                            class="p-1.5 rounded-lg text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    </button>
+                    <form method="POST" action="{{ route('field-visits.destroy', [$member, $visit]) }}"
+                          onsubmit="return confirm('حذف هذه الجولة؟')">
+                        @csrf @method('DELETE')
+                        <button type="submit" class="p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            {{-- Edit form (hidden) --}}
+            <div id="edit-visit-{{ $visit->id }}" class="hidden mt-4 pt-4 border-t border-gray-200">
+                <form method="POST" action="{{ route('field-visits.update', [$member, $visit]) }}">
+                    @csrf @method('PUT')
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">الحالة</label>
+                            <select name="field_visit_status_id" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                                <option value="">— غير محدد —</option>
+                                @foreach($fieldVisitStatuses as $s)
+                                    <option value="{{ $s->id }}" {{ $visit->field_visit_status_id == $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">تاريخ الزيارة</label>
+                            <input type="date" name="visit_date" value="{{ $visit->visit_date?->format('Y-m-d') }}"
+                                   class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">اسم الزائر</label>
+                            <input type="text" name="visitor" value="{{ $visit->visitor }}"
+                                   class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">المبلغ المقدر (ل.س)</label>
+                            <input type="number" name="estimated_amount" value="{{ $visit->estimated_amount }}" min="0" step="0.01"
+                                   class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">سبب المبلغ</label>
+                            <input type="text" name="amount_reason" value="{{ $visit->amount_reason }}"
+                                   placeholder="وصف موجز لسبب تحديد هذا المبلغ"
+                                   class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">ملاحظات</label>
+                            <textarea name="notes" rows="2"
+                                      class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none">{{ $visit->notes }}</textarea>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 mt-3">
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors">حفظ التعديلات</button>
+                        <button type="button" onclick="toggleEditVisit({{ $visit->id }})"
+                                class="text-xs text-gray-500 hover:text-gray-700 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">إلغاء</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        @empty
+            <p class="text-sm text-gray-400 text-center py-4">لا توجد جولات ميدانية مسجّلة بعد.</p>
+        @endforelse
+
+        {{-- Add new visit form --}}
+        <div class="border-t border-dashed border-gray-200 pt-4">
+            <button onclick="toggleAddVisit()" id="add-visit-btn"
+                    class="flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                إضافة جولة ميدانية
+            </button>
+            <div id="add-visit-form" class="hidden mt-4">
+                <form method="POST" action="{{ route('field-visits.store', $member) }}">
+                    @csrf
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">الحالة</label>
+                            <select name="field_visit_status_id" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                                <option value="">— غير محدد —</option>
+                                @foreach($fieldVisitStatuses as $s)
+                                    <option value="{{ $s->id }}">{{ $s->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">تاريخ الزيارة</label>
+                            <input type="date" name="visit_date"
+                                   class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">اسم الزائر</label>
+                            <input type="text" name="visitor" placeholder="الاسم الكامل للزائر"
+                                   class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">المبلغ المقدر (ل.س)</label>
+                            <input type="number" name="estimated_amount" min="0" step="0.01" placeholder="0"
+                                   class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">سبب المبلغ</label>
+                            <input type="text" name="amount_reason" placeholder="وصف موجز لسبب تحديد هذا المبلغ"
+                                   class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">ملاحظات</label>
+                            <textarea name="notes" rows="2" placeholder="ملاحظات الجولة..."
+                                      class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"></textarea>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 mt-3">
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold px-5 py-2 rounded-xl transition-colors">إضافة الجولة</button>
+                        <button type="button" onclick="toggleAddVisit()"
+                                class="text-sm text-gray-500 hover:text-gray-700 px-4 py-2 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">إلغاء</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
 </div>
 
 {{-- ── أرشيف الصور ── --}}
@@ -556,5 +751,17 @@
 @if($errors->has('image'))
 <script>document.getElementById('upload-panel').classList.remove('hidden');</script>
 @endif
+
+<script>
+function toggleAddVisit() {
+    const form = document.getElementById('add-visit-form');
+    const btn  = document.getElementById('add-visit-btn');
+    form.classList.toggle('hidden');
+    btn.classList.toggle('hidden');
+}
+function toggleEditVisit(id) {
+    document.getElementById('edit-visit-' + id).classList.toggle('hidden');
+}
+</script>
 
 @endsection

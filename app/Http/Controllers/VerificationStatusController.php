@@ -12,7 +12,7 @@ class VerificationStatusController extends Controller
 {
     public function index()
     {
-        $statuses = VerificationStatus::orderBy('id')->get();
+        $statuses = VerificationStatus::withCount('members')->orderBy('id')->get();
         return view('verification-statuses.index', compact('statuses'));
     }
 

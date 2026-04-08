@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\MembersExport;
+use App\Models\FieldVisit;
+use App\Models\FieldVisitStatus;
 use App\Models\FinalStatus;
 use App\Models\Member;
 use App\Models\MemberScore;
@@ -14,6 +17,7 @@ use App\Models\Association;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -30,23 +34,23 @@ class MemberController extends Controller
         ];
     }
 
-    public function index(Request $request)
+    private function buildFilteredQuery(Request $request): \Illuminate\Database\Eloquent\Builder
     {
-        $search             = $request->get('search');
-        $dossierFrom        = trim($request->get('dossier_from', ''));
-        $dossierTo          = trim($request->get('dossier_to', ''));
-        $verificationIds    = array_filter((array) $request->get('verification_status_id', []));
-        $finalStatusIds     = array_filter((array) $request->get('final_status_id', []));
-        $maritalStatuses    = array_filter((array) $request->get('marital_status', []));
-        $genders            = array_filter((array) $request->get('gender', []));
-        $delegates               = array_filter((array) $request->get('delegate', []));
-        $specialCases            = $request->get('special_cases', '');
-        $specialDescriptions     = array_filter((array) $request->get('special_cases_description', []));
-        $addresses               = array_filter((array) $request->get('current_address', []));
-        $associationIds          = array_filter((array) $request->get('association_id', []));
-        $networks                = array_filter((array) $request->get('network', []));
+        $search              = $request->get('search');
+        $dossierFrom         = trim($request->get('dossier_from', ''));
+        $dossierTo           = trim($request->get('dossier_to', ''));
+        $verificationIds     = array_filter((array) $request->get('verification_status_id', []));
+        $finalStatusIds      = array_filter((array) $request->get('final_status_id', []));
+        $maritalStatuses     = array_filter((array) $request->get('marital_status', []));
+        $genders             = array_filter((array) $request->get('gender', []));
+        $delegates           = array_filter((array) $request->get('delegate', []));
+        $specialCases        = $request->get('special_cases', '');
+        $specialDescriptions = array_filter((array) $request->get('special_cases_description', []));
+        $addresses           = array_filter((array) $request->get('current_address', []));
+        $associationIds      = array_filter((array) $request->get('association_id', []));
+        $networks            = array_filter((array) $request->get('network', []));
 
-        $query = Member::query()->with(['verificationStatus', 'representative', 'paymentInfo']);
+        $query = Member::query();
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -58,49 +62,46 @@ class MemberController extends Controller
         }
         if ($dossierFrom !== '') $query->whereRaw('CAST(dossier_number AS UNSIGNED) >= ?', [(int) $dossierFrom]);
         if ($dossierTo   !== '') $query->whereRaw('CAST(dossier_number AS UNSIGNED) <= ?', [(int) $dossierTo]);
-
-        if (!empty($verificationIds)) {
-            $query->whereIn('verification_status_id', $verificationIds);
+        if (!empty($verificationIds))     $query->whereIn('verification_status_id', $verificationIds);
+        if (!empty($finalStatusIds))      $query->whereIn('final_status_id', $finalStatusIds);
+        if (!empty($maritalStatuses))     $query->whereIn('marital_status', $maritalStatuses);
+        if (!empty($genders))             $query->whereIn('gender', $genders);
+        if (!empty($delegates))           $query->whereIn('delegate', $delegates);
+        if ($specialCases === '1') {
+            $query->where('special_cases', true);
+        } elseif ($specialCases === '0') {
+            $query->where(function ($q) {
+                $q->where('special_cases', false)->orWhereNull('special_cases');
+            });
         }
+        if (!empty($specialDescriptions)) $query->whereIn('special_cases_description', $specialDescriptions);
+        if (!empty($addresses))           $query->whereIn('current_address', $addresses);
+        if (!empty($associationIds))      $query->whereIn('association_id', $associationIds);
+        if (!empty($networks))            $query->whereIn('network', $networks);
 
-        if (!empty($finalStatusIds)) {
-            $query->whereIn('final_status_id', $finalStatusIds);
-        }
+        return $query;
+    }
 
-        if (!empty($maritalStatuses)) {
-            $query->whereIn('marital_status', $maritalStatuses);
-        }
+    public function index(Request $request)
+    {
+        $search              = $request->get('search');
+        $dossierFrom         = trim($request->get('dossier_from', ''));
+        $dossierTo           = trim($request->get('dossier_to', ''));
+        $verificationIds     = array_filter((array) $request->get('verification_status_id', []));
+        $finalStatusIds      = array_filter((array) $request->get('final_status_id', []));
+        $maritalStatuses     = array_filter((array) $request->get('marital_status', []));
+        $genders             = array_filter((array) $request->get('gender', []));
+        $delegates           = array_filter((array) $request->get('delegate', []));
+        $specialCases        = $request->get('special_cases', '');
+        $specialDescriptions = array_filter((array) $request->get('special_cases_description', []));
+        $addresses           = array_filter((array) $request->get('current_address', []));
+        $associationIds      = array_filter((array) $request->get('association_id', []));
+        $networks            = array_filter((array) $request->get('network', []));
 
-        if (!empty($genders)) {
-            $query->whereIn('gender', $genders);
-        }
-
-        if (!empty($delegates)) {
-            $query->whereIn('delegate', $delegates);
-        }
-
-        if ($specialCases !== '') {
-            $query->where('special_cases', (bool) $specialCases);
-        }
-
-        if (!empty($specialDescriptions)) {
-            $query->whereIn('special_cases_description', $specialDescriptions);
-        }
-
-        if (!empty($addresses)) {
-            $query->whereIn('current_address', $addresses);
-        }
-
-        if (!empty($associationIds)) {
-            $query->whereIn('association_id', $associationIds);
-        }
-
-        if (!empty($networks)) {
-            $query->whereIn('network', $networks);
-        }
+        $query = $this->buildFilteredQuery($request)->with(['verificationStatus', 'representative', 'paymentInfo', 'fieldVisits.status']);
 
         $totalAmount          = $query->sum('estimated_amount');
-        $members              = $query->latest()->paginate(20)->withQueryString();
+        $members              = $query->orderByRaw('CAST(dossier_number AS UNSIGNED) ASC')->paginate(20)->withQueryString();
 
         // Collect duplicate IBANs for warning indicator
         $duplicateIbans = DB::table('payment_info')
@@ -133,14 +134,27 @@ class MemberController extends Controller
                                          ->orderBy('current_address')
                                          ->pluck('current_address');
 
-        $associationList = Association::active()->orderBy('name')->get();
+        $associationList      = Association::active()->orderBy('name')->get();
+        $fieldVisitStatuses   = FieldVisitStatus::active()->orderBy('id')->get();
 
         return view('members.index', compact(
             'members', 'search', 'dossierFrom', 'dossierTo', 'totalAmount',
             'verificationIds', 'finalStatusIds', 'maritalStatuses', 'genders', 'delegates', 'specialCases', 'specialDescriptions', 'addresses', 'associationIds', 'networks',
             'verificationStatuses', 'finalStatusList', 'maritalStatusList', 'delegateList', 'specialDescriptionList', 'addressList', 'associationList',
-            'duplicateIbans'
+            'duplicateIbans', 'fieldVisitStatuses'
         ));
+    }
+
+    public function export(Request $request)
+    {
+        $query = $this->buildFilteredQuery($request)
+            ->orderByRaw('CAST(dossier_number AS UNSIGNED) ASC');
+
+        $filename = 'أعضاء-مسالك-النور-' . now()->format('Y-m-d') . '.xlsx';
+
+        ActivityLogger::log('exported', 'تصدير قائمة الأعضاء إلى Excel');
+
+        return Excel::download(new MembersExport($query), $filename);
     }
 
     public function create()
@@ -151,9 +165,10 @@ class MemberController extends Controller
 
     public function show(Member $member)
     {
-        $member->load(['scores', 'paymentInfo', 'paymentInfoAI', 'association', 'associations', 'verificationStatus', 'representative', 'images.uploader']);
+        $member->load(['scores', 'paymentInfo', 'paymentInfoAI', 'association', 'associations', 'verificationStatus', 'representative', 'images.uploader', 'fieldVisits.status']);
+        $fieldVisitStatuses = \App\Models\FieldVisitStatus::active()->orderBy('id')->get();
         ActivityLogger::log('viewed', "عرض بيانات المستفيد: {$member->full_name}", $member);
-        return view('members.show', compact('member'));
+        return view('members.show', compact('member', 'fieldVisitStatuses'));
     }
 
     // ── Bulk Amount Editor ─────────────────────────────────────────────
@@ -195,7 +210,8 @@ class MemberController extends Controller
         if ($hasAmount === '0')           $query->where(fn($q) => $q->whereNull('estimated_amount')->orWhere('estimated_amount', 0));
         if (!empty($genders))             $query->whereIn('gender', $genders);
         if (!empty($associationIds))      $query->whereIn('association_id', $associationIds);
-        if ($specialCases !== '')         $query->where('special_cases', (bool) $specialCases);
+        if ($specialCases === '1')         $query->where('special_cases', true);
+        elseif ($specialCases === '0')    $query->where(function ($q) { $q->where('special_cases', false)->orWhereNull('special_cases'); });
         if (!empty($specialDescriptions)) $query->whereIn('special_cases_description', $specialDescriptions);
         if (!empty($delegates))           $query->whereIn('delegate', $delegates);
 
@@ -209,9 +225,11 @@ class MemberController extends Controller
                                 ->orderBy('dossier_number')
                                 ->paginate(60)->withQueryString();
 
-        $totalCount  = (clone $base)->count();
-        $withAmount  = (clone $base)->whereNotNull('estimated_amount')->where('estimated_amount', '>', 0)->count();
-        $totalAmount = (clone $base)->sum('estimated_amount');
+        $totalCount       = (clone $base)->count();
+        $withAmount       = (clone $base)->whereNotNull('estimated_amount')->where('estimated_amount', '>', 0)->count();
+        $totalAmount      = (clone $base)->sum('estimated_amount');
+        $withFinalAmount  = (clone $base)->whereNotNull('final_amount')->where('final_amount', '>', 0)->count();
+        $totalFinalAmount = (clone $base)->sum('final_amount');
 
         $verificationStatuses   = VerificationStatus::active()->orderBy('name')->get();
         $finalStatusList        = FinalStatus::active()->orderBy('name')->get();
@@ -233,6 +251,7 @@ class MemberController extends Controller
             'members', 'verificationStatuses', 'finalStatusList', 'addressList',
             'associationList', 'delegateList', 'specialDescriptionList',
             'totalCount', 'withAmount', 'totalAmount',
+            'withFinalAmount', 'totalFinalAmount',
             'dossierFrom', 'dossierTo'
         ));
     }
@@ -240,12 +259,14 @@ class MemberController extends Controller
     public function bulkAmountApply(Request $request)
     {
         $request->validate([
+            'field'      => 'required|in:estimated_amount,final_amount',
             'operation'  => 'required|in:add,subtract,set',
             'amount'     => 'required|numeric|min:0',
             'apply_to'   => 'required|in:selected,filtered',
             'member_ids' => 'array',
         ]);
 
+        $field     = $request->field;
         $amount    = (float) $request->amount;
         $operation = $request->operation;
         $applyTo   = $request->apply_to;
@@ -262,7 +283,8 @@ class MemberController extends Controller
 
         $amtFmt = number_format($amount, 0);
         $operationLabels = ['add' => 'إضافة', 'subtract' => 'طرح', 'set' => 'تعيين'];
-        $label = "{$operationLabels[$operation]} {$amtFmt} ل.س — {$count} عضو";
+        $fieldLabels = ['estimated_amount' => 'المبلغ المقدر', 'final_amount' => 'المبلغ النهائي'];
+        $label = "{$operationLabels[$operation]} {$amtFmt} ل.س على {$fieldLabels[$field]} — {$count} عضو";
 
         if (!$this->isAdmin()) {
             // Resolve member IDs now so the apply() can replay exactly the same set later
@@ -272,6 +294,7 @@ class MemberController extends Controller
                 'model_id'     => null,
                 'action'       => 'bulk_amount',
                 'payload'      => [
+                    'field'      => $field,
                     'operation'  => $operation,
                     'amount'     => $amount,
                     'member_ids' => $memberIds,
@@ -287,16 +310,16 @@ class MemberController extends Controller
 
         switch ($operation) {
             case 'add':
-                $query->update(['estimated_amount' => DB::raw('COALESCE(estimated_amount, 0) + ' . $amount)]);
+                $query->update([$field => DB::raw('COALESCE(' . $field . ', 0) + ' . $amount)]);
                 break;
             case 'subtract':
-                $query->update(['estimated_amount' => DB::raw('GREATEST(COALESCE(estimated_amount, 0) - ' . $amount . ', 0)')]);
+                $query->update([$field => DB::raw('GREATEST(COALESCE(' . $field . ', 0) - ' . $amount . ', 0)')]);
                 break;
             default: // set
-                $query->update(['estimated_amount' => $amount]);
+                $query->update([$field => $amount]);
         }
 
-        ActivityLogger::log('updated', "تعديل جماعي للمبلغ المقدر: {$label}");
+        ActivityLogger::log('updated', "تعديل جماعي للمبالغ: {$label}");
 
         return back()->with('success', "تم {$label} بنجاح.");
     }
@@ -320,13 +343,15 @@ class MemberController extends Controller
         ];
 
         $payment = [
-            'iban'    => $request->input('iban'),
-            'barcode' => $request->input('barcode'),
+            'iban'           => $request->input('iban'),
+            'barcode'        => $request->input('barcode'),
+            'recipient_name' => $request->input('recipient_name'),
         ];
 
         $paymentAI = [
-            'iban'    => $request->input('iban_ai'),
-            'barcode' => $request->input('barcode_ai'),
+            'iban'           => $request->input('iban_ai'),
+            'barcode'        => $request->input('barcode_ai'),
+            'recipient_name' => $request->input('recipient_name_ai'),
         ];
 
         if ($request->hasFile('iban_image')) {
@@ -360,6 +385,7 @@ class MemberController extends Controller
             'special_cases'             => $request->boolean('special_cases'),
             'special_cases_description' => $request->input('special_cases_description'),
             'sham_cash_account'         => in_array($request->input('sham_cash_account'), ['done','manual']) ? $request->input('sham_cash_account') : null,
+            'final_amount'              => $request->input('final_amount') ?: null,
             'other_association'         => !empty($request->association_ids),
             'representative_id'         => $request->input('representative_id'),
             'delegate'                  => $request->input('delegate'),
@@ -381,7 +407,7 @@ class MemberController extends Controller
                 'job', 'housing_status', 'dependents_count', 'illness_details',
                 'special_cases', 'special_cases_description', 'sham_cash_account',
                 'other_association', 'representative_id', 'delegate', 'association_id',
-                'score', 'estimated_amount',
+                'score', 'estimated_amount', 'final_amount',
             ]),
             [
                 'scores' => $member->scores?->only([
@@ -389,9 +415,9 @@ class MemberController extends Controller
                     'dependent_status_score', 'illness_score', 'special_cases_score', 'total_score',
                 ]) ?? [],
                 'payment' => $member->paymentInfo?->only([
-                    'iban', 'barcode', 'iban_image', 'barcode_image',
+                    'iban', 'barcode', 'iban_image', 'barcode_image', 'recipient_name',
                 ]) ?? [],
-                'payment_ai' => $member->paymentInfoAI?->only(['iban', 'barcode']) ?? [],
+                'payment_ai' => $member->paymentInfoAI?->only(['iban', 'barcode', 'recipient_name']) ?? [],
             ]
         );
     }
@@ -428,14 +454,17 @@ class MemberController extends Controller
             'dependent_status_score'     => 'nullable|integer|min:0|max:2',
             'illness_score'              => 'nullable|integer|min:0|max:5',
             'special_cases_score'        => 'nullable|integer|min:0|max:10',
+            'final_amount'               => 'nullable|numeric|min:0',
             // payment
             'iban'                       => 'nullable|string|max:50',
             'barcode'                    => 'nullable|string|max:100',
             'iban_image'                 => 'nullable|image|max:2048',
             'barcode_image'              => 'nullable|image|max:2048',
+            'recipient_name'             => 'nullable|string|max:150',
             // payment AI
             'iban_ai'                    => 'nullable|string|max:50',
             'barcode_ai'                 => 'nullable|string|max:100',
+            'recipient_name_ai'          => 'nullable|string|max:150',
         ]);
 
         if (!$this->isAdmin()) {
@@ -488,6 +517,7 @@ class MemberController extends Controller
             'sham_cash_account'          => $request->boolean('sham_cash_account'),
             'score'                      => $totalScore,
             'estimated_amount'           => $totalScore * 500,
+            'final_amount'               => $request->input('final_amount') ?: null,
         ]);
 
         MemberScore::create([
@@ -512,17 +542,19 @@ class MemberController extends Controller
         }
 
         PaymentInfo::create([
-            'member_id'     => $member->id,
-            'iban'          => $request->input('iban'),
-            'barcode'       => $request->input('barcode'),
-            'iban_image'    => $ibanImagePath,
-            'barcode_image' => $barcodeImagePath,
+            'member_id'      => $member->id,
+            'iban'           => $request->input('iban'),
+            'barcode'        => $request->input('barcode'),
+            'iban_image'     => $ibanImagePath,
+            'barcode_image'  => $barcodeImagePath,
+            'recipient_name' => $request->input('recipient_name'),
         ]);
 
         PaymentInfoAI::create([
-            'member_id' => $member->id,
-            'iban'      => $request->input('iban_ai'),
-            'barcode'   => $request->input('barcode_ai'),
+            'member_id'      => $member->id,
+            'iban'           => $request->input('iban_ai'),
+            'barcode'        => $request->input('barcode_ai'),
+            'recipient_name' => $request->input('recipient_name_ai'),
         ]);
 
         $member->associations()->sync($request->input('association_ids', []));
@@ -570,13 +602,16 @@ class MemberController extends Controller
             'dependent_status_score'     => 'nullable|integer|min:0|max:2',
             'illness_score'              => 'nullable|integer|min:0|max:5',
             'special_cases_score'        => 'nullable|integer|min:0|max:10',
+            'final_amount'               => 'nullable|numeric|min:0',
             'iban'                       => 'nullable|string|max:50',
             'barcode'                    => 'nullable|string|max:100',
             'iban_image'                 => 'nullable|image|max:2048',
             'barcode_image'              => 'nullable|image|max:2048',
+            'recipient_name'             => 'nullable|string|max:150',
             // payment AI
             'iban_ai'                    => 'nullable|string|max:50',
             'barcode_ai'                 => 'nullable|string|max:100',
+            'recipient_name_ai'          => 'nullable|string|max:150',
         ]);
 
         if (!$this->isAdmin()) {
@@ -630,6 +665,7 @@ class MemberController extends Controller
             'sham_cash_account'          => $request->boolean('sham_cash_account'),
             'score'                      => $totalScore,
             'estimated_amount'           => $totalScore * 500,
+            'final_amount'               => $request->input('final_amount') ?: null,
         ]);
 
         $scores = $member->scores ?? new MemberScore(['member_id' => $member->id]);
@@ -654,16 +690,18 @@ class MemberController extends Controller
         }
 
         $payment->fill([
-            'member_id' => $member->id,
-            'iban'      => $request->input('iban'),
-            'barcode'   => $request->input('barcode'),
+            'member_id'      => $member->id,
+            'iban'           => $request->input('iban'),
+            'barcode'        => $request->input('barcode'),
+            'recipient_name' => $request->input('recipient_name'),
         ])->save();
 
         $paymentAI = $member->paymentInfoAI ?? new PaymentInfoAI(['member_id' => $member->id]);
         $paymentAI->fill([
-            'member_id' => $member->id,
-            'iban'      => $request->input('iban_ai'),
-            'barcode'   => $request->input('barcode_ai'),
+            'member_id'      => $member->id,
+            'iban'           => $request->input('iban_ai'),
+            'barcode'        => $request->input('barcode_ai'),
+            'recipient_name' => $request->input('recipient_name_ai'),
         ])->save();
 
         $member->associations()->sync($request->input('association_ids', []));
@@ -694,6 +732,119 @@ class MemberController extends Controller
         $member->delete();
         ActivityLogger::log('deleted', "حذف المستفيد: {$name}");
         return redirect()->route('members.index')->with('success', 'تم حذف المستفيد بنجاح.');
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        if ($request->boolean('select_all')) {
+            $ids = $this->buildFilteredQuery($request)->pluck('id')->toArray();
+        } else {
+            $ids = array_filter((array) $request->input('ids', []));
+        }
+
+        if (empty($ids)) {
+            return redirect()->route('members.index')->with('success', 'لم يتم تحديد أي عضو.');
+        }
+
+        if ($this->isAdmin()) {
+            $members = Member::whereIn('id', $ids)->get();
+            foreach ($members as $member) {
+                ActivityLogger::log('deleted', "حذف المستفيد: {$member->full_name}");
+                $member->delete();
+            }
+            return redirect()->route('members.index')->with('success', "تم حذف {$members->count()} عضو بنجاح.");
+        }
+
+        $names = Member::whereIn('id', $ids)->limit(5)->pluck('full_name')->toArray();
+
+        PendingChange::create([
+            'model_type'   => 'member',
+            'model_id'     => null,
+            'action'       => 'bulk_delete',
+            'payload'      => ['member_ids' => $ids, 'count' => count($ids), 'names_preview' => $names],
+            'original'     => null,
+            'requested_by' => Auth::id(),
+            'status'       => 'pending',
+        ]);
+
+        ActivityLogger::log('requested', 'طلب حذف جماعي لـ ' . count($ids) . ' مستفيد بانتظار موافقة المسؤول');
+        return redirect()->route('members.index')->with('pending', 'تم إرسال طلب الحذف الجماعي — بانتظار موافقة المسؤول.');
+    }
+
+    public function bulkUpdate(Request $request)
+    {
+        $fields = array_filter((array) $request->input('apply_fields', []));
+
+        if ($request->boolean('select_all')) {
+            $ids = $this->buildFilteredQuery($request)->pluck('id')->toArray();
+        } else {
+            $ids = array_filter((array) $request->input('ids', []));
+        }
+
+        if (empty($ids)) {
+            return redirect()->route('members.index')->with('success', 'لم يتم تحديد أي عضو.');
+        }
+
+        if (empty($fields)) {
+            return redirect()->route('members.index')->with('success', 'لم يتم تحديد أي حقل للتعديل.');
+        }
+
+        $allowed = ['network', 'marital_status', 'sham_cash_account', 'verification_status_id', 'final_status_id', 'estimated_amount', 'final_amount', 'field_visit_status_id'];
+        $data    = [];
+
+        foreach ($fields as $field) {
+            if (!in_array($field, $allowed)) continue;
+            $value = $request->input("fields.{$field}");
+            if ($field === 'sham_cash_account') {
+                $data[$field] = in_array($value, ['done', 'manual']) ? $value : null;
+            } elseif (in_array($field, ['verification_status_id', 'final_status_id', 'field_visit_status_id'])) {
+                $data[$field] = $value ?: null;
+            } elseif (in_array($field, ['estimated_amount', 'final_amount'])) {
+                $data[$field] = $value !== '' && $value !== null ? (float) $value : null;
+            } else {
+                $data[$field] = $value ?: null;
+            }
+        }
+
+        if (empty($data)) {
+            return redirect()->route('members.index')->with('success', 'لم يتم تحديد أي حقل للتعديل.');
+        }
+
+        if ($this->isAdmin()) {
+            // Handle field_visit_status_id separately (stored in field_visits table)
+            if (array_key_exists('field_visit_status_id', $data)) {
+                $fvsId = $data['field_visit_status_id'];
+                unset($data['field_visit_status_id']);
+                foreach ($ids as $memberId) {
+                    $visit = FieldVisit::where('member_id', $memberId)->latest()->first();
+                    if ($visit) {
+                        $visit->update(['field_visit_status_id' => $fvsId]);
+                    } else {
+                        FieldVisit::create(['member_id' => $memberId, 'field_visit_status_id' => $fvsId]);
+                    }
+                }
+            }
+            if (!empty($data)) {
+                Member::whereIn('id', $ids)->update($data);
+            }
+            ActivityLogger::log('updated', "تعديل جماعي على " . count($ids) . " مستفيد: " . implode(', ', array_keys(array_merge($data, array_key_exists('field_visit_status_id', $data ?? []) ? ['field_visit_status_id' => ''] : []))));
+            return redirect()->route('members.index')->with('success', "تم تعديل " . count($ids) . " عضو بنجاح.");
+        }
+
+        $names = Member::whereIn('id', $ids)->limit(5)->pluck('full_name')->toArray();
+
+        PendingChange::create([
+            'model_type'   => 'member',
+            'model_id'     => null,
+            'action'       => 'bulk_update',
+            'payload'      => ['member_ids' => $ids, 'count' => count($ids), 'fields' => $data, 'names_preview' => $names],
+            'original'     => null,
+            'requested_by' => Auth::id(),
+            'status'       => 'pending',
+        ]);
+
+        ActivityLogger::log('requested', 'طلب تعديل جماعي لـ ' . count($ids) . ' مستفيد بانتظار موافقة المسؤول');
+        return redirect()->route('members.index')->with('pending', 'تم إرسال طلب التعديل الجماعي — بانتظار موافقة المسؤول.');
     }
 
     public function updateFinalStatus(Request $request, Member $member)

@@ -202,7 +202,7 @@
 
             @if($delegateList->isNotEmpty())
             <div>
-                <label class="block text-xs font-semibold text-gray-500 mb-1.5">المندوب الخارجي</label>
+                <label class="block text-xs font-semibold text-gray-500 mb-1.5">المندوب</label>
                 <div class="border border-gray-200 rounded-xl bg-gray-50 px-3 py-2 max-h-32 overflow-y-auto space-y-1">
                     @foreach($delegateList as $d)
                         <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700 hover:text-gray-900">

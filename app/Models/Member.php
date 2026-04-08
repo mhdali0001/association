@@ -13,7 +13,7 @@ class Member extends Model
         'representative_id', 'delegate', 'network', 'provider_status', 'job',
         'housing_status', 'dependents_count', 'illness_details',
         'special_cases', 'special_cases_description', 'score',
-        'estimated_amount', 'sham_cash_account', 'association_id',
+        'estimated_amount', 'final_amount', 'sham_cash_account', 'association_id',
     ];
 
     protected $casts = [
@@ -21,6 +21,7 @@ class Member extends Model
         'special_cases'     => 'boolean',
         // sham_cash_account is enum('done','manual') nullable — no cast needed
         'estimated_amount'  => 'decimal:2',
+        'final_amount'      => 'decimal:2',
     ];
 
     public function representative()
@@ -71,5 +72,10 @@ class Member extends Model
     public function images()
     {
         return $this->hasMany(MemberImage::class)->latest();
+    }
+
+    public function fieldVisits()
+    {
+        return $this->hasMany(\App\Models\FieldVisit::class)->latest();
     }
 }

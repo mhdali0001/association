@@ -12,4 +12,9 @@ class VerificationStatus extends Model
     {
         return $query->where('is_active', true);
     }
+
+    public function members()
+    {
+        return $this->hasMany(Member::class);
+    }
 }

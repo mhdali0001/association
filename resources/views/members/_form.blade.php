@@ -103,7 +103,7 @@
         </div>
 
         <div>
-            <label class="{{ $labelClass }}">المندوب</label>
+            <label class="{{ $labelClass }}">المدخل</label>
             <select name="representative_id" class="{{ $selectClass }}">
                 <option value="">— غير محدد —</option>
                 @foreach($representatives as $rep)
@@ -116,9 +116,9 @@
         </div>
 
         <div>
-            <label class="{{ $labelClass }}">مندوب خارجي</label>
+            <label class="{{ $labelClass }}">مندوب</label>
             <input type="text" name="delegate" value="{{ $v('delegate') }}"
-                   placeholder="اسم المندوب الخارجي"
+                   placeholder="اسم المندوب"
                    class="{{ $inputClass }}">
         </div>
 
@@ -346,6 +346,13 @@
                    class="w-full border border-blue-200 bg-gradient-to-l from-blue-50 to-indigo-50 text-blue-700 font-black rounded-xl px-4 py-2.5 cursor-not-allowed text-center">
         </div>
 
+        <div>
+            <label class="{{ $labelClass }}">المبلغ النهائي <span class="text-purple-500 normal-case font-medium">(× 500 ل.س)</span></label>
+            <input type="number" step="0.01" id="field_final_amount" name="final_amount"
+                   value="{{ old('final_amount', $isEdit ? $member->final_amount : '') }}"
+                   class="w-full border border-purple-200 rounded-xl px-4 py-2.5 text-center focus:outline-none focus:ring-2 focus:ring-purple-300">
+        </div>
+
     </div>
 </div>
 
@@ -450,6 +457,13 @@
                    class="{{ $inputClass }} font-mono">
         </div>
 
+        <div class="md:col-span-2">
+            <label class="{{ $labelClass }}">اسم المستلم</label>
+            <input type="text" name="recipient_name" value="{{ old('recipient_name', $payment?->recipient_name) }}"
+                   placeholder="الاسم الكامل للشخص المستلم"
+                   class="{{ $inputClass }}">
+        </div>
+
         <div>
             <label class="{{ $labelClass }}">صورة الآيبان</label>
             <input type="file" name="iban_image" accept="image/*"
@@ -503,6 +517,13 @@
             <label class="{{ $labelClass }}">الباركود AI</label>
             <input type="text" name="barcode_ai" value="{{ old('barcode_ai', $paymentAI?->barcode) }}"
                    class="{{ $inputClass }} font-mono">
+        </div>
+
+        <div class="md:col-span-2">
+            <label class="{{ $labelClass }}">اسم المستلم AI</label>
+            <input type="text" name="recipient_name_ai" value="{{ old('recipient_name_ai', $paymentAI?->recipient_name) }}"
+                   placeholder="الاسم الكامل للشخص المستلم"
+                   class="{{ $inputClass }}">
         </div>
 
     </div>

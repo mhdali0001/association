@@ -1,11 +1,11 @@
 @extends('layouts.app')
 
-@section('title', 'تعديل المبالغ المقدرة — مسالك النور')
+@section('title', 'تعديل المبالغ — مسالك النور')
 
 @section('breadcrumb')
     <a href="{{ route('members.index') }}" class="text-emerald-600 hover:underline">الأعضاء</a>
     <span class="mx-2 text-gray-400">/</span>
-    <span class="text-gray-700">تعديل المبالغ المقدرة</span>
+    <span class="text-gray-700">تعديل المبالغ</span>
 @endsection
 
 @section('content')
@@ -28,8 +28,8 @@
     </div>
     <div class="relative flex items-start justify-between gap-4 flex-wrap">
         <div>
-            <h1 class="text-2xl font-black text-white">تعديل المبالغ المقدرة</h1>
-            <p class="text-purple-100 text-sm mt-0.5">تعديل جماعي للمبلغ المقدر دون تغيير الدرجات</p>
+            <h1 class="text-2xl font-black text-white">تعديل المبالغ</h1>
+            <p class="text-purple-100 text-sm mt-0.5">تعديل جماعي للمبلغ المقدر أو النهائي دون تغيير الدرجات</p>
         </div>
         <div class="flex gap-3 flex-wrap">
             <div class="bg-white/15 border border-white/25 rounded-xl px-4 py-2.5 text-center min-w-[90px]">
@@ -38,11 +38,19 @@
             </div>
             <div class="bg-white/15 border border-white/25 rounded-xl px-4 py-2.5 text-center min-w-[90px]">
                 <p class="text-white font-black text-2xl leading-none">{{ $fmt($withAmount) }}</p>
-                <p class="text-purple-200 text-xs mt-0.5">لديهم مبلغ</p>
+                <p class="text-purple-200 text-xs mt-0.5">لديهم مقدر</p>
             </div>
             <div class="bg-white/15 border border-white/25 rounded-xl px-4 py-2.5 text-center min-w-[140px]">
                 <p class="text-white font-black text-xl leading-none">{{ $fmt($totalAmount) }}</p>
-                <p class="text-purple-200 text-xs mt-0.5">مجموع المبالغ (ل.س)</p>
+                <p class="text-purple-200 text-xs mt-0.5">مجموع المقدر (ل.س)</p>
+            </div>
+            <div class="bg-white/15 border border-white/25 rounded-xl px-4 py-2.5 text-center min-w-[90px]">
+                <p class="text-white font-black text-2xl leading-none">{{ $fmt($withFinalAmount) }}</p>
+                <p class="text-purple-200 text-xs mt-0.5">لديهم نهائي</p>
+            </div>
+            <div class="bg-white/15 border border-white/25 rounded-xl px-4 py-2.5 text-center min-w-[140px]">
+                <p class="text-white font-black text-xl leading-none">{{ $fmt($totalFinalAmount) }}</p>
+                <p class="text-purple-200 text-xs mt-0.5">مجموع النهائي (ل.س)</p>
             </div>
         </div>
     </div>
@@ -267,7 +275,7 @@
             {{-- Delegate --}}
             @if($delegateList->isNotEmpty())
             <div class="lg:col-span-3">
-                <label class="block text-xs font-semibold text-gray-500 mb-1.5">المندوب الخارجي</label>
+                <label class="block text-xs font-semibold text-gray-500 mb-1.5">المندوب</label>
                 <div class="border border-gray-200 rounded-xl bg-gray-50 px-3 py-2 max-h-28 overflow-y-auto flex flex-wrap gap-x-4 gap-y-1">
                     @foreach($delegateList as $d)
                         <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700 hover:text-gray-900">
@@ -349,7 +357,8 @@
                             <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">حالة التحقق</th>
                             <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5 hidden md:table-cell">الشبكة</th>
                             <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5 hidden md:table-cell">العنوان</th>
-                            <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">المبلغ المقدر الحالي</th>
+                            <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">المبلغ المقدر</th>
+                            <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">المبلغ النهائي</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-50">
@@ -394,7 +403,17 @@
                                         <span class="text-xs font-normal text-emerald-500">ل.س</span>
                                     </span>
                                 @else
-                                    <span class="text-sm text-gray-300 italic">لا يوجد</span>
+                                    <span class="text-sm text-gray-300 italic">—</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3.5">
+                                @if($member->final_amount)
+                                    <span class="inline-flex items-center gap-1 text-sm font-bold text-purple-700 bg-purple-50 border border-purple-100 rounded-lg px-2.5 py-1">
+                                        {{ $fmt($member->final_amount) }}
+                                        <span class="text-xs font-normal text-purple-400">ل.س</span>
+                                    </span>
+                                @else
+                                    <span class="text-sm text-gray-300 italic">—</span>
                                 @endif
                             </td>
                         </tr>
@@ -429,6 +448,23 @@
                         <span class="text-xs font-normal text-gray-400">/ {{ $members->count() }} في الصفحة</span>
                     </p>
                 </div>
+            </div>
+
+            <div class="h-8 w-px bg-gray-200 hidden sm:block shrink-0"></div>
+
+            {{-- Field --}}
+            <div class="flex items-center gap-1 bg-gray-100 rounded-xl p-1 shrink-0">
+                @foreach(['estimated_amount' => ['label' => 'المقدر', 'color' => 'emerald'], 'final_amount' => ['label' => 'النهائي', 'color' => 'purple']] as $fld => $fmeta)
+                <label class="field-label flex items-center cursor-pointer">
+                    <input type="radio" name="field" value="{{ $fld }}"
+                           class="sr-only peer" {{ $fld === 'estimated_amount' ? 'checked' : '' }}>
+                    <span class="px-3 py-1.5 rounded-lg text-sm font-semibold text-gray-500
+                                 peer-checked:bg-white peer-checked:text-{{ $fmeta['color'] }}-700 peer-checked:shadow-sm
+                                 hover:text-gray-700 transition-all select-none">
+                        {{ $fmeta['label'] }}
+                    </span>
+                </label>
+                @endforeach
             </div>
 
             <div class="h-8 w-px bg-gray-200 hidden sm:block shrink-0"></div>
@@ -549,12 +585,16 @@ function confirmApply(type) {
         return false;
     }
 
+    var fldEl  = document.querySelector('input[name="field"]:checked');
+    var fldMap = { estimated_amount: 'المبلغ المقدر', final_amount: 'المبلغ النهائي' };
+    var fld    = fldEl ? (fldMap[fldEl.value] || fldEl.value) : '?';
+
     var opEl  = document.querySelector('input[name="operation"]:checked');
     var opMap = { add: 'إضافة', subtract: 'طرح', set: 'تعيين' };
     var op    = opEl ? opMap[opEl.value] : '?';
     var cnt   = type === 'selected' ? selectedCount : {{ $totalCount }};
 
-    return confirm('هل أنت متأكد؟\n\nالعملية: ' + op + ' ' + parseFloat(amount).toLocaleString() + ' ل.س\nعدد الأعضاء: ' + cnt);
+    return confirm('هل أنت متأكد؟\n\nالحقل: ' + fld + '\nالعملية: ' + op + ' ' + parseFloat(amount).toLocaleString() + ' ل.س\nعدد الأعضاء: ' + cnt);
 }
 
 // init

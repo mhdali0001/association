@@ -69,40 +69,67 @@
         </form>
 
         {{-- Filter buttons --}}
-        <div class="flex items-center gap-2 flex-wrap">
-            <span class="text-xs font-semibold text-gray-400 ml-1">حالة المراجعة:</span>
+        <div class="space-y-3">
 
-            @php
-            $filterOptions = [
-                'all'      => ['label' => 'الكل',           'count' => $totalCount,    'active' => 'bg-gray-800 text-white border-gray-800',             'inactive' => 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'],
-                'pending'  => ['label' => 'لم يُراجَع',     'count' => $pendingCount,  'active' => 'bg-amber-500 text-white border-amber-500',            'inactive' => 'bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-400'],
-                'reviewed' => ['label' => 'تمت المراجعة',   'count' => $reviewedCount, 'active' => 'bg-blue-500 text-white border-blue-500',              'inactive' => 'bg-blue-50 text-blue-700 border-blue-200 hover:border-blue-400'],
-                'match'    => ['label' => 'تطابق',           'count' => $matchCount,    'active' => 'bg-emerald-500 text-white border-emerald-500',        'inactive' => 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:border-emerald-400'],
-                'mismatch' => ['label' => 'لا يتطابق',      'count' => $mismatchCount, 'active' => 'bg-red-500 text-white border-red-500',                'inactive' => 'bg-red-50 text-red-600 border-red-200 hover:border-red-400'],
-            ];
-            @endphp
+            {{-- Group 1: Review status --}}
+            <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-xs font-semibold text-gray-400 w-20 shrink-0">حالة المراجعة:</span>
+                @php
+                $reviewFilters = [
+                    'all'      => ['label' => 'الكل',           'count' => $totalCount,    'active' => 'bg-gray-800 text-white border-gray-800',           'inactive' => 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'],
+                    'pending'  => ['label' => 'لم يُراجَع',     'count' => $pendingCount,  'active' => 'bg-amber-500 text-white border-amber-500',          'inactive' => 'bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-400'],
+                    'reviewed' => ['label' => 'تمت المراجعة',   'count' => $reviewedCount, 'active' => 'bg-blue-500 text-white border-blue-500',            'inactive' => 'bg-blue-50 text-blue-700 border-blue-200 hover:border-blue-400'],
+                    'match'    => ['label' => 'تطابق ✓',        'count' => $matchCount,    'active' => 'bg-emerald-500 text-white border-emerald-500',      'inactive' => 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:border-emerald-400'],
+                    'mismatch' => ['label' => 'لا يتطابق ✗',    'count' => $mismatchCount, 'active' => 'bg-red-500 text-white border-red-500',              'inactive' => 'bg-red-50 text-red-600 border-red-200 hover:border-red-400'],
+                ];
+                $filterOptions = $reviewFilters;
+                @endphp
+                @foreach($reviewFilters as $key => $opt)
+                    <a href="{{ route('payment-review.index', ['filter' => $key, 'search' => $search]) }}"
+                       class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-bold transition-all {{ $filter === $key ? $opt['active'] : $opt['inactive'] }}">
+                        {{ $opt['label'] }}
+                        <span class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-black
+                            {{ $filter === $key ? 'bg-white/25 text-white' : 'bg-white/60 text-current' }}">
+                            {{ $opt['count'] }}
+                        </span>
+                    </a>
+                @endforeach
+            </div>
 
-            @foreach($filterOptions as $key => $opt)
-                <a href="{{ route('payment-review.index', ['filter' => $key, 'search' => $search]) }}"
-                   class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-bold transition-all {{ $filter === $key ? $opt['active'] : $opt['inactive'] }}">
-                    {{ $opt['label'] }}
-                    <span class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-black
-                        {{ $filter === $key ? 'bg-white/25 text-white' : 'bg-white/60 text-current' }}">
-                        {{ $opt['count'] }}
-                    </span>
-                </a>
-            @endforeach
+            {{-- Group 2: Auto-match (before review) --}}
+            <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-xs font-semibold text-gray-400 w-20 shrink-0">التطابق التلقائي:</span>
+                @php
+                $autoFilters = [
+                    'auto_match'    => ['label' => 'يتطابق تلقائياً',    'count' => $autoMatchCount,    'active' => 'bg-teal-600 text-white border-teal-600',       'inactive' => 'bg-teal-50 text-teal-700 border-teal-200 hover:border-teal-400'],
+                    'auto_mismatch' => ['label' => 'لا يتطابق تلقائياً', 'count' => $autoMismatchCount, 'active' => 'bg-orange-500 text-white border-orange-500',    'inactive' => 'bg-orange-50 text-orange-700 border-orange-200 hover:border-orange-400'],
+                ];
+                @endphp
+                @foreach($autoFilters as $key => $opt)
+                    <a href="{{ route('payment-review.index', ['filter' => $key, 'search' => $search]) }}"
+                       class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-bold transition-all {{ $filter === $key ? $opt['active'] : $opt['inactive'] }}">
+                        {{ $opt['label'] }}
+                        <span class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-black
+                            {{ $filter === $key ? 'bg-white/25 text-white' : 'bg-white/60 text-current' }}">
+                            {{ $opt['count'] }}
+                        </span>
+                    </a>
+                @endforeach
+            </div>
 
-            @if($search || $filter !== 'all')
+        </div>
+
+        @if($search || $filter !== 'all')
+            <div class="flex">
                 <a href="{{ route('payment-review.index') }}"
-                   class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors mr-auto">
+                   class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                     مسح الفلاتر
                 </a>
-            @endif
-        </div>
+            </div>
+        @endif
 
     </div>
 </div>
@@ -118,12 +145,21 @@
             </div>
             <span class="text-sm font-bold text-gray-700">نتائج المراجعة</span>
             @if($filter !== 'all')
-                <span class="text-xs font-bold px-2.5 py-1 rounded-full
-                    {{ $filter === 'pending'  ? 'bg-amber-100 text-amber-700'   : '' }}
-                    {{ $filter === 'reviewed' ? 'bg-blue-100 text-blue-700'     : '' }}
-                    {{ $filter === 'match'    ? 'bg-emerald-100 text-emerald-700' : '' }}
-                    {{ $filter === 'mismatch' ? 'bg-red-100 text-red-600'       : '' }}">
-                    {{ $filterOptions[$filter]['label'] }}
+                @php
+                $allFilterOptions = array_merge($reviewFilters ?? [], $autoFilters ?? []);
+                $filterLabel = $allFilterOptions[$filter]['label'] ?? $filter;
+                $filterBadgeClass = match($filter) {
+                    'pending'       => 'bg-amber-100 text-amber-700',
+                    'reviewed'      => 'bg-blue-100 text-blue-700',
+                    'match'         => 'bg-emerald-100 text-emerald-700',
+                    'mismatch'      => 'bg-red-100 text-red-600',
+                    'auto_match'    => 'bg-teal-100 text-teal-700',
+                    'auto_mismatch' => 'bg-orange-100 text-orange-700',
+                    default         => 'bg-gray-100 text-gray-600',
+                };
+                @endphp
+                <span class="text-xs font-bold px-2.5 py-1 rounded-full {{ $filterBadgeClass }}">
+                    {{ $filterLabel }}
                 </span>
             @endif
         </div>

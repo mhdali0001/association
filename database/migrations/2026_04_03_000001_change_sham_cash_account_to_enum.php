@@ -25,3 +25,4 @@ return new class extends Migration
         DB::statement("ALTER TABLE members CHANGE sham_cash_temp sham_cash_account TINYINT(1) NOT NULL DEFAULT 0");
     }
 };
+

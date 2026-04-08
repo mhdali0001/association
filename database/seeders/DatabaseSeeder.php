@@ -10,9 +10,6 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             UserSeeder::class,
-            MaritalStatusSeeder::class,
-            VerificationStatusSeeder::class,
-            AssociationSeeder::class,
-        ]);
+           ]);
     }
 }

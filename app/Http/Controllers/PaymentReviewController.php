@@ -33,39 +33,43 @@ class PaymentReviewController extends Controller
             $query->where('full_name', 'like', "%{$search}%");
         }
 
-        $members = $query->get();
-
-        // Annotate each member with auto-match result
-        $members = $members->map(function ($member) {
-            $pi  = $member->paymentInfo;
-            $ai  = $member->paymentInfoAI;
+        // Annotate all members with auto-match result
+        $allAnnotated = $query->get()->map(function ($member) {
+            $pi     = $member->paymentInfo;
+            $ai     = $member->paymentInfoAI;
+            $piIban = str_replace(' ', '', $pi->iban ?? '');
+            $aiIban = str_replace(' ', '', $ai->iban ?? '');
             $member->auto_match = $pi && $ai
-                && trim($pi->iban ?? '') !== ''
-                && trim($ai->iban ?? '') !== ''
-                && trim($pi->iban) === trim($ai->iban);
+                && $piIban !== ''
+                && $aiIban !== ''
+                && $piIban === $aiIban;
             return $member;
         });
 
+        // Stats (before filter)
+        $totalCount         = $allAnnotated->count();
+        $pendingCount       = $allAnnotated->filter(fn($m) => !$m->paymentReview || $m->paymentReview->isPending())->count();
+        $reviewedCount      = $allAnnotated->filter(fn($m) => $m->paymentReview && !$m->paymentReview->isPending())->count();
+        $matchCount         = $allAnnotated->filter(fn($m) => $m->paymentReview && $m->paymentReview->isMatch())->count();
+        $mismatchCount      = $allAnnotated->filter(fn($m) => $m->paymentReview && $m->paymentReview->isMismatch())->count();
+        $autoMatchCount     = $allAnnotated->filter(fn($m) => $m->auto_match)->count();
+        $autoMismatchCount  = $allAnnotated->filter(fn($m) => !$m->auto_match)->count();
+
         // Apply filter
         $members = match ($filter) {
-            'pending'  => $members->filter(fn($m) => !$m->paymentReview || $m->paymentReview->isPending()),
-            'reviewed' => $members->filter(fn($m) => $m->paymentReview && !$m->paymentReview->isPending()),
-            'match'    => $members->filter(fn($m) => $m->paymentReview && $m->paymentReview->isMatch()),
-            'mismatch' => $members->filter(fn($m) => $m->paymentReview && $m->paymentReview->isMismatch()),
-            default    => $members,
+            'pending'       => $allAnnotated->filter(fn($m) => !$m->paymentReview || $m->paymentReview->isPending()),
+            'reviewed'      => $allAnnotated->filter(fn($m) => $m->paymentReview && !$m->paymentReview->isPending()),
+            'match'         => $allAnnotated->filter(fn($m) => $m->paymentReview && $m->paymentReview->isMatch()),
+            'mismatch'      => $allAnnotated->filter(fn($m) => $m->paymentReview && $m->paymentReview->isMismatch()),
+            'auto_match'    => $allAnnotated->filter(fn($m) => $m->auto_match),
+            'auto_mismatch' => $allAnnotated->filter(fn($m) => !$m->auto_match),
+            default         => $allAnnotated,
         };
-
-        // Stats (before filter)
-        $allMembers    = $query->get();
-        $totalCount    = $allMembers->count();
-        $pendingCount  = $allMembers->filter(fn($m) => !$m->paymentReview || $m->paymentReview->isPending())->count();
-        $reviewedCount = $allMembers->filter(fn($m) => $m->paymentReview && !$m->paymentReview->isPending())->count();
-        $matchCount    = $allMembers->filter(fn($m) => $m->paymentReview && $m->paymentReview->isMatch())->count();
-        $mismatchCount = $allMembers->filter(fn($m) => $m->paymentReview && $m->paymentReview->isMismatch())->count();
 
         return view('payment-review.index', compact(
             'members', 'filter', 'search',
-            'totalCount', 'pendingCount', 'reviewedCount', 'matchCount', 'mismatchCount'
+            'totalCount', 'pendingCount', 'reviewedCount', 'matchCount', 'mismatchCount',
+            'autoMatchCount', 'autoMismatchCount'
         ));
     }
 

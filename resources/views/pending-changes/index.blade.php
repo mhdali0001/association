@@ -86,7 +86,7 @@
                             <td class="px-5 py-4 text-gray-400 font-mono text-xs">{{ $change->id }}</td>
                             <td class="px-5 py-4">
                                 @php
-                                    $actionColors = ['create' => 'emerald', 'update' => 'blue', 'delete' => 'red', 'bulk_amount' => 'violet'];
+                                    $actionColors = ['create' => 'emerald', 'update' => 'blue', 'delete' => 'red', 'bulk_amount' => 'violet', 'bulk_delete' => 'rose', 'bulk_update' => 'indigo'];
                                     $ac = $actionColors[$change->action] ?? 'gray';
                                 @endphp
                                 <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-{{ $ac }}-50 text-{{ $ac }}-700 border border-{{ $ac }}-100">

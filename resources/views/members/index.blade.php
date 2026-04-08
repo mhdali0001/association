@@ -32,6 +32,13 @@
                 </svg>
                 استيراد Excel
             </a>
+            <a href="{{ route('members.export', request()->query()) }}"
+               class="flex items-center gap-2 bg-white/15 hover:bg-white/25 border border-white/30 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors backdrop-blur-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                تصدير Excel
+            </a>
             <a href="{{ route('members.duplicates') }}"
                class="flex items-center gap-2 bg-white/15 hover:bg-white/25 border border-white/30 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors backdrop-blur-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -69,16 +76,24 @@
 {{-- Filters --}}
 <div class="bg-white border border-gray-100 rounded-2xl shadow-sm mb-5">
     {{-- Filter header --}}
-    <div class="flex items-center gap-2 px-5 py-3.5 border-b border-gray-100">
-        <div class="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center">
-            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
-            </svg>
+    <button type="button" onclick="toggleFilters()"
+            class="w-full flex items-center justify-between gap-2 px-5 py-3.5 border-b border-gray-100 hover:bg-gray-50 transition-colors text-right">
+        <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center">
+                <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
+                </svg>
+            </div>
+            <span class="text-sm font-bold text-gray-700">الفلاتر والبحث</span>
         </div>
-        <span class="text-sm font-bold text-gray-700">الفلاتر والبحث</span>
-    </div>
+        <svg id="filter-toggle-arrow" class="w-4 h-4 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+        </svg>
+    </button>
 
-    <form method="GET" action="{{ route('members.index') }}" id="filter-form" class="p-5">
+    <div id="filter-body">
+    <form method="GET" action="{{ route('members.index') }}" id="filter-form" class="p-5"
+          onsubmit="removeEmptyFilters(this)">
 
         {{-- Search bar --}}
         <div class="relative mb-4">
@@ -235,7 +250,7 @@
             {{-- Special cases boolean --}}
             <div>
                 <label class="block text-sm font-semibold text-gray-600 mb-1.5">الحالات الخاصة</label>
-                <select name="special_cases"
+                <select name="special_cases" onwheel="this.blur()"
                         class="w-full text-base border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
                                focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:bg-white transition text-gray-500">
                     <option value="">— الكل —</option>
@@ -251,7 +266,7 @@
 
             {{-- Delegate multi-select --}}
             <div class="ms-dropdown relative">
-                <label class="block text-sm font-semibold text-gray-600 mb-1.5">المندوب الخارجي</label>
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">المندوب</label>
                 <button type="button"
                         class="ms-btn w-full flex items-center justify-between text-base border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
                                hover:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 transition text-right">
@@ -269,7 +284,7 @@
                             {{ $d }}
                         </label>
                     @empty
-                        <p class="px-3 py-2 text-xs text-gray-400">لا يوجد مندوبون خارجيون</p>
+                        <p class="px-3 py-2 text-xs text-gray-400">لا يوجد مندوبون</p>
                     @endforelse
                 </div>
             </div>
@@ -382,59 +397,260 @@
 
             {{-- Active filter badges --}}
             @if($hasFilters)
+            @php
+                function badgeRemoveUrl(string $param, $value = null): string {
+                    $q = request()->query();
+                    if ($value === null) {
+                        unset($q[$param]);
+                    } elseif (is_array($q[$param] ?? null)) {
+                        $q[$param] = array_values(array_filter($q[$param], fn($v) => $v != $value));
+                        if (empty($q[$param])) unset($q[$param]);
+                    }
+                    unset($q['page']);
+                    $qs = http_build_query($q);
+                    return request()->url() . ($qs ? '?' . $qs : '');
+                }
+            @endphp
             <div class="flex items-center gap-1.5 flex-wrap mr-auto">
                 @if($search)
-                    <span class="inline-flex items-center gap-1 text-sm bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-3 py-1 font-medium">
+                    <a href="{{ badgeRemoveUrl('search') }}" class="inline-flex items-center gap-1 text-sm bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-3 py-1 font-medium hover:bg-emerald-100 transition-colors">
                         بحث: {{ Str::limit($search, 20) }}
-                    </span>
+                        <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </a>
                 @endif
                 @if($dossierFrom !== '' || $dossierTo !== '')
-                    <span class="inline-flex items-center gap-1 text-sm bg-gray-50 text-gray-700 border border-gray-200 rounded-full px-3 py-1 font-medium font-mono">
+                    <a href="{{ badgeRemoveUrl('dossier_from') . '&' . http_build_query(['dossier_to' => '']) }}" class="inline-flex items-center gap-1 text-sm bg-gray-50 text-gray-700 border border-gray-200 rounded-full px-3 py-1 font-medium font-mono hover:bg-gray-100 transition-colors">
                         اضبارة: {{ $dossierFrom ?: '…' }} — {{ $dossierTo ?: '…' }}
-                    </span>
+                        <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </a>
                 @endif
                 @foreach($verificationIds as $vid)
-                    <span class="inline-flex items-center gap-1 text-sm bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-3 py-1 font-medium">
+                    <a href="{{ badgeRemoveUrl('verification_status_id', $vid) }}" class="inline-flex items-center gap-1 text-sm bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-3 py-1 font-medium hover:bg-blue-100 transition-colors">
                         {{ $verificationStatuses->firstWhere('id', $vid)?->name }}
-                    </span>
+                        <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </a>
                 @endforeach
                 @foreach($finalStatusIds as $fid)
-                    <span class="inline-flex items-center gap-1 text-sm bg-slate-50 text-slate-700 border border-slate-200 rounded-full px-3 py-1 font-medium">
+                    <a href="{{ badgeRemoveUrl('final_status_id', $fid) }}" class="inline-flex items-center gap-1 text-sm bg-slate-50 text-slate-700 border border-slate-200 rounded-full px-3 py-1 font-medium hover:bg-slate-100 transition-colors">
                         {{ $finalStatusList->firstWhere('id', $fid)?->name }}
-                    </span>
+                        <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </a>
                 @endforeach
                 @foreach($maritalStatuses as $ms)
-                    <span class="inline-flex items-center gap-1 text-sm bg-purple-50 text-purple-700 border border-purple-200 rounded-full px-3 py-1 font-medium">{{ $ms }}</span>
+                    <a href="{{ badgeRemoveUrl('marital_status', $ms) }}" class="inline-flex items-center gap-1 text-sm bg-purple-50 text-purple-700 border border-purple-200 rounded-full px-3 py-1 font-medium hover:bg-purple-100 transition-colors">
+                        {{ $ms }}
+                        <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </a>
                 @endforeach
                 @foreach($genders as $g)
-                    <span class="inline-flex items-center gap-1 text-sm bg-orange-50 text-orange-700 border border-orange-200 rounded-full px-3 py-1 font-medium">{{ $g }}</span>
+                    <a href="{{ badgeRemoveUrl('gender', $g) }}" class="inline-flex items-center gap-1 text-sm bg-orange-50 text-orange-700 border border-orange-200 rounded-full px-3 py-1 font-medium hover:bg-orange-100 transition-colors">
+                        {{ $g }}
+                        <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </a>
                 @endforeach
                 @foreach($delegates as $d)
-                    <span class="inline-flex items-center gap-1 text-sm bg-teal-50 text-teal-700 border border-teal-200 rounded-full px-3 py-1 font-medium">{{ $d }}</span>
+                    <a href="{{ badgeRemoveUrl('delegate', $d) }}" class="inline-flex items-center gap-1 text-sm bg-teal-50 text-teal-700 border border-teal-200 rounded-full px-3 py-1 font-medium hover:bg-teal-100 transition-colors">
+                        {{ $d }}
+                        <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </a>
                 @endforeach
                 @if($specialCases !== '')
-                    <span class="inline-flex items-center gap-1 text-sm bg-rose-50 text-rose-700 border border-rose-200 rounded-full px-3 py-1 font-medium">
+                    <a href="{{ badgeRemoveUrl('special_cases') }}" class="inline-flex items-center gap-1 text-sm bg-rose-50 text-rose-700 border border-rose-200 rounded-full px-3 py-1 font-medium hover:bg-rose-100 transition-colors">
                         حالات خاصة: {{ $specialCases === '1' ? 'نعم' : 'لا' }}
-                    </span>
+                        <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </a>
                 @endif
                 @foreach($specialDescriptions as $sd)
-                    <span class="inline-flex items-center gap-1 text-sm bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-3 py-1 font-medium max-w-[200px] truncate">{{ $sd }}</span>
+                    <a href="{{ badgeRemoveUrl('special_cases_description', $sd) }}" class="inline-flex items-center gap-1 text-sm bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-3 py-1 font-medium max-w-[200px] truncate hover:bg-amber-100 transition-colors">
+                        {{ $sd }}
+                        <svg class="w-3 h-3 opacity-60 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </a>
                 @endforeach
                 @foreach($addresses as $addr)
-                    <span class="inline-flex items-center gap-1 text-sm bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full px-3 py-1 font-medium">{{ $addr }}</span>
+                    <a href="{{ badgeRemoveUrl('current_address', $addr) }}" class="inline-flex items-center gap-1 text-sm bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full px-3 py-1 font-medium hover:bg-indigo-100 transition-colors">
+                        {{ $addr }}
+                        <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </a>
                 @endforeach
                 @foreach($associationIds as $aid)
-                    <span class="inline-flex items-center gap-1 text-sm bg-cyan-50 text-cyan-700 border border-cyan-200 rounded-full px-3 py-1 font-medium">
+                    <a href="{{ badgeRemoveUrl('association_id', $aid) }}" class="inline-flex items-center gap-1 text-sm bg-cyan-50 text-cyan-700 border border-cyan-200 rounded-full px-3 py-1 font-medium hover:bg-cyan-100 transition-colors">
                         {{ $associationList->firstWhere('id', $aid)?->name }}
-                    </span>
+                        <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </a>
                 @endforeach
                 @foreach($networks as $net)
-                    <span class="inline-flex items-center gap-1 text-sm bg-violet-50 text-violet-700 border border-violet-200 rounded-full px-3 py-1 font-medium">{{ $net }}</span>
+                    <a href="{{ badgeRemoveUrl('network', $net) }}" class="inline-flex items-center gap-1 text-sm bg-violet-50 text-violet-700 border border-violet-200 rounded-full px-3 py-1 font-medium hover:bg-violet-100 transition-colors">
+                        {{ $net }}
+                        <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </a>
                 @endforeach
             </div>
             @endif
         </div>
     </form>
+    </div>
+</div>
+
+{{-- Bulk Edit --}}
+<div class="bg-white border border-gray-100 rounded-2xl shadow-sm mb-5">
+    <button type="button" onclick="toggleBulkEdit()"
+            class="w-full flex items-center justify-between gap-2 px-5 py-3.5 border-b border-gray-100 hover:bg-gray-50 transition-colors text-right">
+        <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center">
+                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+            </div>
+            <span class="text-sm font-bold text-gray-700">التعديل الجماعي</span>
+            <span class="text-xs text-gray-400 bg-gray-100 rounded-full px-2.5 py-0.5">حدد الأعضاء أولاً من الجدول</span>
+        </div>
+        <svg id="bulk-edit-arrow" class="w-4 h-4 text-gray-400 transition-transform duration-200 rotate-[-90deg]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+        </svg>
+    </button>
+
+    <div id="bulk-edit-body" class="hidden p-5">
+        <form id="bulk-edit-form" method="POST" action="{{ route('members.bulk-update') }}" onsubmit="return injectBulkEditIds()">
+            @csrf
+            @method('PATCH')
+            <div id="bulk-edit-ids-container"></div>
+            <input type="hidden" name="select_all" id="bulk-edit-select-all" value="0">
+            @foreach(request()->except(['page','_token']) as $key => $val)
+                @if(is_array($val))
+                    @foreach($val as $v)
+                        <input type="hidden" name="{{ $key }}[]" value="{{ $v }}">
+                    @endforeach
+                @else
+                    <input type="hidden" name="{{ $key }}" value="{{ $val }}">
+                @endif
+            @endforeach
+
+            <p class="text-xs text-gray-400 mb-4">فعّل الحقول التي تريد تعديلها فقط — الحقول غير المفعّلة لن تُطبَّق.</p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
+
+                {{-- Network --}}
+                <div class="be-field" data-field="network">
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <input type="checkbox" name="apply_fields[]" value="network" class="be-toggle rounded border-gray-300 text-blue-600 focus:ring-blue-400 cursor-pointer" onchange="toggleBulkField(this)">
+                        <label class="text-sm font-semibold text-gray-600 cursor-pointer select-none">نوع الشبكة</label>
+                    </div>
+                    <select name="fields[network]" disabled
+                            class="be-input w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-100 text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
+                        <option value="">— بدون —</option>
+                        <option value="MTN">MTN</option>
+                        <option value="SYRIATEL">SYRIATEL</option>
+                    </select>
+                </div>
+
+                {{-- Marital Status --}}
+                <div class="be-field" data-field="marital_status">
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <input type="checkbox" name="apply_fields[]" value="marital_status" class="be-toggle rounded border-gray-300 text-blue-600 focus:ring-blue-400 cursor-pointer" onchange="toggleBulkField(this)">
+                        <label class="text-sm font-semibold text-gray-600 cursor-pointer select-none">الحالة الاجتماعية</label>
+                    </div>
+                    <select name="fields[marital_status]" disabled
+                            class="be-input w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-100 text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
+                        <option value="">— بدون —</option>
+                        @foreach($maritalStatusList as $ms)
+                            <option value="{{ $ms->name }}">{{ $ms->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Sham Cash --}}
+                <div class="be-field" data-field="sham_cash_account">
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <input type="checkbox" name="apply_fields[]" value="sham_cash_account" class="be-toggle rounded border-gray-300 text-blue-600 focus:ring-blue-400 cursor-pointer" onchange="toggleBulkField(this)">
+                        <label class="text-sm font-semibold text-gray-600 cursor-pointer select-none">شام كاش</label>
+                    </div>
+                    <select name="fields[sham_cash_account]" disabled
+                            class="be-input w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-100 text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
+                        <option value="done">تم</option>
+                        <option value="manual">يدوي</option>
+                        <option value="">لا</option>
+                    </select>
+                </div>
+
+                {{-- Verification Status --}}
+                <div class="be-field" data-field="verification_status_id">
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <input type="checkbox" name="apply_fields[]" value="verification_status_id" class="be-toggle rounded border-gray-300 text-blue-600 focus:ring-blue-400 cursor-pointer" onchange="toggleBulkField(this)">
+                        <label class="text-sm font-semibold text-gray-600 cursor-pointer select-none">حالة التحقق</label>
+                    </div>
+                    <select name="fields[verification_status_id]" disabled
+                            class="be-input w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-100 text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
+                        <option value="">— بدون —</option>
+                        @foreach($verificationStatuses as $vs)
+                            <option value="{{ $vs->id }}">{{ $vs->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Final Status --}}
+                <div class="be-field" data-field="final_status_id">
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <input type="checkbox" name="apply_fields[]" value="final_status_id" class="be-toggle rounded border-gray-300 text-blue-600 focus:ring-blue-400 cursor-pointer" onchange="toggleBulkField(this)">
+                        <label class="text-sm font-semibold text-gray-600 cursor-pointer select-none">الحالة النهائية</label>
+                    </div>
+                    <select name="fields[final_status_id]" disabled
+                            class="be-input w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-100 text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
+                        <option value="">— بدون —</option>
+                        @foreach($finalStatusList as $fs)
+                            <option value="{{ $fs->id }}">{{ $fs->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Field Visit Status --}}
+                <div class="be-field" data-field="field_visit_status_id">
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <input type="checkbox" name="apply_fields[]" value="field_visit_status_id" class="be-toggle rounded border-gray-300 text-blue-600 focus:ring-blue-400 cursor-pointer" onchange="toggleBulkField(this)">
+                        <label class="text-sm font-semibold text-gray-600 cursor-pointer select-none">حالة الجولة الميدانية</label>
+                    </div>
+                    <select name="fields[field_visit_status_id]" disabled
+                            class="be-input w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-100 text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
+                        <option value="">— بدون —</option>
+                        @foreach($fieldVisitStatuses as $fvs)
+                            <option value="{{ $fvs->id }}">{{ $fvs->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Estimated Amount --}}
+                <div class="be-field" data-field="estimated_amount">
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <input type="checkbox" name="apply_fields[]" value="estimated_amount" class="be-toggle rounded border-gray-300 text-blue-600 focus:ring-blue-400 cursor-pointer" onchange="toggleBulkField(this)">
+                        <label class="text-sm font-semibold text-gray-600 cursor-pointer select-none">المبلغ المقدر (ل.س)</label>
+                    </div>
+                    <input type="number" name="fields[estimated_amount]" min="0" disabled placeholder="أدخل المبلغ..."
+                           class="be-input w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-100 text-gray-400 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
+                </div>
+
+                {{-- Final Amount --}}
+                <div class="be-field" data-field="final_amount">
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <input type="checkbox" name="apply_fields[]" value="final_amount" class="be-toggle rounded border-gray-300 text-purple-600 focus:ring-purple-400 cursor-pointer" onchange="toggleBulkField(this)">
+                        <label class="text-sm font-semibold text-gray-600 cursor-pointer select-none">المبلغ النهائي (ل.س)</label>
+                    </div>
+                    <input type="number" name="fields[final_amount]" min="0" step="0.01" disabled placeholder="أدخل المبلغ..."
+                           class="be-input w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-100 text-gray-400 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-400 transition">
+                </div>
+
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button type="submit"
+                        class="flex items-center gap-2 bg-gradient-to-l from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    تطبيق التعديلات على المحددين
+                </button>
+                <span id="bulk-edit-selected-count" class="text-sm text-gray-400"></span>
+            </div>
+        </form>
+    </div>
 </div>
 
 @push('scripts')
@@ -490,6 +706,84 @@ document.addEventListener('DOMContentLoaded', function () {
         p.addEventListener('click', function (e) { e.stopPropagation(); });
     });
 
+    // Bulk select
+    var selectAll    = document.getElementById('select-all');
+    var bulkBar      = document.getElementById('bulk-action-bar');
+    var bulkCount    = document.getElementById('bulk-count');
+    var bulkIdsContainer = document.getElementById('bulk-ids-container');
+
+    function updateBulkBar() {
+        var checked = document.querySelectorAll('.row-checkbox:checked');
+        var all     = document.querySelectorAll('.row-checkbox');
+
+        if (checked.length > 0) {
+            bulkBar.classList.remove('hidden');
+            bulkBar.classList.add('flex');
+            bulkCount.textContent = 'تم تحديد ' + checked.length + ' عضو';
+
+            bulkIdsContainer.innerHTML = '';
+            var editIds = document.getElementById('bulk-edit-ids-container');
+            if (editIds) editIds.innerHTML = '';
+
+            checked.forEach(function(cb) {
+                var inp = document.createElement('input');
+                inp.type = 'hidden'; inp.name = 'ids[]'; inp.value = cb.value;
+                bulkIdsContainer.appendChild(inp);
+
+                if (editIds) {
+                    var inp2 = document.createElement('input');
+                    inp2.type = 'hidden'; inp2.name = 'ids[]'; inp2.value = cb.value;
+                    editIds.appendChild(inp2);
+                }
+            });
+
+            // Show select-all-pages banner only when all on page are checked and there are more pages
+            var banner = document.getElementById('select-all-pages-banner');
+            if (checked.length === all.length && totalMembersCount > pageCount && !allPagesSelected) {
+                banner.classList.remove('hidden');
+                banner.classList.add('flex');
+                var msg = document.getElementById('select-all-pages-msg');
+                msg.textContent = 'تم تحديد ' + pageCount + ' عضو في هذه الصفحة — يوجد ' + totalMembersCount.toLocaleString('ar') + ' عضو إجمالاً.';
+                msg.className = 'text-amber-800 font-medium';
+                document.getElementById('select-all-pages-btn').classList.remove('hidden');
+                document.getElementById('cancel-all-pages-btn').classList.add('hidden');
+            } else if (!allPagesSelected) {
+                banner.classList.add('hidden');
+                banner.classList.remove('flex');
+            }
+        } else {
+            bulkBar.classList.add('hidden');
+            bulkBar.classList.remove('flex');
+            bulkIdsContainer.innerHTML = '';
+            allPagesSelected = false;
+            document.getElementById('bulk-delete-select-all').value = '0';
+            document.getElementById('bulk-edit-select-all').value   = '0';
+        }
+
+        if (selectAll) {
+            selectAll.checked = all.length > 0 && checked.length === all.length;
+            selectAll.indeterminate = checked.length > 0 && checked.length < all.length;
+        }
+
+        var beCount = document.getElementById('bulk-edit-selected-count');
+        if (beCount) {
+            beCount.textContent = checked.length > 0 ? ('(' + checked.length + ' عضو محدد)') : '';
+        }
+    }
+
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            document.querySelectorAll('.row-checkbox').forEach(function(cb) {
+                cb.checked = selectAll.checked;
+            });
+            updateBulkBar();
+        });
+    }
+
+    document.querySelectorAll('.row-checkbox').forEach(function(cb) {
+        cb.addEventListener('change', updateBulkBar);
+    });
+
     // Duplicate toggle: show count on load
     var dupRows = document.querySelectorAll('tr[data-duplicate="1"]');
     var countBadge = document.getElementById('toggle-duplicates-count');
@@ -502,6 +796,132 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 });
+
+var allPagesSelected = false;
+var totalMembersCount = {{ $members->total() }};
+var pageCount = {{ $members->count() }};
+
+function selectAllPages() {
+    allPagesSelected = true;
+    document.getElementById('bulk-delete-select-all').value = '1';
+    document.getElementById('bulk-edit-select-all').value   = '1';
+    document.getElementById('bulk-ids-container').innerHTML = '';
+    document.getElementById('bulk-edit-ids-container').innerHTML = '';
+
+    var msg    = document.getElementById('select-all-pages-msg');
+    var btnSel = document.getElementById('select-all-pages-btn');
+    var btnCnl = document.getElementById('cancel-all-pages-btn');
+    msg.textContent = 'تم تحديد جميع الـ ' + totalMembersCount.toLocaleString('ar') + ' عضو.';
+    msg.className = 'text-emerald-800 font-bold';
+    btnSel.classList.add('hidden');
+    btnCnl.classList.remove('hidden');
+
+    var bulkCount = document.getElementById('bulk-count');
+    bulkCount.textContent = 'تم تحديد جميع الـ ' + totalMembersCount.toLocaleString('ar') + ' عضو';
+
+    var beCount = document.getElementById('bulk-edit-selected-count');
+    if (beCount) beCount.textContent = '(جميع الـ ' + totalMembersCount.toLocaleString('ar') + ' عضو)';
+}
+
+function cancelSelectAllPages() {
+    allPagesSelected = false;
+    document.getElementById('bulk-delete-select-all').value = '0';
+    document.getElementById('bulk-edit-select-all').value   = '0';
+
+    var msg    = document.getElementById('select-all-pages-msg');
+    var btnSel = document.getElementById('select-all-pages-btn');
+    var btnCnl = document.getElementById('cancel-all-pages-btn');
+    msg.textContent = 'تم تحديد ' + pageCount + ' عضو في هذه الصفحة.';
+    msg.className = 'text-amber-800 font-medium';
+    btnSel.classList.remove('hidden');
+    btnCnl.classList.add('hidden');
+
+    updateBulkBar();
+}
+
+function toggleBulkEdit() {
+    var body  = document.getElementById('bulk-edit-body');
+    var arrow = document.getElementById('bulk-edit-arrow');
+    var hidden = body.classList.contains('hidden');
+    body.classList.toggle('hidden', !hidden);
+    arrow.style.transform = hidden ? '' : 'rotate(-90deg)';
+}
+
+function toggleBulkField(cb) {
+    var field = cb.closest('.be-field');
+    var input = field.querySelector('.be-input');
+    input.disabled = !cb.checked;
+    if (cb.checked) {
+        input.classList.remove('bg-gray-100', 'text-gray-400');
+        input.classList.add('bg-white', 'text-gray-800');
+    } else {
+        input.classList.add('bg-gray-100', 'text-gray-400');
+        input.classList.remove('bg-white', 'text-gray-800');
+    }
+}
+
+function injectBulkEditIds() {
+    var enabledFields = document.querySelectorAll('#bulk-edit-form .be-toggle:checked');
+    if (enabledFields.length === 0) {
+        alert('يرجى تفعيل حقل واحد على الأقل للتعديل.');
+        return false;
+    }
+    if (allPagesSelected) {
+        return confirm('سيتم تعديل جميع الـ ' + totalMembersCount.toLocaleString('ar') + ' عضو. هل أنت متأكد؟');
+    }
+    var checked = document.querySelectorAll('.row-checkbox:checked');
+    if (checked.length === 0) {
+        alert('يرجى تحديد أعضاء من الجدول أولاً.');
+        return false;
+    }
+    return confirm('سيتم تعديل ' + checked.length + ' عضو. هل أنت متأكد؟');
+}
+
+function removeEmptyFilters(form) {
+    Array.from(form.elements).forEach(function(el) {
+        if (!el.name) return;
+        if (el.type === 'checkbox' || el.type === 'radio') return;
+        if (el.value === '' || el.value === null) el.disabled = true;
+    });
+}
+
+function toggleFilters() {
+    var body  = document.getElementById('filter-body');
+    var arrow = document.getElementById('filter-toggle-arrow');
+    var hidden = body.style.display === 'none';
+    body.style.display  = hidden ? '' : 'none';
+    arrow.style.transform = hidden ? '' : 'rotate(-90deg)';
+    localStorage.setItem('filtersHidden', hidden ? '0' : '1');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (localStorage.getItem('filtersHidden') === '1') {
+        var body  = document.getElementById('filter-body');
+        var arrow = document.getElementById('filter-toggle-arrow');
+        if (body)  body.style.display  = 'none';
+        if (arrow) arrow.style.transform = 'rotate(-90deg)';
+    }
+});
+
+function clearSelection() {
+    allPagesSelected = false;
+    document.querySelectorAll('.row-checkbox').forEach(function(cb) { cb.checked = false; });
+    var sa = document.getElementById('select-all');
+    if (sa) { sa.checked = false; sa.indeterminate = false; }
+    var bar = document.getElementById('bulk-action-bar');
+    bar.classList.add('hidden');
+    bar.classList.remove('flex');
+    document.getElementById('bulk-ids-container').innerHTML = '';
+    document.getElementById('bulk-count').textContent = '';
+    document.getElementById('bulk-delete-select-all').value = '0';
+    document.getElementById('bulk-edit-select-all').value   = '0';
+    var banner = document.getElementById('select-all-pages-banner');
+    banner.classList.add('hidden'); banner.classList.remove('flex');
+    var beCount = document.getElementById('bulk-edit-selected-count');
+    if (beCount) beCount.textContent = '';
+    var editIds = document.getElementById('bulk-edit-ids-container');
+    if (editIds) editIds.innerHTML = '';
+}
 
 var duplicatesHidden = false;
 
@@ -556,6 +976,45 @@ function toggleDuplicates() {
         </div>
     </div>
 
+    {{-- Bulk action bar --}}
+    <div id="bulk-action-bar" class="hidden flex-col border-b border-red-200">
+        {{-- Select-all-pages banner --}}
+        <div id="select-all-pages-banner" class="hidden items-center justify-center gap-3 px-5 py-2 bg-amber-50 border-b border-amber-200 text-sm">
+            <span id="select-all-pages-msg" class="text-amber-800 font-medium"></span>
+            <button type="button" onclick="selectAllPages()" id="select-all-pages-btn"
+                    class="text-amber-700 font-bold underline hover:text-amber-900">تحديد الكل</button>
+            <button type="button" onclick="cancelSelectAllPages()" id="cancel-all-pages-btn" class="hidden text-gray-500 font-medium hover:text-gray-700">تراجع</button>
+        </div>
+        {{-- Actions row --}}
+        <div class="flex items-center gap-3 px-5 py-3 bg-red-50">
+            <span id="bulk-count" class="text-sm font-bold text-red-700"></span>
+            <form id="bulk-delete-form" method="POST" action="{{ route('members.bulk-destroy') }}">
+                @csrf
+                @method('DELETE')
+                <div id="bulk-ids-container"></div>
+                <input type="hidden" name="select_all" id="bulk-delete-select-all" value="0">
+                @foreach(request()->except(['page','_token']) as $key => $val)
+                    @if(is_array($val))
+                        @foreach($val as $v)
+                            <input type="hidden" name="{{ $key }}[]" value="{{ $v }}">
+                        @endforeach
+                    @else
+                        <input type="hidden" name="{{ $key }}" value="{{ $val }}">
+                    @endif
+                @endforeach
+                <button type="submit"
+                        onclick="return confirm('هل أنت متأكد من حذف الأعضاء المحددين؟ لا يمكن التراجع عن هذا الإجراء.')"
+                        class="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    حذف المحدد
+                </button>
+            </form>
+            <button onclick="clearSelection()" class="text-sm text-gray-500 hover:text-gray-700 font-medium px-3 py-2 rounded-xl hover:bg-gray-100 transition-colors">إلغاء التحديد</button>
+        </div>
+    </div>
+
     @if($members->isEmpty())
         <div class="text-center py-20">
             <div class="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -578,6 +1037,9 @@ function toggleDuplicates() {
             <table class="w-full text-sm">
                 <thead>
                     <tr class="bg-gray-50/70 border-b border-gray-100">
+                        <th class="px-4 py-3.5 w-10">
+                            <input type="checkbox" id="select-all" class="rounded border-gray-300 text-red-600 focus:ring-red-400 cursor-pointer">
+                        </th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">رقم الملف</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">العضو</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">رقم الهوية</th>
@@ -587,7 +1049,9 @@ function toggleDuplicates() {
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">شام كاش</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">حالة التحقق</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">الحالة النهائية</th>
+                        <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">الجولة الميدانية</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">المبلغ المقدر</th>
+                        <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">المبلغ النهائي</th>
                         <th class="px-4 py-3.5"></th>
                     </tr>
                 </thead>
@@ -598,11 +1062,11 @@ function toggleDuplicates() {
                             $cash     = $member->sham_cash_account;
 
                             if (str_contains($sn, 'رفض')) {
-                                $trClass = 'dark-row bg-gray-900 hover:bg-gray-800 divide-gray-700';
+                                $trClass = 'dark-row bg-rose-200 hover:bg-rose-300 divide-rose-300';
                             } elseif (str_contains($sn, 'طلب إلغاء')) {
-                                $trClass = 'dark-row bg-slate-800 hover:bg-slate-700 divide-slate-600';
+                                $trClass = 'dark-row bg-orange-200 hover:bg-orange-300 divide-orange-300';
                             } elseif (str_contains($sn, 'تقييد')) {
-                                $trClass = 'dark-row bg-indigo-900 hover:bg-indigo-800 divide-indigo-700';
+                                $trClass = 'dark-row bg-violet-200 hover:bg-violet-300 divide-violet-300';
                             } elseif (str_contains($sn, 'تكرار')) {
                                 $trClass = 'bg-red-50 hover:bg-red-100 divide-red-100';
                             } elseif (str_contains($sn, 'تم') && $cash) {
@@ -616,6 +1080,9 @@ function toggleDuplicates() {
                             }
                         @endphp
                         <tr class="transition-colors group {{ $trClass }}" {{ str_contains($sn, 'تكرار') ? 'data-duplicate="1"' : '' }}>
+                            <td class="px-4 py-4">
+                                <input type="checkbox" class="row-checkbox rounded border-gray-300 text-red-600 focus:ring-red-400 cursor-pointer" value="{{ $member->id }}">
+                            </td>
                             <td class="px-4 py-4 text-gray-800 font-mono font-semibold text-sm">{{ $member->dossier_number ?? '—' }}</td>
                             <td class="px-4 py-4">
                                 <span class="font-bold text-gray-900 text-base group-hover:text-emerald-700 transition-colors">
@@ -694,6 +1161,19 @@ function toggleDuplicates() {
                                 </form>
                             </td>
                             <td class="px-4 py-4">
+                                @php $latestVisit = $member->fieldVisits->first(); @endphp
+                                @if($latestVisit?->status)
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold text-white"
+                                          style="background: {{ $latestVisit->status->color }}">
+                                        {{ $latestVisit->status->name }}
+                                    </span>
+                                @elseif($latestVisit)
+                                    <span class="text-xs text-gray-400 font-medium">{{ $latestVisit->visit_date?->format('Y/m/d') ?? 'جولة بدون حالة' }}</span>
+                                @else
+                                    <span class="text-gray-300 text-sm">—</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-4">
                                 @if($member->estimated_amount)
                                     <span class="inline-flex items-center gap-1 text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1">
                                         {{ number_format($member->estimated_amount, 0) }}
@@ -702,8 +1182,17 @@ function toggleDuplicates() {
                                     <span class="text-gray-300 text-sm">—</span>
                                 @endif
                             </td>
+                            <td class="px-4 py-4">
+                                @if($member->final_amount)
+                                    <span class="inline-flex items-center gap-1 text-sm font-bold text-purple-700 bg-purple-50 border border-purple-100 rounded-lg px-2.5 py-1">
+                                        {{ number_format($member->final_amount, 0) }}
+                                    </span>
+                                @else
+                                    <span class="text-gray-300 text-sm">—</span>
+                                @endif
+                            </td>
                             <td class="px-4 py-3.5">
-                                <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div class="flex items-center gap-1">
                                     <a href="{{ route('members.show', $member) }}"
                                        title="عرض"
                                        class="p-1.5 rounded-lg text-blue-500 hover:text-blue-700 hover:bg-blue-50 transition-colors">
@@ -750,8 +1239,8 @@ function toggleDuplicates() {
 <style>
 tr.dark-row td,
 tr.dark-row td span:not([style]),
-tr.dark-row td a { color: rgba(255,255,255,0.9) !important; }
-tr.dark-row td .text-gray-300 { color: rgba(255,255,255,0.3) !important; }
+tr.dark-row td a { color: rgba(0,0,0,0.85) !important; }
+tr.dark-row td .text-gray-300 { color: rgba(0,0,0,0.35) !important; }
 </style>
 
 @endsection

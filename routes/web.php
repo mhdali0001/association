@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\DelegateController;
 use App\Http\Controllers\PaymentReviewController;
 use App\Http\Controllers\AssociationController;
 use App\Http\Controllers\AuthController;
@@ -66,6 +67,9 @@ Route::middleware('auth')->group(function () {
     Route::resource('verification-statuses', VerificationStatusController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('final-statuses',        \App\Http\Controllers\FinalStatusController::class)->only(['index', 'store', 'update', 'destroy']);
 
+    Route::get('/members/export',                   [MemberController::class, 'export'])             ->name('members.export');
+    Route::delete('/members/bulk-destroy',          [MemberController::class, 'bulkDestroy'])        ->name('members.bulk-destroy');
+    Route::patch('/members/bulk-update',            [MemberController::class, 'bulkUpdate'])          ->name('members.bulk-update');
     Route::patch('/members/{member}/final-status', [MemberController::class, 'updateFinalStatus'])->name('members.final-status.update');
     Route::get('/members/bulk-amount',  [MemberController::class, 'bulkAmountShow']) ->name('members.bulk-amount');
     Route::post('/members/bulk-amount', [MemberController::class, 'bulkAmountApply'])->name('members.bulk-amount.apply');
@@ -82,6 +86,13 @@ Route::middleware('auth')->group(function () {
     Route::post('/members/{member}/images',          [MemberImageController::class, 'store'])      ->name('member-images.store');
     Route::delete('/member-images/{memberImage}',    [MemberImageController::class, 'destroy'])    ->name('member-images.destroy');
     Route::get('/members-duplicates', [DuplicateMembersController::class, 'index'])->name('members.duplicates');
+    Route::get('/age-statistics',     [\App\Http\Controllers\AgeStatisticsController::class, 'index'])->name('age-statistics.index');
+    Route::get('/delegates',          [DelegateController::class, 'index'])         ->name('delegates.index');
+    Route::get('/delegates/{delegate}',[DelegateController::class, 'show'])         ->name('delegates.show');
+    Route::resource('field-visit-statuses', \App\Http\Controllers\FieldVisitStatusController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::post('/members/{member}/field-visits',                          [\App\Http\Controllers\FieldVisitController::class, 'store'])  ->name('field-visits.store');
+    Route::put('/members/{member}/field-visits/{fieldVisit}',             [\App\Http\Controllers\FieldVisitController::class, 'update']) ->name('field-visits.update');
+    Route::delete('/members/{member}/field-visits/{fieldVisit}',          [\App\Http\Controllers\FieldVisitController::class, 'destroy'])->name('field-visits.destroy');
     // Donations — named routes before resource to avoid conflict with {donation}
     Route::get('/donations/monthly',       [DonationController::class, 'monthly'])     ->name('donations.monthly');
     Route::post('/donations/monthly/quick',[DonationController::class, 'quickDonate'])->name('donations.monthly.quick');

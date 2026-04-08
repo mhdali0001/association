@@ -7,13 +7,24 @@ use App\Models\PendingChange;
 use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class MaritalStatusController extends Controller
 {
     public function index()
     {
         $statuses = MaritalStatus::orderBy('id')->get();
-        return view('marital-statuses.index', compact('statuses'));
+
+        $counts = DB::table('members')
+            ->select('marital_status', DB::raw('COUNT(*) as members_count'))
+            ->whereNotNull('marital_status')
+            ->groupBy('marital_status')
+            ->pluck('members_count', 'marital_status');
+
+        $statuses->each(fn($s) => $s->members_count = $counts[$s->name] ?? 0);
+        $totalMembers = $statuses->sum('members_count');
+
+        return view('marital-statuses.index', compact('statuses', 'totalMembers'));
     }
 
     private function isAdmin(): bool

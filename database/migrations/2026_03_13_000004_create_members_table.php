@@ -29,7 +29,7 @@ return new class extends Migration
             $table->string('housing_status', 150)->nullable();
             $table->integer('dependents_count')->nullable();
             $table->text('illness_details')->nullable();
-            $table->boolean('special_cases')->default(false);
+            $table->boolean('special_cases')->nullable();
             $table->text('special_cases_description')->nullable();
             $table->integer('score')->nullable();
             $table->decimal('estimated_amount', 10, 2)->nullable();
