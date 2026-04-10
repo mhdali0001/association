@@ -88,11 +88,30 @@
         <p class="text-2xl font-black">{{ $member->estimated_amount ? number_format($member->estimated_amount, 0) : '—' }}</p>
         <p class="text-blue-200 text-xs mt-0.5">ل.س</p>
     </div>
+    @php
+        $latestVisitAmt = $member->fieldVisits->first()?->estimated_amount ?? 0;
+        $computedFinal  = ($member->estimated_amount ?? 0) + $latestVisitAmt;
+        $storedFinal    = $member->final_amount;
+    @endphp
     <div class="relative bg-gradient-to-br from-purple-500 to-purple-700 rounded-2xl p-4 text-white shadow-md overflow-hidden">
         <div class="absolute -bottom-3 -left-3 w-16 h-16 bg-white/10 rounded-full"></div>
         <p class="text-purple-100 text-xs font-medium mb-1">المبلغ النهائي</p>
-        <p class="text-2xl font-black">{{ $member->final_amount ? number_format($member->final_amount, 0) : '—' }}</p>
-        <p class="text-purple-200 text-xs mt-0.5">ل.س</p>
+        @if($storedFinal)
+            <p class="text-2xl font-black">{{ number_format($storedFinal, 0) }}</p>
+            <p class="text-purple-200 text-xs mt-0.5">ل.س</p>
+        @else
+            {{-- لا قيمة مخزنة — عرض المعادلة --}}
+            <p class="text-purple-200 text-xs font-medium mt-1 leading-relaxed">
+                {{ number_format($member->estimated_amount ?? 0, 0) }}
+                @if($latestVisitAmt > 0)
+                    <span class="text-white/70">+</span>
+                    {{ number_format($latestVisitAmt, 0) }}
+                    <span class="text-white/50 text-[10px]">(زيارة)</span>
+                @endif
+                <span class="text-white/70">=</span>
+            </p>
+            <p class="text-2xl font-black">{{ $computedFinal > 0 ? number_format($computedFinal, 0) : '—' }}</p>
+        @endif
     </div>
     <div class="relative bg-gradient-to-br from-violet-500 to-violet-700 rounded-2xl p-4 text-white shadow-md overflow-hidden">
         <div class="absolute -bottom-3 -left-3 w-16 h-16 bg-white/10 rounded-full"></div>
@@ -373,13 +392,13 @@
                 @if($member->paymentInfoAI->iban)
                     <div>
                         <p class="text-xs text-gray-400 mb-1 font-medium">رقم الآيبان AI</p>
-                        <p class="text-sm font-mono font-semibold text-gray-800 bg-violet-50 rounded-xl px-3 py-2 break-all border border-violet-100">{{ $member->paymentInfoAI->iban }}</p>
+                        <p class="text-sm font-mono font-semibold text-gray-800 bg-violet-50 rounded-xl px-3 py-2 break-all border border-violet-100" dir="ltr">{{ $member->paymentInfoAI->iban }}</p>
                     </div>
                 @endif
                 @if($member->paymentInfoAI->barcode)
                     <div>
                         <p class="text-xs text-gray-400 mb-1 font-medium">الباركود AI</p>
-                        <p class="text-sm font-mono font-semibold text-gray-800 bg-violet-50 rounded-xl px-3 py-2 break-all border border-violet-100">{{ $member->paymentInfoAI->barcode }}</p>
+                        <p class="text-sm font-mono font-semibold text-gray-800 bg-violet-50 rounded-xl px-3 py-2 break-all border border-violet-100" dir="ltr">{{ $member->paymentInfoAI->barcode }}</p>
                     </div>
                 @endif
             </div>
@@ -407,7 +426,7 @@
                 @if($member->paymentInfo->iban)
                     <div>
                         <p class="text-xs text-gray-400 mb-1 font-medium">رقم الآيبان</p>
-                        <p class="text-sm font-mono font-semibold text-gray-800 bg-slate-50 rounded-xl px-3 py-2 break-all border border-slate-100">{{ $member->paymentInfo->iban }}</p>
+                        <p class="text-sm font-mono font-semibold text-gray-800 bg-slate-50 rounded-xl px-3 py-2 break-all border border-slate-100" dir="ltr">{{ $member->paymentInfo->iban }}</p>
                     </div>
                 @endif
                 @if($member->paymentInfo->iban_image)
@@ -422,7 +441,7 @@
                 @if($member->paymentInfo->barcode)
                     <div>
                         <p class="text-xs text-gray-400 mb-1 font-medium">الباركود</p>
-                        <p class="text-sm font-mono font-semibold text-gray-800 bg-slate-50 rounded-xl px-3 py-2 break-all border border-slate-100">{{ $member->paymentInfo->barcode }}</p>
+                        <p class="text-sm font-mono font-semibold text-gray-800 bg-slate-50 rounded-xl px-3 py-2 break-all border border-slate-100" dir="ltr">{{ $member->paymentInfo->barcode }}</p>
                     </div>
                 @endif
                 @if($member->paymentInfo->barcode_image)

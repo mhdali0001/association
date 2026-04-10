@@ -10,7 +10,10 @@
       "Bash(1:*)",
       "Bash(php artisan:*)",
       "Bash(powershell -Command \"cd ''C:\\\\Users\\\\mhdali\\\\Herd\\\\masalkalnour''; php read_payment.php | Out-File ''C:\\\\Users\\\\mhdali\\\\Herd\\\\masalkalnour\\\\out.txt''\")",
-      "Bash(powershell -Command \"cd ''C:\\\\Users\\\\mhdali\\\\Herd\\\\masalkalnour''; php artisan db:seed --class=PaymentImportSeeder | Out-File ''C:\\\\Users\\\\mhdali\\\\Herd\\\\masalkalnour\\\\seed_out.txt''\")"
+      "Bash(powershell -Command \"cd ''C:\\\\Users\\\\mhdali\\\\Herd\\\\masalkalnour''; php artisan db:seed --class=PaymentImportSeeder | Out-File ''C:\\\\Users\\\\mhdali\\\\Herd\\\\masalkalnour\\\\seed_out.txt''\")",
+      "Bash(/c/Users/mhdali/.config/herd/bin/php84/php.exe -d memory_limit=512M read_lassst.php)",
+      "Read(//c/Program Files/MySQL/**)",
+      "Bash(find '/c/Program Files/MySQL' -name *.exe)"
     ]
   }
 }

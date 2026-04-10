@@ -259,6 +259,19 @@
                 </select>
             </div>
 
+            {{-- Sham Cash filter --}}
+            <div>
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">شام كاش</label>
+                <select name="sham_cash" onwheel="this.blur()"
+                        class="w-full text-base border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
+                               focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:bg-white transition text-gray-500">
+                    <option value="">— الكل —</option>
+                    <option value="done"   {{ request('sham_cash') === 'done'   ? 'selected' : '' }}>تم</option>
+                    <option value="manual" {{ request('sham_cash') === 'manual' ? 'selected' : '' }}>يدوي</option>
+                    <option value="none"   {{ request('sham_cash') === 'none'   ? 'selected' : '' }}>لا يوجد</option>
+                </select>
+            </div>
+
         </div>
 
         {{-- Filter row 2 --}}
@@ -528,6 +541,21 @@
             <p class="text-xs text-gray-400 mb-4">فعّل الحقول التي تريد تعديلها فقط — الحقول غير المفعّلة لن تُطبَّق.</p>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
+
+                {{-- Current Address --}}
+                <div class="be-field" data-field="current_address">
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <input type="checkbox" name="apply_fields[]" value="current_address" class="be-toggle rounded border-gray-300 text-blue-600 focus:ring-blue-400 cursor-pointer" onchange="toggleBulkField(this)">
+                        <label class="text-sm font-semibold text-gray-600 cursor-pointer select-none">المنطقة / العنوان</label>
+                    </div>
+                    <select name="fields[current_address]" disabled
+                            class="be-input w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-100 text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
+                        <option value="">— بدون —</option>
+                        @foreach($addressList as $addr)
+                            <option value="{{ $addr }}">{{ $addr }}</option>
+                        @endforeach
+                    </select>
+                </div>
 
                 {{-- Network --}}
                 <div class="be-field" data-field="network">
@@ -1183,9 +1211,10 @@ function toggleDuplicates() {
                                 @endif
                             </td>
                             <td class="px-4 py-4">
-                                @if($member->final_amount)
+                                @php $memberFinal = ($member->estimated_amount ?? 0) + ($member->fieldVisits->first()?->estimated_amount ?? 0); @endphp
+                                @if($memberFinal > 0)
                                     <span class="inline-flex items-center gap-1 text-sm font-bold text-purple-700 bg-purple-50 border border-purple-100 rounded-lg px-2.5 py-1">
-                                        {{ number_format($member->final_amount, 0) }}
+                                        {{ number_format($memberFinal, 0) }}
                                     </span>
                                 @else
                                     <span class="text-gray-300 text-sm">—</span>

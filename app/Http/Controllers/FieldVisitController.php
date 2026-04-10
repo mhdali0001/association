@@ -20,6 +20,7 @@ class FieldVisitController extends Controller
         ]);
 
         $member->fieldVisits()->create($data);
+        $this->recomputeFinalAmount($member);
         ActivityLogger::log('created', "إضافة جولة ميدانية للمستفيد: {$member->full_name}", $member);
 
         return redirect()->route('members.show', $member)->with('success', 'تمت إضافة الجولة الميدانية بنجاح.');
@@ -39,6 +40,7 @@ class FieldVisitController extends Controller
         ]);
 
         $fieldVisit->update($data);
+        $this->recomputeFinalAmount($member);
         ActivityLogger::log('updated', "تعديل جولة ميدانية للمستفيد: {$member->full_name}", $member);
 
         return redirect()->route('members.show', $member)->with('success', 'تم تحديث الجولة الميدانية بنجاح.');
@@ -48,8 +50,15 @@ class FieldVisitController extends Controller
     {
         abort_if($fieldVisit->member_id !== $member->id, 404);
         $fieldVisit->delete();
+        $this->recomputeFinalAmount($member);
         ActivityLogger::log('deleted', "حذف جولة ميدانية للمستفيد: {$member->full_name}", $member);
 
         return redirect()->route('members.show', $member)->with('success', 'تم حذف الجولة الميدانية.');
+    }
+
+    private function recomputeFinalAmount(Member $member): void
+    {
+        $visitAmount = $member->fieldVisits()->latest()->value('estimated_amount') ?? 0;
+        $member->update(['final_amount' => ($member->estimated_amount ?? 0) + $visitAmount]);
     }
 }

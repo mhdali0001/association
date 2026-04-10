@@ -245,7 +245,7 @@ class PendingChange extends Model
             'illness_details'           => $p['illness_details']           ?? null,
             'special_cases'             => $p['special_cases']             ?? false,
             'special_cases_description' => $p['special_cases_description'] ?? null,
-            'sham_cash_account'         => $p['sham_cash_account']         ?? false,
+            'sham_cash_account'         => in_array($p['sham_cash_account'] ?? '', ['done','manual']) ? $p['sham_cash_account'] : null,
             'score'                     => $totalScore,
             'estimated_amount'          => $totalScore * 500,
         ];
@@ -264,6 +264,7 @@ class PendingChange extends Model
         $paymentAI = $p['payment_ai'] ?? [];
 
         if ($this->action === 'create') {
+            $memberData['final_amount'] = $totalScore * 500;
             $member = Member::create($memberData);
             MemberScore::create(array_merge($scoresData, ['member_id' => $member->id]));
             PaymentInfo::create(array_merge([
@@ -285,6 +286,8 @@ class PendingChange extends Model
             }
         } elseif ($this->action === 'update') {
             $member = Member::findOrFail($this->model_id);
+            $visitAmount = \App\Models\FieldVisit::where('member_id', $this->model_id)->latest()->value('estimated_amount') ?? 0;
+            $memberData['final_amount'] = $totalScore * 500 + $visitAmount;
             $member->update($memberData);
 
             $s = $member->scores ?? new MemberScore(['member_id' => $member->id]);

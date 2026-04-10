@@ -347,10 +347,19 @@
         </div>
 
         <div>
-            <label class="{{ $labelClass }}">المبلغ النهائي <span class="text-purple-500 normal-case font-medium">(× 500 ل.س)</span></label>
-            <input type="number" step="0.01" id="field_final_amount" name="final_amount"
-                   value="{{ old('final_amount', $isEdit ? $member->final_amount : '') }}"
-                   class="w-full border border-purple-200 rounded-xl px-4 py-2.5 text-center focus:outline-none focus:ring-2 focus:ring-purple-300">
+            <label class="{{ $labelClass }}">
+                المبلغ النهائي
+                <span class="text-purple-400 normal-case font-normal">
+                    = مقدر
+                    @if(($visitAmount ?? 0) > 0)
+                        + {{ number_format($visitAmount, 0) }} ل.س (زيارة)
+                    @endif
+                    <span class="text-gray-400 text-xs">(تلقائي)</span>
+                </span>
+            </label>
+            <input type="number" step="0.01" id="field_final_amount" name="final_amount" readonly
+                   value="{{ old('final_amount', $isEdit ? ($member->final_amount ?? 0) : 0) }}"
+                   class="w-full border border-purple-200 bg-gradient-to-l from-purple-50 to-fuchsia-50 text-purple-700 font-black rounded-xl px-4 py-2.5 cursor-not-allowed text-center">
         </div>
 
     </div>
@@ -447,14 +456,14 @@
         <div>
             <label class="{{ $labelClass }}">رقم الآيبان (IBAN)</label>
             <input type="text" name="iban" value="{{ old('iban', $payment?->iban) }}"
-                   placeholder="SY00 0000 0000 0000"
+                   placeholder="SY00 0000 0000 0000" dir="ltr"
                    class="{{ $inputClass }} font-mono">
         </div>
 
         <div>
             <label class="{{ $labelClass }}">الباركود</label>
             <input type="text" name="barcode" value="{{ old('barcode', $payment?->barcode) }}"
-                   class="{{ $inputClass }} font-mono">
+                   dir="ltr" class="{{ $inputClass }} font-mono">
         </div>
 
         <div class="md:col-span-2">
@@ -509,14 +518,14 @@
         <div>
             <label class="{{ $labelClass }}">رقم الآيبان AI (IBAN)</label>
             <input type="text" name="iban_ai" value="{{ old('iban_ai', $paymentAI?->iban) }}"
-                   placeholder="SY00 0000 0000 0000"
+                   placeholder="SY00 0000 0000 0000" dir="ltr"
                    class="{{ $inputClass }} font-mono">
         </div>
 
         <div>
             <label class="{{ $labelClass }}">الباركود AI</label>
             <input type="text" name="barcode_ai" value="{{ old('barcode_ai', $paymentAI?->barcode) }}"
-                   class="{{ $inputClass }} font-mono">
+                   dir="ltr" class="{{ $inputClass }} font-mono">
         </div>
 
         <div class="md:col-span-2">
@@ -557,6 +566,9 @@ function calcTotal() {
     if (scoreEl) scoreEl.value = total;
     const amountEl = document.getElementById('field_estimated_amount');
     if (amountEl) amountEl.value = total * 500;
+    const visitAmt = {{ (int)($visitAmount ?? 0) }};
+    const finalEl = document.getElementById('field_final_amount');
+    if (finalEl) finalEl.value = total * 500 + visitAmt;
 }
 calcTotal();
 </script>

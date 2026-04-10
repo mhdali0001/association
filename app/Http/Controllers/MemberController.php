@@ -49,6 +49,7 @@ class MemberController extends Controller
         $addresses           = array_filter((array) $request->get('current_address', []));
         $associationIds      = array_filter((array) $request->get('association_id', []));
         $networks            = array_filter((array) $request->get('network', []));
+        $shamCash            = $request->get('sham_cash', '');
 
         $query = Member::query();
 
@@ -78,6 +79,9 @@ class MemberController extends Controller
         if (!empty($addresses))           $query->whereIn('current_address', $addresses);
         if (!empty($associationIds))      $query->whereIn('association_id', $associationIds);
         if (!empty($networks))            $query->whereIn('network', $networks);
+        if ($shamCash === 'done')         $query->where('sham_cash_account', 'done');
+        elseif ($shamCash === 'manual')   $query->where('sham_cash_account', 'manual');
+        elseif ($shamCash === 'none')     $query->whereNull('sham_cash_account');
 
         return $query;
     }
@@ -160,7 +164,7 @@ class MemberController extends Controller
     public function create()
     {
         ActivityLogger::log('viewed', 'فتح نموذج إضافة مستفيد جديد');
-        return view('members.create', $this->formData());
+        return view('members.create', array_merge($this->formData(), ['visitAmount' => 0]));
     }
 
     public function show(Member $member)
@@ -343,14 +347,14 @@ class MemberController extends Controller
         ];
 
         $payment = [
-            'iban'           => $request->input('iban'),
-            'barcode'        => $request->input('barcode'),
+            'iban'           => str_replace(' ', '', $request->input('iban')),
+            'barcode'        => str_replace(' ', '', $request->input('barcode')),
             'recipient_name' => $request->input('recipient_name'),
         ];
 
         $paymentAI = [
-            'iban'           => $request->input('iban_ai'),
-            'barcode'        => $request->input('barcode_ai'),
+            'iban'           => str_replace(' ', '', $request->input('iban_ai')),
+            'barcode'        => str_replace(' ', '', $request->input('barcode_ai')),
             'recipient_name' => $request->input('recipient_name_ai'),
         ];
 
@@ -514,10 +518,10 @@ class MemberController extends Controller
             'illness_details'            => $data['illness_details'] ?? null,
             'special_cases'              => $request->boolean('special_cases'),
             'special_cases_description'  => $data['special_cases_description'] ?? null,
-            'sham_cash_account'          => $request->boolean('sham_cash_account'),
+            'sham_cash_account'          => in_array($request->input('sham_cash_account'), ['done','manual']) ? $request->input('sham_cash_account') : null,
             'score'                      => $totalScore,
             'estimated_amount'           => $totalScore * 500,
-            'final_amount'               => $request->input('final_amount') ?: null,
+            'final_amount'               => $totalScore * 500,
         ]);
 
         MemberScore::create([
@@ -543,8 +547,8 @@ class MemberController extends Controller
 
         PaymentInfo::create([
             'member_id'      => $member->id,
-            'iban'           => $request->input('iban'),
-            'barcode'        => $request->input('barcode'),
+            'iban'           => str_replace(' ', '', $request->input('iban')),
+            'barcode'        => str_replace(' ', '', $request->input('barcode')),
             'iban_image'     => $ibanImagePath,
             'barcode_image'  => $barcodeImagePath,
             'recipient_name' => $request->input('recipient_name'),
@@ -552,8 +556,8 @@ class MemberController extends Controller
 
         PaymentInfoAI::create([
             'member_id'      => $member->id,
-            'iban'           => $request->input('iban_ai'),
-            'barcode'        => $request->input('barcode_ai'),
+            'iban'           => str_replace(' ', '', $request->input('iban_ai')),
+            'barcode'        => str_replace(' ', '', $request->input('barcode_ai')),
             'recipient_name' => $request->input('recipient_name_ai'),
         ]);
 
@@ -566,9 +570,10 @@ class MemberController extends Controller
 
     public function edit(Member $member)
     {
-        $member->load(['scores', 'paymentInfo', 'paymentInfoAI', 'association', 'associations']);
+        $member->load(['scores', 'paymentInfo', 'paymentInfoAI', 'association', 'associations', 'fieldVisits']);
+        $visitAmount = $member->fieldVisits->first()?->estimated_amount ?? 0;
         ActivityLogger::log('viewed', "فتح نموذج تعديل المستفيد: {$member->full_name}", $member);
-        return view('members.edit', array_merge($this->formData(), compact('member')));
+        return view('members.edit', array_merge($this->formData(), compact('member', 'visitAmount')));
     }
 
     public function update(Request $request, Member $member)
@@ -662,10 +667,10 @@ class MemberController extends Controller
             'illness_details'            => $data['illness_details'] ?? null,
             'special_cases'              => $request->boolean('special_cases'),
             'special_cases_description'  => $data['special_cases_description'] ?? null,
-            'sham_cash_account'          => $request->boolean('sham_cash_account'),
+            'sham_cash_account'          => in_array($request->input('sham_cash_account'), ['done','manual']) ? $request->input('sham_cash_account') : null,
             'score'                      => $totalScore,
             'estimated_amount'           => $totalScore * 500,
-            'final_amount'               => $request->input('final_amount') ?: null,
+            'final_amount'               => $totalScore * 500 + ($member->fieldVisits()->latest()->value('estimated_amount') ?? 0),
         ]);
 
         $scores = $member->scores ?? new MemberScore(['member_id' => $member->id]);
@@ -691,16 +696,16 @@ class MemberController extends Controller
 
         $payment->fill([
             'member_id'      => $member->id,
-            'iban'           => $request->input('iban'),
-            'barcode'        => $request->input('barcode'),
+            'iban'           => str_replace(' ', '', $request->input('iban')),
+            'barcode'        => str_replace(' ', '', $request->input('barcode')),
             'recipient_name' => $request->input('recipient_name'),
         ])->save();
 
         $paymentAI = $member->paymentInfoAI ?? new PaymentInfoAI(['member_id' => $member->id]);
         $paymentAI->fill([
             'member_id'      => $member->id,
-            'iban'           => $request->input('iban_ai'),
-            'barcode'        => $request->input('barcode_ai'),
+            'iban'           => str_replace(' ', '', $request->input('iban_ai')),
+            'barcode'        => str_replace(' ', '', $request->input('barcode_ai')),
             'recipient_name' => $request->input('recipient_name_ai'),
         ])->save();
 
@@ -789,7 +794,7 @@ class MemberController extends Controller
             return redirect()->route('members.index')->with('success', 'لم يتم تحديد أي حقل للتعديل.');
         }
 
-        $allowed = ['network', 'marital_status', 'sham_cash_account', 'verification_status_id', 'final_status_id', 'estimated_amount', 'final_amount', 'field_visit_status_id'];
+        $allowed = ['network', 'marital_status', 'sham_cash_account', 'current_address', 'verification_status_id', 'final_status_id', 'estimated_amount', 'final_amount', 'field_visit_status_id'];
         $data    = [];
 
         foreach ($fields as $field) {

@@ -65,8 +65,8 @@ class MemberRowImporter
                 $assocName      = mb_strtolower(trim($row['الجمعية'] ?? $row['association'] ?? ''));
             }
 
-            $shamCash     = trim($row['حساب_شام_كاش'] ?? $row['sham_cash_account'] ?? '');
-            $shamCashBool = in_array(mb_strtolower($shamCash), ['نعم', 'تم', 'yes', '1', 'true'], true);
+            $shamCash    = trim($row['حساب_شام_كاش'] ?? $row['sham_cash_account'] ?? '');
+            $shamCashVal = in_array(mb_strtolower($shamCash), ['نعم', 'تم', 'yes', '1', 'true'], true) ? 'done' : null;
 
             $networkRaw = strtoupper(trim($row['الشبكة'] ?? $row['network'] ?? ''));
             $network    = in_array($networkRaw, ['MTN', 'SYRIATEL']) ? $networkRaw : null;
@@ -92,7 +92,7 @@ class MemberRowImporter
                 'network'                   => $network,
                 'other_association'         => $otherAssocBool,
                 'special_cases_description' => trim($row['وصف_الحالات_الخاصة'] ?? $row['special_cases_description'] ?? '') ?: null,
-                'sham_cash_account'         => $shamCashBool,
+                'sham_cash_account'         => $shamCashVal,
                 'representative_id'         => $representativeId,
                 'delegate'                  => $delegate,
                 'verification_status_id'    => $verificationStatusId,
