@@ -68,6 +68,42 @@ class PendingChangeController extends Controller
                          ->with('success', 'تمت الموافقة على الطلب وتطبيق التعديل.');
     }
 
+    public function approveWithEdit(Request $request, PendingChange $pendingChange)
+    {
+        abort_unless($pendingChange->isPending(), 422, 'هذا الطلب تمت معالجته مسبقاً.');
+
+        $request->validate(['reviewer_notes' => 'nullable|string|max:1000']);
+
+        // Merge edited fields into payload
+        $edited  = $request->input('payload', []);
+        $payload = $pendingChange->payload ?? [];
+
+        // Deep merge: only update keys that were submitted
+        foreach ($edited as $key => $value) {
+            $payload[$key] = $value === '' ? null : $value;
+        }
+
+        // Handle nested scores if submitted
+        if ($request->has('scores')) {
+            $payload['scores'] = array_merge($payload['scores'] ?? [], $request->input('scores', []));
+        }
+
+        $pendingChange->update([
+            'payload'        => $payload,
+            'reviewer_notes' => $request->input('reviewer_notes'),
+        ]);
+
+        try {
+            $pendingChange->apply();
+            ActivityLogger::log('approved', "الموافقة (مع تعديل) على طلب: {$pendingChange->summary()}");
+        } catch (\Throwable $e) {
+            return back()->with('error', 'حدث خطأ أثناء تطبيق التعديل: ' . $e->getMessage());
+        }
+
+        return redirect()->route('pending-changes.index')
+                         ->with('success', 'تمت الموافقة على الطلب مع التعديلات وتطبيقه.');
+    }
+
     public function reject(Request $request, PendingChange $pendingChange)
     {
         abort_unless($pendingChange->isPending(), 422, 'هذا الطلب تمت معالجته مسبقاً.');

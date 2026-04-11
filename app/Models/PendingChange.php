@@ -57,12 +57,13 @@ class PendingChange extends Model
     public function modelLabel(): string
     {
         return match($this->model_type) {
-            'member'       => 'مستفيد',
+            'member'              => 'مستفيد',
             'donation'            => 'تبرع',
             'member_image'        => 'ملف / صورة',
             'marital_status'      => 'حالة اجتماعية',
             'association'         => 'جمعية',
             'verification_status' => 'حالة تحقق',
+            'field_visit'         => 'جولة ميدانية',
             default               => $this->model_type,
         };
     }
@@ -93,6 +94,7 @@ class PendingChange extends Model
             'member'              => $this->payload['full_name']   ?? $this->original['full_name']   ?? "#{$this->model_id}",
             'donation'            => $this->payload['member_name'] ?? $this->original['member_name'] ?? "#{$this->model_id}",
             'member_image'        => $this->payload['member_name'] ?? $this->original['member_name'] ?? "#{$this->model_id}",
+            'field_visit'         => $this->payload['member_name'] ?? $this->original['member_name'] ?? "#{$this->model_id}",
             'marital_status',
             'association',
             'verification_status' => $this->payload['name'] ?? $this->original['name'] ?? "#{$this->model_id}",
@@ -121,6 +123,7 @@ class PendingChange extends Model
                 'marital_status'      => $this->applyMaritalStatus(),
                 'association'         => $this->applyAssociation(),
                 'verification_status' => $this->applyVerificationStatus(),
+                'field_visit'         => $this->applyFieldVisit(),
                 default               => throw new \RuntimeException("Unknown model type: {$this->model_type}"),
             };
         }
@@ -383,7 +386,7 @@ class PendingChange extends Model
             'national_id'               => 'رقم الهوية',
             'verification_status_id'    => 'حالة التحقق',
             'dossier_number'            => 'رقم الاضبارة',
-            'current_address'           => 'العنوان الحالي',
+            'current_address'           => 'العنوان التفصيلي',
             'marital_status'            => 'الحالة الاجتماعية',
             'disease_type'              => 'نوع المرض',
             'phone'                     => 'الهاتف',
@@ -521,5 +524,61 @@ class PendingChange extends Model
             'color'     => 'اللون',
             'is_active' => 'نشط',
         ];
+    }
+
+    public static function fieldVisitFieldLabels(): array
+    {
+        return [
+            'member_name'           => 'المستفيد',
+            'field_visit_status_id' => 'حالة الجولة',
+            'visit_date'            => 'تاريخ الزيارة',
+            'visitor'               => 'اسم الزائر',
+            'estimated_amount'      => 'المبلغ المقدر (ل.س)',
+            'amount_reason'         => 'سبب المبلغ',
+            'notes'                 => 'ملاحظات',
+        ];
+    }
+
+    private function applyFieldVisit(): void
+    {
+        $p = $this->payload ?? [];
+
+        if ($this->action === 'delete') {
+            \App\Models\FieldVisit::find($this->model_id)?->delete();
+            $member = \App\Models\Member::find($p['member_id'] ?? null);
+            if ($member) {
+                $visitAmount = $member->fieldVisits()->latest()->value('estimated_amount') ?? 0;
+                $member->update(['final_amount' => ($member->estimated_amount ?? 0) + $visitAmount]);
+            }
+            return;
+        }
+
+        $data = [
+            'field_visit_status_id' => $p['field_visit_status_id'] ?? null,
+            'visit_date'            => $p['visit_date']            ?? null,
+            'visitor'               => $p['visitor']               ?? null,
+            'estimated_amount'      => $p['estimated_amount']      ?? null,
+            'amount_reason'         => $p['amount_reason']         ?? null,
+            'notes'                 => $p['notes']                 ?? null,
+        ];
+
+        $member = \App\Models\Member::find($p['member_id'] ?? null);
+
+        if ($this->action === 'create') {
+            if ($member) {
+                $member->fieldVisits()->create($data);
+                $visitAmount = $member->fieldVisits()->latest()->value('estimated_amount') ?? 0;
+                $member->update(['final_amount' => ($member->estimated_amount ?? 0) + $visitAmount]);
+            }
+        } elseif ($this->action === 'update') {
+            $visit = \App\Models\FieldVisit::find($this->model_id);
+            if ($visit) {
+                $visit->update($data);
+                if ($member) {
+                    $visitAmount = $member->fieldVisits()->latest()->value('estimated_amount') ?? 0;
+                    $member->update(['final_amount' => ($member->estimated_amount ?? 0) + $visitAmount]);
+                }
+            }
+        }
     }
 }

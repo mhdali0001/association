@@ -46,6 +46,11 @@
         $topFields   = array_keys($labels);
         $scoreFields = [];
         $paymentFields = [];
+    } elseif ($modelType === 'field_visit') {
+        $labels      = \App\Models\PendingChange::fieldVisitFieldLabels();
+        $topFields   = array_keys($labels);
+        $scoreFields = [];
+        $paymentFields = [];
     } else {
         $labels = \App\Models\PendingChange::memberFieldLabels();
         $topFields = [
@@ -323,11 +328,11 @@
 @if($pendingChange->isPending())
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
         <h2 class="text-sm font-bold text-gray-700 mb-4">قرار المراجعة</h2>
-        <div class="flex flex-col sm:flex-row gap-4">
+        <div class="flex flex-col sm:flex-row gap-3 mb-4">
 
-            {{-- Approve --}}
+            {{-- Approve as-is --}}
             <form action="{{ route('pending-changes.approve', $pendingChange) }}" method="POST"
-                  onsubmit="return confirm('هل أنت متأكد من الموافقة وتطبيق هذا التعديل؟')"
+                  onsubmit="return confirm('الموافقة وتطبيق التعديل كما هو؟')"
                   class="flex-1">
                 @csrf
                 <button type="submit"
@@ -335,15 +340,26 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
                     </svg>
-                    موافقة وتطبيق التعديل
+                    موافقة وتطبيق
                 </button>
             </form>
+
+            {{-- Approve with edit toggle --}}
+            @if($action !== 'delete' && !in_array($action, ['bulk_amount','bulk_delete','bulk_update']))
+            <button type="button" onclick="toggleEditPanel()"
+                    class="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-6 py-3 rounded-xl transition-colors shadow-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+                تعديل والموافقة
+            </button>
+            @endif
 
             {{-- Reject --}}
             <form action="{{ route('pending-changes.reject', $pendingChange) }}" method="POST" class="flex-1">
                 @csrf
                 <div class="flex gap-2">
-                    <input type="text" name="reviewer_notes" placeholder="سبب الرفض (اختياري)..."
+                    <input type="text" name="reviewer_notes" placeholder="سبب الرفض..."
                            class="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-3 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-300 transition">
                     <button type="submit"
                             class="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white text-sm font-bold px-5 py-3 rounded-xl transition-colors shadow-sm shrink-0">
@@ -356,7 +372,163 @@
             </form>
 
         </div>
+
+        {{-- Edit & Approve panel --}}
+        @if($action !== 'delete' && !in_array($action, ['bulk_amount','bulk_delete','bulk_update']))
+        <div id="edit-panel" class="hidden border-t border-blue-100 pt-5 mt-2">
+            <div class="flex items-center gap-2 mb-4">
+                <div class="w-7 h-7 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                </div>
+                <h3 class="text-sm font-bold text-blue-800">تعديل البيانات قبل الموافقة</h3>
+                <span class="text-xs text-blue-400">— اترك الحقل فارغاً للإبقاء على القيمة الأصلية</span>
+            </div>
+
+            <form action="{{ route('pending-changes.approve-edit', $pendingChange) }}" method="POST">
+                @csrf
+
+                @php
+                    $editPayload = $pendingChange->payload ?? [];
+                @endphp
+
+                {{-- Field visit fields --}}
+                @if($modelType === 'field_visit')
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">تاريخ الزيارة</label>
+                            <input type="date" name="payload[visit_date]" value="{{ $editPayload['visit_date'] ?? '' }}"
+                                   class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">اسم الزائر</label>
+                            <input type="text" name="payload[visitor]" value="{{ $editPayload['visitor'] ?? '' }}"
+                                   class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">المبلغ المقدر (ل.س)</label>
+                            <input type="number" name="payload[estimated_amount]" value="{{ $editPayload['estimated_amount'] ?? '' }}" min="0" step="0.01"
+                                   class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">سبب المبلغ</label>
+                            <input type="text" name="payload[amount_reason]" value="{{ $editPayload['amount_reason'] ?? '' }}"
+                                   class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50">
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">ملاحظات</label>
+                            <textarea name="payload[notes]" rows="2"
+                                      class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50 resize-none">{{ $editPayload['notes'] ?? '' }}</textarea>
+                        </div>
+                    </div>
+
+                {{-- Donation fields --}}
+                @elseif($modelType === 'donation')
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">المبلغ (ل.س)</label>
+                            <input type="number" name="payload[amount]" value="{{ $editPayload['amount'] ?? '' }}" min="0"
+                                   class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">شهر التبرع</label>
+                            <input type="month" name="payload[donation_month]" value="{{ $editPayload['donation_month'] ?? '' }}"
+                                   class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">ملاحظات</label>
+                            <textarea name="payload[notes]" rows="2"
+                                      class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50 resize-none">{{ $editPayload['notes'] ?? '' }}</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">رقم المرجع</label>
+                            <input type="text" name="payload[reference_number]" value="{{ $editPayload['reference_number'] ?? '' }}"
+                                   class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50">
+                        </div>
+                    </div>
+
+                {{-- Marital status / Association / Verification status --}}
+                @elseif(in_array($modelType, ['marital_status','association','verification_status']))
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">الاسم</label>
+                            <input type="text" name="payload[name]" value="{{ $editPayload['name'] ?? '' }}"
+                                   class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50">
+                        </div>
+                        @if($modelType === 'verification_status')
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">اللون</label>
+                            <input type="color" name="payload[color]" value="{{ $editPayload['color'] ?? '#6366f1' }}"
+                                   class="h-11 w-24 border border-gray-200 rounded-xl cursor-pointer p-1">
+                        </div>
+                        @endif
+                    </div>
+
+                {{-- Member fields (key fields only) --}}
+                @elseif($modelType === 'member')
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">الاسم الكامل</label>
+                            <input type="text" name="payload[full_name]" value="{{ $editPayload['full_name'] ?? '' }}"
+                                   class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">رقم الهوية</label>
+                            <input type="text" name="payload[national_id]" value="{{ $editPayload['national_id'] ?? '' }}"
+                                   class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">الهاتف</label>
+                            <input type="text" name="payload[phone]" value="{{ $editPayload['phone'] ?? '' }}"
+                                   class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">العنوان الحالي</label>
+                            <input type="text" name="payload[current_address]" value="{{ $editPayload['current_address'] ?? '' }}"
+                                   class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">نوع المرض</label>
+                            <input type="text" name="payload[disease_type]" value="{{ $editPayload['disease_type'] ?? '' }}"
+                                   class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">وصف الحالة الخاصة</label>
+                            <input type="text" name="payload[special_cases_description]" value="{{ $editPayload['special_cases_description'] ?? '' }}"
+                                   class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50">
+                        </div>
+                    </div>
+                @endif
+
+                <div class="flex gap-3 items-end">
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">ملاحظة المراجع (اختياري)</label>
+                        <input type="text" name="reviewer_notes" placeholder="ملاحظة على التعديلات..."
+                               class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50">
+                    </div>
+                    <button type="submit"
+                            onclick="return confirm('تطبيق الطلب مع التعديلات؟')"
+                            class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-6 py-2.5 rounded-xl transition-colors shadow-sm shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        تأكيد الموافقة مع التعديل
+                    </button>
+                </div>
+            </form>
+        </div>
+        @endif
+
     </div>
 @endif
+
+<script>
+function toggleEditPanel() {
+    const panel = document.getElementById('edit-panel');
+    panel.classList.toggle('hidden');
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+</script>
 
 @endsection

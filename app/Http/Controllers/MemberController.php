@@ -31,6 +31,7 @@ class MemberController extends Controller
             'maritalStatuses'      => MaritalStatus::active()->orderBy('id')->get(),
             'associations'         => Association::active()->orderBy('id')->get(),
             'representatives'      => User::orderBy('name')->get(),
+            'regionsList'          => \App\Models\Region::active()->orderBy('name')->get(),
         ];
     }
 
@@ -50,6 +51,8 @@ class MemberController extends Controller
         $associationIds      = array_filter((array) $request->get('association_id', []));
         $networks            = array_filter((array) $request->get('network', []));
         $shamCash            = $request->get('sham_cash', '');
+        $fieldVisitStatusIds = array_filter((array) $request->get('field_visit_status_id', []));
+        $regionIds           = array_filter((array) $request->get('region_id', []));
 
         $query = Member::query();
 
@@ -82,6 +85,10 @@ class MemberController extends Controller
         if ($shamCash === 'done')         $query->where('sham_cash_account', 'done');
         elseif ($shamCash === 'manual')   $query->where('sham_cash_account', 'manual');
         elseif ($shamCash === 'none')     $query->whereNull('sham_cash_account');
+        if (!empty($fieldVisitStatusIds)) {
+            $query->whereHas('fieldVisits', fn($q) => $q->whereIn('field_visit_status_id', $fieldVisitStatusIds));
+        }
+        if (!empty($regionIds)) $query->whereIn('region_id', $regionIds);
 
         return $query;
     }
@@ -102,9 +109,10 @@ class MemberController extends Controller
         $associationIds      = array_filter((array) $request->get('association_id', []));
         $networks            = array_filter((array) $request->get('network', []));
 
-        $query = $this->buildFilteredQuery($request)->with(['verificationStatus', 'representative', 'paymentInfo', 'fieldVisits.status']);
+        $query = $this->buildFilteredQuery($request)->with(['verificationStatus', 'representative', 'paymentInfo', 'fieldVisits.status', 'region']);
 
         $totalAmount          = $query->sum('estimated_amount');
+        $totalFinalAmount     = $query->sum('final_amount');
         $members              = $query->orderByRaw('CAST(dossier_number AS UNSIGNED) ASC')->paginate(20)->withQueryString();
 
         // Collect duplicate IBANs for warning indicator
@@ -117,6 +125,9 @@ class MemberController extends Controller
             ->pluck('iban')
             ->flip()
             ->toArray();
+        $regionIds            = array_filter((array) $request->get('region_id', []));
+        $fieldVisitStatusIds  = array_filter((array) $request->get('field_visit_status_id', []));
+        $regionList           = \App\Models\Region::active()->orderBy('name')->get();
         $verificationStatuses = VerificationStatus::active()->orderBy('name')->get();
         $finalStatusList      = FinalStatus::active()->orderBy('name')->get();
         $maritalStatusList    = MaritalStatus::active()->orderBy('id')->get();
@@ -142,10 +153,10 @@ class MemberController extends Controller
         $fieldVisitStatuses   = FieldVisitStatus::active()->orderBy('id')->get();
 
         return view('members.index', compact(
-            'members', 'search', 'dossierFrom', 'dossierTo', 'totalAmount',
-            'verificationIds', 'finalStatusIds', 'maritalStatuses', 'genders', 'delegates', 'specialCases', 'specialDescriptions', 'addresses', 'associationIds', 'networks',
+            'members', 'search', 'dossierFrom', 'dossierTo', 'totalAmount', 'totalFinalAmount',
+            'verificationIds', 'finalStatusIds', 'maritalStatuses', 'genders', 'delegates', 'specialCases', 'specialDescriptions', 'addresses', 'associationIds', 'networks', 'fieldVisitStatusIds', 'regionIds',
             'verificationStatuses', 'finalStatusList', 'maritalStatusList', 'delegateList', 'specialDescriptionList', 'addressList', 'associationList',
-            'duplicateIbans', 'fieldVisitStatuses'
+            'duplicateIbans', 'fieldVisitStatuses', 'regionList'
         ));
     }
 
@@ -335,6 +346,127 @@ class MemberController extends Controller
         return Auth::user()?->role === 'admin';
     }
 
+    public function updateRegion(Request $request, Member $member)
+    {
+        $request->validate(['region_id' => 'nullable|exists:regions,id']);
+
+        $newRegionId = $request->input('region_id') ?: null;
+
+        if (!$this->isAdmin()) {
+            $member->load('scores');
+            $scores = $member->scores;
+            PendingChange::create([
+                'model_type'   => 'member',
+                'model_id'     => $member->id,
+                'action'       => 'update',
+                'payload'      => [
+                    'full_name'                 => $member->full_name,
+                    'age'                       => $member->age,
+                    'gender'                    => $member->gender,
+                    'mother_name'               => $member->mother_name,
+                    'national_id'               => $member->national_id,
+                    'verification_status_id'    => $member->verification_status_id,
+                    'dossier_number'            => $member->dossier_number,
+                    'current_address'           => $member->current_address,
+                    'region_id'                 => $newRegionId,
+                    'marital_status'            => $member->marital_status,
+                    'disease_type'              => $member->disease_type,
+                    'other_association'         => $member->other_association,
+                    'phone'                     => $member->phone,
+                    'representative_id'         => $member->representative_id,
+                    'delegate'                  => $member->delegate,
+                    'network'                   => $member->network,
+                    'provider_status'           => $member->provider_status,
+                    'job'                       => $member->job,
+                    'housing_status'            => $member->housing_status,
+                    'dependents_count'          => $member->dependents_count,
+                    'illness_details'           => $member->illness_details,
+                    'special_cases'             => $member->special_cases,
+                    'special_cases_description' => $member->special_cases_description,
+                    'sham_cash_account'         => $member->sham_cash_account,
+                    'scores' => [
+                        'work_score'             => $scores?->work_score             ?? 0,
+                        'housing_score'          => $scores?->housing_score          ?? 0,
+                        'dependents_score'       => $scores?->dependents_score       ?? 0,
+                        'dependent_status_score' => $scores?->dependent_status_score ?? 0,
+                        'illness_score'          => $scores?->illness_score          ?? 0,
+                        'special_cases_score'    => $scores?->special_cases_score    ?? 0,
+                    ],
+                ],
+                'original'     => ['full_name' => $member->full_name, 'region_id' => $member->region_id],
+                'requested_by' => Auth::id(),
+                'status'       => 'pending',
+            ]);
+            return redirect()->route('members.show', $member)
+                             ->with('pending', 'تم إرسال طلب تعديل المنطقة — بانتظار موافقة المسؤول.');
+        }
+
+        $member->update(['region_id' => $newRegionId]);
+        ActivityLogger::log('updated', "تعديل منطقة المستفيد: {$member->full_name}", $member);
+
+        return redirect()->route('members.show', $member)->with('success', 'تم تحديث المنطقة بنجاح.');
+    }
+
+    public function updateAddress(Request $request, Member $member)
+    {
+        $request->validate(['current_address' => 'nullable|string|max:255']);
+
+        $newAddress = $request->input('current_address') ?: null;
+
+        if (!$this->isAdmin()) {
+            $member->load('scores');
+            $scores = $member->scores;
+            PendingChange::create([
+                'model_type'   => 'member',
+                'model_id'     => $member->id,
+                'action'       => 'update',
+                'payload'      => [
+                    'full_name'                 => $member->full_name,
+                    'age'                       => $member->age,
+                    'gender'                    => $member->gender,
+                    'mother_name'               => $member->mother_name,
+                    'national_id'               => $member->national_id,
+                    'verification_status_id'    => $member->verification_status_id,
+                    'dossier_number'            => $member->dossier_number,
+                    'current_address'           => $newAddress,
+                    'marital_status'            => $member->marital_status,
+                    'disease_type'              => $member->disease_type,
+                    'other_association'         => $member->other_association,
+                    'phone'                     => $member->phone,
+                    'representative_id'         => $member->representative_id,
+                    'delegate'                  => $member->delegate,
+                    'network'                   => $member->network,
+                    'provider_status'           => $member->provider_status,
+                    'job'                       => $member->job,
+                    'housing_status'            => $member->housing_status,
+                    'dependents_count'          => $member->dependents_count,
+                    'illness_details'           => $member->illness_details,
+                    'special_cases'             => $member->special_cases,
+                    'special_cases_description' => $member->special_cases_description,
+                    'sham_cash_account'         => $member->sham_cash_account,
+                    'scores' => [
+                        'work_score'             => $scores?->work_score             ?? 0,
+                        'housing_score'          => $scores?->housing_score          ?? 0,
+                        'dependents_score'       => $scores?->dependents_score       ?? 0,
+                        'dependent_status_score' => $scores?->dependent_status_score ?? 0,
+                        'illness_score'          => $scores?->illness_score          ?? 0,
+                        'special_cases_score'    => $scores?->special_cases_score    ?? 0,
+                    ],
+                ],
+                'original'     => ['full_name' => $member->full_name, 'current_address' => $member->current_address],
+                'requested_by' => Auth::id(),
+                'status'       => 'pending',
+            ]);
+            return redirect()->route('members.show', $member)
+                             ->with('pending', 'تم إرسال طلب تعديل العنوان — بانتظار موافقة المسؤول.');
+        }
+
+        $member->update(['current_address' => $newAddress]);
+        ActivityLogger::log('updated', "تعديل عنوان المستفيد: {$member->full_name}", $member);
+
+        return redirect()->route('members.show', $member)->with('success', 'تم تحديث العنوان بنجاح.');
+    }
+
     private function buildMemberPayload(Request $request, ?Member $member = null): array
     {
         $scores = [
@@ -377,6 +509,7 @@ class MemberController extends Controller
             'final_status_id'           => $request->input('final_status_id') ?: null,
             'dossier_number'            => $request->input('dossier_number'),
             'current_address'           => $request->input('current_address'),
+            'region_id'                 => $request->input('region_id') ?: null,
             'marital_status'            => $request->input('marital_status'),
             'disease_type'              => $request->input('disease_type'),
             'phone'                     => $request->input('phone'),
@@ -491,6 +624,8 @@ class MemberController extends Controller
         $dependentStatusScore   = min(2,  (int)($request->dependent_status_score ?? 0));
         $illnessScore           = min(5,  (int)($request->illness_score ?? 0));
         $specialScore           = min(10, (int)($request->special_cases_score ?? 0));
+        // store region_id in data array for use below
+        $data['region_id'] = $request->input('region_id') ?: null;
         $totalScore             = $workScore + $housingScore + $dependentsScore + $dependentStatusScore + $illnessScore + $specialScore;
 
         $member = Member::create([
@@ -503,6 +638,7 @@ class MemberController extends Controller
             'final_status_id'            => $data['final_status_id'] ?? null,
             'dossier_number'             => $data['dossier_number'] ?? null,
             'current_address'            => $data['current_address'] ?? null,
+            'region_id'                  => $data['region_id'] ?? null,
             'marital_status'             => $data['marital_status'] ?? null,
             'disease_type'               => $data['disease_type'] ?? null,
             'other_association'          => !empty($request->association_ids),
@@ -652,6 +788,7 @@ class MemberController extends Controller
             'final_status_id'            => $data['final_status_id'] ?? null,
             'dossier_number'             => $data['dossier_number'] ?? null,
             'current_address'            => $data['current_address'] ?? null,
+            'region_id'                  => $data['region_id'] ?? null,
             'marital_status'             => $data['marital_status'] ?? null,
             'disease_type'               => $data['disease_type'] ?? null,
             'other_association'          => !empty($request->association_ids),
@@ -794,7 +931,7 @@ class MemberController extends Controller
             return redirect()->route('members.index')->with('success', 'لم يتم تحديد أي حقل للتعديل.');
         }
 
-        $allowed = ['network', 'marital_status', 'sham_cash_account', 'current_address', 'verification_status_id', 'final_status_id', 'estimated_amount', 'final_amount', 'field_visit_status_id'];
+        $allowed = ['network', 'marital_status', 'sham_cash_account', 'current_address', 'region_id', 'verification_status_id', 'final_status_id', 'estimated_amount', 'final_amount', 'field_visit_status_id'];
         $data    = [];
 
         foreach ($fields as $field) {

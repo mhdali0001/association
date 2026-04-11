@@ -155,7 +155,6 @@
                         'الحالة النهائية'    => $member->finalStatus?->name,
                         'المدخل'             => $member->representative?->name,
                         'مندوب'              => $member->delegate,
-                        'العنوان'            => $member->current_address,
                     ];
                 @endphp
                 @foreach($personal as $label => $value)
@@ -164,6 +163,81 @@
                         <p class="text-sm font-semibold {{ $value ? 'text-gray-800' : 'text-gray-300' }}">{{ $value ?? '—' }}</p>
                     </div>
                 @endforeach
+
+                {{-- العنوان التفصيلي — قابل للتعديل inline --}}
+                <div class="px-5 py-3.5 border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                    <div class="flex items-center justify-between gap-2 mb-0.5">
+                        <p class="text-xs text-gray-400 font-medium">العنوان التفصيلي</p>
+                        <button type="button" onclick="toggleAddressEdit()"
+                                class="text-xs text-indigo-500 hover:text-indigo-700 flex items-center gap-1 transition-colors">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            تعديل
+                        </button>
+                    </div>
+                    <p id="address-display" class="text-sm font-semibold {{ $member->current_address ? 'text-gray-800' : 'text-gray-300' }}">
+                        {{ $member->current_address ?? '—' }}
+                    </p>
+                    <form id="address-form" class="hidden mt-2"
+                          method="POST" action="{{ route('members.address.update', $member) }}">
+                        @csrf @method('PATCH')
+                        <div class="flex gap-2">
+                            <input type="text" name="current_address"
+                                   value="{{ $member->current_address }}"
+                                   placeholder="أدخل العنوان..."
+                                   class="flex-1 border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 bg-indigo-50/30">
+                            <button type="submit"
+                                    class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors shrink-0">
+                                حفظ
+                            </button>
+                            <button type="button" onclick="toggleAddressEdit()"
+                                    class="border border-gray-200 text-gray-500 hover:bg-gray-50 text-xs px-3 py-2 rounded-lg transition-colors shrink-0">
+                                إلغاء
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                {{-- المنطقة — قابلة للتعديل inline --}}
+                <div class="px-5 py-3.5 hover:bg-gray-50/50 transition-colors">
+                    <div class="flex items-center justify-between gap-2 mb-0.5">
+                        <p class="text-xs text-gray-400 font-medium">المنطقة</p>
+                        <button type="button" onclick="toggleRegionEdit()"
+                                class="text-xs text-teal-500 hover:text-teal-700 flex items-center gap-1 transition-colors">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            تعديل
+                        </button>
+                    </div>
+                    <p id="region-display" class="text-sm font-semibold {{ $member->region ? 'text-gray-800' : 'text-gray-300' }}">
+                        {{ $member->region?->name ?? '—' }}
+                    </p>
+                    <form id="region-form" class="hidden mt-2"
+                          method="POST" action="{{ route('members.region.update', $member) }}">
+                        @csrf @method('PATCH')
+                        <div class="flex gap-2">
+                            <select name="region_id"
+                                    class="flex-1 border border-teal-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-400 focus:border-teal-400 bg-teal-50/30">
+                                <option value="">— بدون منطقة —</option>
+                                @foreach(\App\Models\Region::active()->orderBy('name')->get() as $reg)
+                                    <option value="{{ $reg->id }}" {{ $member->region_id == $reg->id ? 'selected' : '' }}>
+                                        {{ $reg->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <button type="submit"
+                                    class="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors shrink-0">
+                                حفظ
+                            </button>
+                            <button type="button" onclick="toggleRegionEdit()"
+                                    class="border border-gray-200 text-gray-500 hover:bg-gray-50 text-xs px-3 py-2 rounded-lg transition-colors shrink-0">
+                                إلغاء
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
 
@@ -512,7 +586,7 @@
                         <p class="text-xs text-gray-600 bg-white rounded-lg px-3 py-2 border border-gray-100">{{ $visit->notes }}</p>
                     @endif
                 </div>
-                <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                <div class="flex gap-1 shrink-0">
                     <button onclick="toggleEditVisit({{ $visit->id }})"
                             class="p-1.5 rounded-lg text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
@@ -780,6 +854,14 @@ function toggleAddVisit() {
 }
 function toggleEditVisit(id) {
     document.getElementById('edit-visit-' + id).classList.toggle('hidden');
+}
+function toggleAddressEdit() {
+    document.getElementById('address-form').classList.toggle('hidden');
+    document.getElementById('address-display').classList.toggle('hidden');
+}
+function toggleRegionEdit() {
+    document.getElementById('region-form').classList.toggle('hidden');
+    document.getElementById('region-display').classList.toggle('hidden');
 }
 </script>
 

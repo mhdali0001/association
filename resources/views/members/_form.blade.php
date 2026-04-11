@@ -140,10 +140,23 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
-        <div class="lg:col-span-3">
-            <label class="{{ $labelClass }}">العنوان الحالي</label>
+        <div class="lg:col-span-2">
+            <label class="{{ $labelClass }}">العنوان التفصيلي</label>
             <textarea name="current_address" rows="2" placeholder="المحافظة / المدينة / الحي"
                       class="{{ $inputClass }} resize-none">{{ $v('current_address') }}</textarea>
+        </div>
+
+        <div>
+            <label class="{{ $labelClass }}">المنطقة</label>
+            <select name="region_id" class="{{ $selectClass }}">
+                <option value="">— غير محدد —</option>
+                @foreach($regionsList ?? [] as $region)
+                    <option value="{{ $region->id }}"
+                        {{ (int)old('region_id', $member->region_id ?? '') === $region->id ? 'selected' : '' }}>
+                        {{ $region->name }}
+                    </option>
+                @endforeach
+            </select>
         </div>
 
         <div>

@@ -20,9 +20,15 @@
             <h1 class="text-2xl font-black text-white">الأعضاء</h1>
             <p class="text-emerald-100 text-sm mt-0.5">إجمالي المسجلين: <span class="font-bold text-white">{{ number_format($members->total()) }}</span> عضو</p>
         </div>
-        <div class="bg-white/15 border border-white/25 rounded-xl px-4 py-2.5 text-center min-w-[160px]">
-            <p class="text-white font-black text-xl leading-none">{{ number_format((float)$totalAmount, 0, '.', ',') }}</p>
-            <p class="text-emerald-200 text-xs mt-0.5">مجموع المبالغ المقدرة (ل.س)</p>
+        <div class="flex gap-3 flex-wrap">
+            <div class="bg-white/15 border border-white/25 rounded-xl px-4 py-2.5 text-center min-w-[160px]">
+                <p class="text-white font-black text-xl leading-none">{{ number_format((float)$totalAmount, 0, '.', ',') }}</p>
+                <p class="text-emerald-200 text-xs mt-0.5">مجموع المبالغ المقدرة (ل.س)</p>
+            </div>
+            <div class="bg-white/15 border border-white/25 rounded-xl px-4 py-2.5 text-center min-w-[160px]">
+                <p class="text-white font-black text-xl leading-none">{{ number_format((float)$totalFinalAmount, 0, '.', ',') }}</p>
+                <p class="text-purple-200 text-xs mt-0.5">مجموع المبالغ النهائية (ل.س)</p>
+            </div>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
             <a href="{{ route('members.import.show') }}"
@@ -272,6 +278,60 @@
                 </select>
             </div>
 
+            {{-- Field visit status filter --}}
+            <div class="ms-dropdown relative">
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">حالة الجولة الميدانية</label>
+                <button type="button"
+                        class="ms-btn w-full flex items-center justify-between text-base border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
+                               hover:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 transition text-right">
+                    <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                    <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                    @forelse($fieldVisitStatuses as $fvs)
+                        <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
+                            <input type="checkbox" name="field_visit_status_id[]" value="{{ $fvs->id }}"
+                                   {{ in_array($fvs->id, $fieldVisitStatusIds) ? 'checked' : '' }}
+                                   class="ms-check rounded border-gray-300 text-emerald-600 focus:ring-emerald-400">
+                            <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:{{ $fvs->color }}"></span>
+                            {{ $fvs->name }}
+                        </label>
+                    @empty
+                        <p class="px-3 py-2 text-sm text-gray-400">لا توجد حالات</p>
+                    @endforelse
+                </div>
+            </div>
+
+            {{-- Region filter --}}
+            <div class="ms-dropdown relative">
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">المنطقة</label>
+                <button type="button"
+                        class="ms-btn w-full flex items-center justify-between text-base border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
+                               hover:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 transition text-right">
+                    <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                    <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                    @forelse($regionList as $reg)
+                        <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
+                            <input type="checkbox" name="region_id[]" value="{{ $reg->id }}"
+                                   {{ in_array($reg->id, $regionIds) ? 'checked' : '' }}
+                                   class="ms-check rounded border-gray-300 text-emerald-600 focus:ring-emerald-400">
+                            <svg class="w-3.5 h-3.5 text-teal-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            {{ $reg->name }}
+                        </label>
+                    @empty
+                        <p class="px-3 py-2 text-sm text-gray-400">لا توجد مناطق</p>
+                    @endforelse
+                </div>
+            </div>
+
         </div>
 
         {{-- Filter row 2 --}}
@@ -352,7 +412,7 @@
 
             {{-- Address / region multi-select --}}
             <div class="ms-dropdown relative">
-                <label class="block text-sm font-semibold text-gray-600 mb-1.5">المنطقة / العنوان</label>
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">العنوان التفصيلي</label>
                 <button type="button"
                         class="ms-btn w-full flex items-center justify-between text-base border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
                                hover:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 transition text-right">
@@ -546,13 +606,28 @@
                 <div class="be-field" data-field="current_address">
                     <div class="flex items-center gap-2 mb-1.5">
                         <input type="checkbox" name="apply_fields[]" value="current_address" class="be-toggle rounded border-gray-300 text-blue-600 focus:ring-blue-400 cursor-pointer" onchange="toggleBulkField(this)">
-                        <label class="text-sm font-semibold text-gray-600 cursor-pointer select-none">المنطقة / العنوان</label>
+                        <label class="text-sm font-semibold text-gray-600 cursor-pointer select-none">العنوان التفصيلي</label>
                     </div>
                     <select name="fields[current_address]" disabled
                             class="be-input w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-100 text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
                         <option value="">— بدون —</option>
                         @foreach($addressList as $addr)
                             <option value="{{ $addr }}">{{ $addr }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Region --}}
+                <div class="be-field" data-field="region_id">
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <input type="checkbox" name="apply_fields[]" value="region_id" class="be-toggle rounded border-gray-300 text-blue-600 focus:ring-blue-400 cursor-pointer" onchange="toggleBulkField(this)">
+                        <label class="text-sm font-semibold text-gray-600 cursor-pointer select-none">المنطقة</label>
+                    </div>
+                    <select name="fields[region_id]" disabled
+                            class="be-input w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-100 text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
+                        <option value="">— بدون —</option>
+                        @foreach($regionList as $reg)
+                            <option value="{{ $reg->id }}">{{ $reg->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -1072,6 +1147,7 @@ function toggleDuplicates() {
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">العضو</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">رقم الهوية</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">الهاتف</th>
+                        <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">المنطقة</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">نوع الشبكة</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">الحالة الاجتماعية</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">شام كاش</th>
@@ -1119,6 +1195,7 @@ function toggleDuplicates() {
                             </td>
                             <td class="px-4 py-4 text-gray-800 font-mono font-semibold text-sm">{{ $member->national_id ?? '—' }}</td>
                             <td class="px-4 py-4 text-gray-800 font-semibold text-sm">{{ $member->phone ?? '—' }}</td>
+                            <td class="px-4 py-4 text-gray-700 text-sm">{{ $member->region?->name ?? '—' }}</td>
                             <td class="px-4 py-4">
                                 @if($member->network)
                                     <span class="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-semibold bg-cyan-50 text-cyan-700 border border-cyan-100">

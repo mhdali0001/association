@@ -54,8 +54,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/payment-review/duplicate-ibans',    [PaymentReviewController::class, 'duplicateIbans'])->name('payment-review.duplicate-ibans');
         Route::get('/pending-changes',                          [PendingChangeController::class, 'index'])  ->name('pending-changes.index');
         Route::get('/pending-changes/{pendingChange}',          [PendingChangeController::class, 'show'])   ->name('pending-changes.show');
-        Route::post('/pending-changes/{pendingChange}/approve', [PendingChangeController::class, 'approve'])->name('pending-changes.approve');
-        Route::post('/pending-changes/{pendingChange}/reject',  [PendingChangeController::class, 'reject']) ->name('pending-changes.reject');
+        Route::post('/pending-changes/{pendingChange}/approve',      [PendingChangeController::class, 'approve'])          ->name('pending-changes.approve');
+        Route::post('/pending-changes/{pendingChange}/approve-edit', [PendingChangeController::class, 'approveWithEdit']) ->name('pending-changes.approve-edit');
+        Route::post('/pending-changes/{pendingChange}/reject',       [PendingChangeController::class, 'reject'])          ->name('pending-changes.reject');
         // Config tables — admin only (index visible to all auth users below)
     });
 
@@ -79,6 +80,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/members/import/{importResult}/status',        [MemberImportController::class, 'status'])->name('members.import.status');
     Route::post('/members/import/{importResult}/chunk',        [MemberImportController::class, 'chunk']) ->name('members.import.chunk');
     Route::resource('members', MemberController::class);
+    Route::patch('/members/{member}/address', [MemberController::class, 'updateAddress'])->name('members.address.update');
+    Route::patch('/members/{member}/region',  [MemberController::class, 'updateRegion']) ->name('members.region.update');
     Route::get('/member-images',                     [MemberImageController::class, 'index'])      ->name('member-images.index');
     Route::post('/member-images',                    [MemberImageController::class, 'storeGlobal'])->name('member-images.store-global');
     Route::get('/member-images/{memberImage}/edit',  [MemberImageController::class, 'edit'])       ->name('member-images.edit');
@@ -90,6 +93,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/delegates',          [DelegateController::class, 'index'])         ->name('delegates.index');
     Route::get('/delegates/{delegate}',[DelegateController::class, 'show'])         ->name('delegates.show');
     Route::resource('field-visit-statuses', \App\Http\Controllers\FieldVisitStatusController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('regions', \App\Http\Controllers\RegionController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::post('/members/{member}/field-visits',                          [\App\Http\Controllers\FieldVisitController::class, 'store'])  ->name('field-visits.store');
     Route::put('/members/{member}/field-visits/{fieldVisit}',             [\App\Http\Controllers\FieldVisitController::class, 'update']) ->name('field-visits.update');
     Route::delete('/members/{member}/field-visits/{fieldVisit}',          [\App\Http\Controllers\FieldVisitController::class, 'destroy'])->name('field-visits.destroy');
