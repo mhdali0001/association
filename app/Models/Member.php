@@ -9,7 +9,7 @@ class Member extends Model
     protected $fillable = [
         'full_name', 'age', 'gender', 'mother_name', 'national_id',
         'verification_status_id', 'final_status_id', 'dossier_number', 'current_address', 'region_id',
-        'marital_status', 'disease_type', 'other_association', 'phone',
+        'marital_status', 'disease_type', 'other_association', 'phone', 'phone2',
         'representative_id', 'delegate', 'network', 'provider_status', 'job',
         'housing_status', 'dependents_count', 'illness_details',
         'special_cases', 'special_cases_description', 'score',

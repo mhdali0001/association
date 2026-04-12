@@ -28,12 +28,13 @@
             </div>
             <div>
                 <h1 class="text-2xl font-black text-white drop-shadow-sm">{{ $member->full_name }}</h1>
+                @if($member->dossier_number)
+                    <div class="mt-1 flex items-center gap-1.5">
+                        <span class="text-white/70 text-sm">رقم الملف:</span>
+                        <span class="text-white font-bold text-lg tracking-wide drop-shadow">{{ $member->dossier_number }}</span>
+                    </div>
+                @endif
                 <div class="flex items-center gap-2 mt-1.5 flex-wrap">
-                    @if($member->dossier_number)
-                        <span class="text-xs bg-white/20 text-white border border-white/30 rounded-full px-2.5 py-0.5 font-medium backdrop-blur-sm">
-                            ملف: {{ $member->dossier_number }}
-                        </span>
-                    @endif
                     @if($member->verificationStatus)
                         <span class="text-xs bg-white/20 text-white border border-white/30 rounded-full px-2.5 py-0.5 font-medium backdrop-blur-sm">
                             {{ $member->verificationStatus->name }}
@@ -151,6 +152,7 @@
                         'الجنس'             => $member->gender,
                         'رقم الهوية'         => $member->national_id,
                         'رقم الهاتف'         => $member->phone,
+                        'رقم الهاتف الثاني'  => $member->phone2,
                         'الحالة الاجتماعية'  => $member->marital_status,
                         'الحالة النهائية'    => $member->finalStatus?->name,
                         'المدخل'             => $member->representative?->name,

@@ -75,6 +75,13 @@
         </div>
 
         <div>
+            <label class="{{ $labelClass }}">رقم الهاتف الثاني</label>
+            <input type="tel" name="phone2" value="{{ $v('phone2') }}"
+                   placeholder="09XXXXXXXX"
+                   class="{{ $inputClass }} font-mono">
+        </div>
+
+        <div>
             <label class="{{ $labelClass }}">العمر</label>
             <input type="number" name="age" value="{{ $v('age') }}" min="0" max="120"
                    placeholder="بالسنوات"

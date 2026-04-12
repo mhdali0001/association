@@ -124,4 +124,46 @@ class PendingChangeController extends Controller
         return redirect()->route('pending-changes.index')
                          ->with('success', 'تم رفض الطلب.');
     }
+
+    public function reopen(PendingChange $pendingChange)
+    {
+        abort_unless($pendingChange->isRejected(), 422, 'يمكن إعادة الفتح للطلبات المرفوضة فقط.');
+
+        $pendingChange->update([
+            'status'         => 'pending',
+            'reviewed_by'    => null,
+            'reviewed_at'    => null,
+            'reviewer_notes' => null,
+        ]);
+
+        ActivityLogger::log('updated', "إعادة فتح طلب مرفوض: {$pendingChange->summary()}");
+
+        return redirect()->route('pending-changes.show', $pendingChange)
+                         ->with('success', 'تمت إعادة فتح الطلب — أصبح بانتظار المراجعة مجدداً.');
+    }
+
+    public function revoke(Request $request, PendingChange $pendingChange)
+    {
+        abort_unless($pendingChange->isApproved(), 422, 'يمكن إعادة الرفض للطلبات الموافق عليها فقط.');
+
+        $request->validate(['reviewer_notes' => 'nullable|string|max:1000']);
+
+        try {
+            $pendingChange->undo();
+        } catch (\Throwable $e) {
+            return back()->with('error', 'حدث خطأ أثناء التراجع عن التعديل: ' . $e->getMessage());
+        }
+
+        $pendingChange->update([
+            'status'         => 'rejected',
+            'reviewed_by'    => Auth::id(),
+            'reviewed_at'    => now(),
+            'reviewer_notes' => $request->input('reviewer_notes'),
+        ]);
+
+        ActivityLogger::log('rejected', "إعادة رفض وتراجع عن طلب موافق عليه: {$pendingChange->summary()}");
+
+        return redirect()->route('pending-changes.show', $pendingChange)
+                         ->with('success', 'تم إعادة رفض الطلب.');
+    }
 }

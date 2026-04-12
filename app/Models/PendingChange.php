@@ -91,13 +91,13 @@ class PendingChange extends Model
         }
 
         $name = match($this->model_type) {
-            'member'              => $this->payload['full_name']   ?? $this->original['full_name']   ?? "#{$this->model_id}",
-            'donation'            => $this->payload['member_name'] ?? $this->original['member_name'] ?? "#{$this->model_id}",
-            'member_image'        => $this->payload['member_name'] ?? $this->original['member_name'] ?? "#{$this->model_id}",
-            'field_visit'         => $this->payload['member_name'] ?? $this->original['member_name'] ?? "#{$this->model_id}",
+            'member'              => $this->payload['full_name']   ?? $this->getAttribute('original')['full_name']   ?? "#{$this->model_id}",
+            'donation'            => $this->payload['member_name'] ?? $this->getAttribute('original')['member_name'] ?? "#{$this->model_id}",
+            'member_image'        => $this->payload['member_name'] ?? $this->getAttribute('original')['member_name'] ?? "#{$this->model_id}",
+            'field_visit'         => $this->payload['member_name'] ?? $this->getAttribute('original')['member_name'] ?? "#{$this->model_id}",
             'marital_status',
             'association',
-            'verification_status' => $this->payload['name'] ?? $this->original['name'] ?? "#{$this->model_id}",
+            'verification_status' => $this->payload['name'] ?? $this->getAttribute('original')['name'] ?? "#{$this->model_id}",
             default               => "#{$this->model_id}",
         };
         return "{$this->actionLabel()} {$this->modelLabel()}: {$name}";
@@ -194,6 +194,147 @@ class PendingChange extends Model
         }
     }
 
+    /**
+     * Reverse a previously-applied change (called from revoke).
+     * Best-effort: bulk and delete-type actions may not be fully reversible.
+     */
+    public function undo(): void
+    {
+        if (in_array($this->action, ['bulk_amount', 'bulk_delete', 'bulk_update'])) {
+            return; // bulk operations are not automatically reversible
+        }
+
+        match($this->model_type) {
+            'field_visit'         => $this->undoFieldVisit(),
+            'member'              => $this->undoMember(),
+            'donation'            => $this->undoDonation(),
+            'member_image'        => $this->undoMemberImage(),
+            default               => null,
+        };
+    }
+
+    private function undoFieldVisit(): void
+    {
+        $p      = $this->payload  ?? [];
+        $o      = $this->getAttribute('original') ?? [];
+        $member = \App\Models\Member::find($p['member_id'] ?? $o['member_id'] ?? null);
+
+        if ($this->action === 'create') {
+            \App\Models\FieldVisit::find($this->model_id)?->delete();
+        } elseif ($this->action === 'update') {
+            $visit = \App\Models\FieldVisit::find($this->model_id);
+            if ($visit && !empty($o)) {
+                $visit->update([
+                    'field_visit_status_id' => $o['field_visit_status_id'] ?? null,
+                    'visit_date'            => $o['visit_date']            ?? null,
+                    'visitor'               => $o['visitor']               ?? null,
+                    'estimated_amount'      => $o['estimated_amount']      ?? null,
+                    'amount_reason'         => $o['amount_reason']         ?? null,
+                    'notes'                 => $o['notes']                 ?? null,
+                ]);
+            }
+        } elseif ($this->action === 'delete') {
+            // Re-create the deleted field visit from its payload
+            if ($member) {
+                $member->fieldVisits()->create([
+                    'field_visit_status_id' => $p['field_visit_status_id'] ?? null,
+                    'visit_date'            => $p['visit_date']            ?? null,
+                    'visitor'               => $p['visitor']               ?? null,
+                    'estimated_amount'      => $p['estimated_amount']      ?? null,
+                    'amount_reason'         => $p['amount_reason']         ?? null,
+                    'notes'                 => $p['notes']                 ?? null,
+                ]);
+            }
+        }
+
+        if ($member) {
+            $member->refresh();
+            $visitAmount = $member->fieldVisits()->latest()->value('estimated_amount') ?? 0;
+            $member->update(['final_amount' => ($member->estimated_amount ?? 0) + $visitAmount]);
+        }
+    }
+
+    private function undoMember(): void
+    {
+        $o = $this->getAttribute('original') ?? [];
+
+        if ($this->action === 'create') {
+            Member::find($this->model_id)?->delete();
+            return;
+        }
+
+        if ($this->action !== 'update' || empty($o)) {
+            return; // delete action: cannot restore (record is gone from DB)
+        }
+
+        $member = Member::find($this->model_id);
+        if (!$member) return;
+
+        // Restore top-level member fields
+        $restorable = array_intersect_key($o, array_flip([
+            'full_name', 'age', 'gender', 'mother_name', 'national_id',
+            'verification_status_id', 'final_status_id', 'dossier_number',
+            'current_address', 'region_id', 'marital_status', 'disease_type',
+            'phone', 'phone2', 'network', 'provider_status', 'job', 'housing_status',
+            'dependents_count', 'illness_details', 'special_cases',
+            'special_cases_description', 'sham_cash_account', 'other_association',
+            'representative_id', 'delegate', 'association_id', 'estimated_amount', 'final_amount',
+        ]));
+        if (!empty($restorable)) {
+            $member->update($restorable);
+        }
+
+        // Restore scores
+        if (!empty($o['scores'])) {
+            $s = $member->scores ?? new MemberScore(['member_id' => $member->id]);
+            $s->fill(array_merge($o['scores'], ['member_id' => $member->id]))->save();
+        }
+
+        // Restore payment info
+        if (!empty($o['payment'])) {
+            $pay = $member->paymentInfo ?? new PaymentInfo(['member_id' => $member->id]);
+            $pay->fill(array_merge($o['payment'], ['member_id' => $member->id]))->save();
+        }
+
+        // Restore payment AI info
+        if (!empty($o['payment_ai'])) {
+            $payAI = $member->paymentInfoAI ?? new PaymentInfoAI(['member_id' => $member->id]);
+            $payAI->fill(array_merge($o['payment_ai'], ['member_id' => $member->id]))->save();
+        }
+    }
+
+    private function undoDonation(): void
+    {
+        $o = $this->getAttribute('original') ?? [];
+
+        if ($this->action === 'create') {
+            Donation::find($this->model_id)?->delete();
+        } elseif ($this->action === 'update' && !empty($o)) {
+            $donation = Donation::find($this->model_id);
+            if ($donation) {
+                $donation->update(array_intersect_key($o, array_flip([
+                    'member_id', 'amount', 'donation_month', 'type',
+                    'status', 'reference_number', 'notes',
+                ])));
+            }
+        }
+    }
+
+    private function undoMemberImage(): void
+    {
+        $o = $this->getAttribute('original') ?? [];
+
+        if ($this->action === 'create') {
+            $img = MemberImage::find($this->model_id);
+            if ($img) {
+                Storage::disk('public')->delete($img->file_path);
+                $img->delete();
+            }
+        } elseif ($this->action === 'update') {
+            MemberImage::find($this->model_id)?->update(['title' => $o['title'] ?? null]);
+        }
+    }
+
     /** Delete uploaded file when a pending image-upload is rejected */
     public function cleanup(): void
     {
@@ -231,12 +372,15 @@ class PendingChange extends Model
             'mother_name'               => $p['mother_name']               ?? null,
             'national_id'               => $p['national_id']               ?? null,
             'verification_status_id'    => $p['verification_status_id']    ?? null,
+            'final_status_id'           => $p['final_status_id']           ?? null,
             'dossier_number'            => $p['dossier_number']            ?? null,
             'current_address'           => $p['current_address']           ?? null,
+            'region_id'                 => $p['region_id']                 ?? null,
             'marital_status'            => $p['marital_status']            ?? null,
             'disease_type'              => $p['disease_type']              ?? null,
             'other_association'         => $p['other_association']         ?? false,
             'phone'                     => $p['phone']                     ?? null,
+            'phone2'                    => $p['phone2']                    ?? null,
             'representative_id'         => $p['representative_id']         ?? null,
             'delegate'                  => $p['delegate']                  ?? null,
             'association_id'            => $p['association_id']            ?? null,
@@ -269,6 +413,7 @@ class PendingChange extends Model
         if ($this->action === 'create') {
             $memberData['final_amount'] = $totalScore * 500;
             $member = Member::create($memberData);
+            $this->updateQuietly(['model_id' => $member->id]);
             MemberScore::create(array_merge($scoresData, ['member_id' => $member->id]));
             PaymentInfo::create(array_merge([
                 'member_id'      => $member->id,
@@ -341,7 +486,8 @@ class PendingChange extends Model
         ];
 
         if ($this->action === 'create') {
-            Donation::create($data);
+            $donation = Donation::create($data);
+            $this->updateQuietly(['model_id' => $donation->id]);
         } elseif ($this->action === 'update') {
             Donation::findOrFail($this->model_id)->update($data);
         }
@@ -361,7 +507,7 @@ class PendingChange extends Model
         }
 
         if ($this->action === 'create') {
-            MemberImage::create([
+            $img = MemberImage::create([
                 'member_id'   => $p['member_id'],
                 'title'       => $p['title']       ?? null,
                 'file_path'   => $p['file_path'],
@@ -370,6 +516,7 @@ class PendingChange extends Model
                 'mime_type'   => $p['mime_type']   ?? null,
                 'uploaded_by' => $p['uploaded_by'] ?? Auth::id(),
             ]);
+            $this->updateQuietly(['model_id' => $img->id]);
         } elseif ($this->action === 'update') {
             MemberImage::findOrFail($this->model_id)->update(['title' => $p['title'] ?? null]);
         }
@@ -390,6 +537,7 @@ class PendingChange extends Model
             'marital_status'            => 'الحالة الاجتماعية',
             'disease_type'              => 'نوع المرض',
             'phone'                     => 'الهاتف',
+            'phone2'                    => 'الهاتف الثاني',
             'network'                   => 'نوع الشبكة',
             'provider_status'           => 'حالة المعيل',
             'job'                       => 'العمل',
@@ -566,7 +714,8 @@ class PendingChange extends Model
 
         if ($this->action === 'create') {
             if ($member) {
-                $member->fieldVisits()->create($data);
+                $visit = $member->fieldVisits()->create($data);
+                $this->updateQuietly(['model_id' => $visit->id]);
                 $visitAmount = $member->fieldVisits()->latest()->value('estimated_amount') ?? 0;
                 $member->update(['final_amount' => ($member->estimated_amount ?? 0) + $visitAmount]);
             }

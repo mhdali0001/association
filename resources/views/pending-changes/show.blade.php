@@ -55,7 +55,7 @@
         $labels = \App\Models\PendingChange::memberFieldLabels();
         $topFields = [
             'full_name','age','gender','mother_name','national_id','verification_status_id',
-            'dossier_number','current_address','marital_status','disease_type','phone',
+            'dossier_number','current_address','marital_status','disease_type','phone','phone2',
             'network','provider_status','job','housing_status','dependents_count',
             'illness_details','special_cases','special_cases_description','sham_cash_account',
             'other_association','representative_id','delegate','association_id','score','estimated_amount',
@@ -63,6 +63,26 @@
         $scoreFields   = ['work_score','housing_score','dependents_score','dependent_status_score','illness_score','special_cases_score'];
         $paymentFields = ['iban','barcode'];
     }
+
+    // Resolve member link
+    $memberId = match($modelType) {
+        'field_visit', 'donation', 'member_image' => $payload['member_id'] ?? ($original['member_id'] ?? null),
+        default => $pendingChange->model_id,
+    };
+    $memberLink = ($memberId && in_array($modelType, ['member','field_visit','donation','member_image']))
+        ? route('members.show', $memberId)
+        : null;
+
+    // Maps for ID → name resolution
+    $fvsMap = \App\Models\FieldVisitStatus::pluck('name', 'id')->toArray();
+    $vsMap  = \App\Models\VerificationStatus::pluck('name', 'id')->toArray();
+
+    // Helper: resolve any known ID field to its display name
+    $resolveId = function($field, $value) use ($fvsMap, $vsMap) {
+        if ($field === 'field_visit_status_id')  return $fvsMap[$value] ?? $value;
+        if ($field === 'verification_status_id') return $vsMap[$value]  ?? $value;
+        return $value;
+    };
 @endphp
 
 {{-- Header card --}}
@@ -85,7 +105,17 @@
                 </p>
             </div>
         </div>
-        @if($pendingChange->isPending())
+        <div class="flex items-center gap-2 flex-wrap justify-end">
+            @if($memberLink)
+                <a href="{{ $memberLink }}" target="_blank"
+                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    </svg>
+                    ملف العضو
+                </a>
+            @endif
+            @if($pendingChange->isPending())
             <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold bg-amber-100 text-amber-700 border border-amber-200">
                 <span class="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
                 بانتظار المراجعة
@@ -101,6 +131,7 @@
                 مرفوض — {{ $pendingChange->reviewer?->name }}
             </span>
         @endif
+        </div>
     </div>
 
     {{-- Reviewer notes --}}
@@ -158,13 +189,14 @@
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
             @foreach($topFields as $field)
                 @if(isset($original[$field]))
+                    @php $dispOrig = $resolveId($field, $original[$field]); @endphp
                     <div class="bg-white rounded-xl px-3 py-2.5 border border-red-100">
                         <p class="text-xs text-gray-400 mb-0.5">{{ $labels[$field] ?? $field }}</p>
                         <p class="text-sm font-semibold text-gray-800">
                             @if(is_bool($original[$field]))
                                 {{ $original[$field] ? 'نعم' : 'لا' }}
                             @else
-                                {{ $original[$field] ?: '—' }}
+                                {{ $dispOrig ?: '—' }}
                             @endif
                         </p>
                     </div>
@@ -187,13 +219,14 @@
         <div class="p-5 grid grid-cols-2 sm:grid-cols-3 gap-3">
             @foreach($topFields as $field)
                 @if(isset($payload[$field]))
+                    @php $dispVal = $resolveId($field, $payload[$field]); @endphp
                     <div class="bg-emerald-50/50 rounded-xl px-3 py-2.5 border border-emerald-100">
                         <p class="text-xs text-gray-400 mb-0.5">{{ $labels[$field] ?? $field }}</p>
                         <p class="text-sm font-semibold text-gray-800">
                             @if(is_bool($payload[$field]))
                                 {{ $payload[$field] ? 'نعم' : 'لا' }}
                             @else
-                                {{ $payload[$field] ?: '—' }}
+                                {{ $dispVal ?: '—' }}
                             @endif
                         </p>
                     </div>
@@ -260,6 +293,8 @@
                             $oldVal = $original[$field] ?? null;
                             $newVal = $payload[$field]  ?? null;
                             $changed = $oldVal != $newVal;
+                            $displayOld = $resolveId($field, $oldVal);
+                            $displayNew = $resolveId($field, $newVal);
                         @endphp
                         @if($changed || isset($original[$field]) || isset($payload[$field]))
                             <tr class="{{ $changed ? 'bg-blue-50/60' : '' }}">
@@ -271,11 +306,11 @@
                                 </td>
                                 <td class="px-5 py-2.5 {{ $changed ? 'text-red-600 line-through' : 'text-gray-500' }} text-sm">
                                     @if(is_bool($oldVal)) {{ $oldVal ? 'نعم' : 'لا' }}
-                                    @else {{ $oldVal ?: '—' }} @endif
+                                    @else {{ $displayOld ?: '—' }} @endif
                                 </td>
                                 <td class="px-5 py-2.5 {{ $changed ? 'text-emerald-700 font-semibold' : 'text-gray-600' }} text-sm">
                                     @if(is_bool($newVal)) {{ $newVal ? 'نعم' : 'لا' }}
-                                    @else {{ $newVal ?: '—' }} @endif
+                                    @else {{ $displayNew ?: '—' }} @endif
                                 </td>
                             </tr>
                         @endif
@@ -396,6 +431,18 @@
                 {{-- Field visit fields --}}
                 @if($modelType === 'field_visit')
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">حالة الجولة</label>
+                            <select name="payload[field_visit_status_id]"
+                                    class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50">
+                                <option value="">— اختر الحالة —</option>
+                                @foreach(\App\Models\FieldVisitStatus::orderBy('name')->get() as $fvs)
+                                    <option value="{{ $fvs->id }}" {{ ($editPayload['field_visit_status_id'] ?? '') == $fvs->id ? 'selected' : '' }}>
+                                        {{ $fvs->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">تاريخ الزيارة</label>
                             <input type="date" name="payload[visit_date]" value="{{ $editPayload['visit_date'] ?? '' }}"
@@ -520,6 +567,48 @@
         </div>
         @endif
 
+    </div>
+@endif
+
+{{-- Revoke action (admin only, approved only) --}}
+@if($pendingChange->isApproved())
+    <div class="bg-white rounded-2xl border border-red-100 shadow-sm p-6">
+        <h2 class="text-sm font-bold text-gray-700 mb-3">إعادة رفض الطلب</h2>
+        <p class="text-xs text-gray-400 mb-4">سيُعاد تصنيف الطلب إلى "مرفوض" — لن يتم التراجع عن التغييرات المُطبَّقة تلقائياً.</p>
+        <form action="{{ route('pending-changes.revoke', $pendingChange) }}" method="POST"
+              onsubmit="return confirm('إعادة رفض هذا الطلب الموافق عليه؟')">
+            @csrf
+            <div class="flex gap-2">
+                <input type="text" name="reviewer_notes" placeholder="سبب إعادة الرفض..."
+                       class="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-300 transition">
+                <button type="submit"
+                        class="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-colors shadow-sm shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    إعادة رفض
+                </button>
+            </div>
+        </form>
+    </div>
+@endif
+
+{{-- Reopen action (admin only, rejected only, and not previously applied) --}}
+@if($pendingChange->isRejected())
+    <div class="bg-white rounded-2xl border border-amber-100 shadow-sm p-6">
+        <h2 class="text-sm font-bold text-gray-700 mb-3">إعادة فتح الطلب</h2>
+        <p class="text-xs text-gray-400 mb-4">سيُعاد الطلب إلى حالة "بانتظار المراجعة" ويمكن الموافقة عليه أو رفضه مجدداً.</p>
+        <form action="{{ route('pending-changes.reopen', $pendingChange) }}" method="POST"
+              onsubmit="return confirm('إعادة فتح هذا الطلب المرفوض؟')">
+            @csrf
+            <button type="submit"
+                    class="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold px-6 py-3 rounded-xl transition-colors shadow-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                إعادة فتح الطلب
+            </button>
+        </form>
     </div>
 @endif
 

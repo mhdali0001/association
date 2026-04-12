@@ -57,6 +57,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/pending-changes/{pendingChange}/approve',      [PendingChangeController::class, 'approve'])          ->name('pending-changes.approve');
         Route::post('/pending-changes/{pendingChange}/approve-edit', [PendingChangeController::class, 'approveWithEdit']) ->name('pending-changes.approve-edit');
         Route::post('/pending-changes/{pendingChange}/reject',       [PendingChangeController::class, 'reject'])          ->name('pending-changes.reject');
+        Route::post('/pending-changes/{pendingChange}/reopen',       [PendingChangeController::class, 'reopen'])          ->name('pending-changes.reopen');
+        Route::post('/pending-changes/{pendingChange}/revoke',       [PendingChangeController::class, 'revoke'])          ->name('pending-changes.revoke');
         // Config tables — admin only (index visible to all auth users below)
     });
 
