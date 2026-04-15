@@ -80,8 +80,10 @@ Route::middleware('auth')->group(function () {
     Route::patch('/members/{member}/final-status', [MemberController::class, 'updateFinalStatus'])->name('members.final-status.update');
     Route::get('/members/bulk-amount',  [MemberController::class, 'bulkAmountShow']) ->name('members.bulk-amount');
     Route::post('/members/bulk-amount', [MemberController::class, 'bulkAmountApply'])->name('members.bulk-amount.apply');
-    Route::get('/members/import',          [MemberImportController::class, 'show'])    ->name('members.import.show');
-    Route::post('/members/import',         [MemberImportController::class, 'store'])   ->name('members.import.store');
+    Route::get('/members/import',                 [MemberImportController::class, 'show'])    ->name('members.import.show');
+    Route::post('/members/import',                [MemberImportController::class, 'store'])   ->name('members.import.store');
+    Route::get('/members/import-gender',          [\App\Http\Controllers\GenderImportController::class, 'show'])  ->name('members.import-gender.show');
+    Route::post('/members/import-gender',         [\App\Http\Controllers\GenderImportController::class, 'store']) ->name('members.import-gender.store');
     Route::get('/members/import/template', [MemberImportController::class, 'template'])->name('members.import.template');
     Route::get('/members/import/{importResult}/status',        [MemberImportController::class, 'status'])->name('members.import.status');
     Route::post('/members/import/{importResult}/chunk',        [MemberImportController::class, 'chunk']) ->name('members.import.chunk');
