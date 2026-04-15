@@ -563,6 +563,13 @@
                                 {{ $visit->status->name }}
                             </span>
                         @endif
+                        @if($visit->houseType)
+                            <span class="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full text-white"
+                                  style="background: {{ $visit->houseType->color }}">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9.75L12 3l9 6.75V21H15v-6H9v6H3V9.75z"/></svg>
+                                {{ $visit->houseType->name }}
+                            </span>
+                        @endif
                         @if($visit->visit_date)
                             <span class="text-xs text-gray-500 font-medium">
                                 <svg class="w-3 h-3 inline ml-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -577,15 +584,69 @@
                         @endif
                     </div>
                     @if($visit->estimated_amount !== null)
-                        <div class="flex items-center gap-2">
-                            <span class="text-sm font-black text-emerald-700">{{ number_format($visit->estimated_amount) }} ل.س</span>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-sm font-black {{ $visit->estimated_amount < 0 ? 'text-red-600' : 'text-emerald-700' }}">
+                                {{ $visit->estimated_amount >= 0 ? '+' : '' }}{{ number_format($visit->estimated_amount) }} ل.س
+                            </span>
                             @if($visit->amount_reason)
                                 <span class="text-xs text-gray-500 italic">— {{ $visit->amount_reason }}</span>
                             @endif
+                            <button type="button" onclick="toggleAdjust({{ $visit->id }})"
+                                    class="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 px-2 py-0.5 rounded-lg transition-colors">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                تعديل المبلغ
+                            </button>
+                        </div>
+                        {{-- Adjust amount mini-form --}}
+                        <div id="adjust-{{ $visit->id }}" class="hidden mt-2">
+                            <form method="POST" action="{{ route('field-visits.adjust', [$member, $visit]) }}"
+                                  class="flex flex-wrap items-end gap-2 bg-white border border-indigo-100 rounded-xl p-3">
+                                @csrf @method('PATCH')
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-500 mb-1">العملية</label>
+                                    <div class="flex gap-1">
+                                        <label class="flex items-center gap-1.5 px-3 py-2 rounded-lg border cursor-pointer text-xs font-bold transition-all has-[:checked]:bg-emerald-500 has-[:checked]:text-white has-[:checked]:border-emerald-500 bg-white text-gray-600 border-gray-200">
+                                            <input type="radio" name="operation" value="add" checked class="hidden"> + إضافة
+                                        </label>
+                                        <label class="flex items-center gap-1.5 px-3 py-2 rounded-lg border cursor-pointer text-xs font-bold transition-all has-[:checked]:bg-red-500 has-[:checked]:text-white has-[:checked]:border-red-500 bg-white text-gray-600 border-gray-200">
+                                            <input type="radio" name="operation" value="subtract" class="hidden"> − إنقاص
+                                        </label>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-500 mb-1">المبلغ (ل.س)</label>
+                                    <input type="number" name="amount" min="0.01" step="any" required
+                                           placeholder="0"
+                                           class="w-32 border border-gray-200 rounded-lg px-2.5 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-mono">
+                                </div>
+                                <div class="flex-1 min-w-[140px]">
+                                    <label class="block text-xs font-bold text-gray-500 mb-1">السبب (اختياري)</label>
+                                    <input type="text" name="amount_reason"
+                                           placeholder="وصف التعديل..."
+                                           class="w-full border border-gray-200 rounded-lg px-2.5 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                                </div>
+                                <div class="flex gap-1.5">
+                                    <button type="submit"
+                                            class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors">
+                                        حفظ
+                                    </button>
+                                    <button type="button" onclick="toggleAdjust({{ $visit->id }})"
+                                            class="text-xs text-gray-500 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                                        إلغاء
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     @endif
                     @if($visit->notes)
                         <p class="text-xs text-gray-600 bg-white rounded-lg px-3 py-2 border border-gray-100">{{ $visit->notes }}</p>
+                    @endif
+                    @if($visit->house_condition)
+                        <p class="text-xs text-gray-600 bg-amber-50 rounded-lg px-3 py-2 border border-amber-100">
+                            <span class="font-bold text-amber-700">حالة البيت:</span> {{ $visit->house_condition }}
+                        </p>
                     @endif
                 </div>
                 <div class="flex gap-1 shrink-0">
@@ -618,6 +679,15 @@
                             </select>
                         </div>
                         <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">نوع البيت</label>
+                            <select name="house_type_id" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                                <option value="">— غير محدد —</option>
+                                @foreach($houseTypes as $ht)
+                                    <option value="{{ $ht->id }}" {{ $visit->house_type_id == $ht->id ? 'selected' : '' }}>{{ $ht->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">تاريخ الزيارة</label>
                             <input type="date" name="visit_date" value="{{ $visit->visit_date?->format('Y-m-d') }}"
                                    class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400">
@@ -642,6 +712,11 @@
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">ملاحظات</label>
                             <textarea name="notes" rows="2"
                                       class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none">{{ $visit->notes }}</textarea>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">حالة البيت</label>
+                            <textarea name="house_condition" rows="2" placeholder="وصف حالة البيت..."
+                                      class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none">{{ $visit->house_condition }}</textarea>
                         </div>
                     </div>
                     <div class="flex gap-2 mt-3">
@@ -677,6 +752,15 @@
                             </select>
                         </div>
                         <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">نوع البيت</label>
+                            <select name="house_type_id" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                                <option value="">— غير محدد —</option>
+                                @foreach($houseTypes as $ht)
+                                    <option value="{{ $ht->id }}">{{ $ht->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">تاريخ الزيارة</label>
                             <input type="date" name="visit_date"
                                    class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400">
@@ -687,9 +771,17 @@
                                    class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">المبلغ المقدر (ل.س)</label>
-                            <input type="number" name="estimated_amount" min="0" step="0.01" placeholder="0"
-                                   class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">المبلغ (ل.س)</label>
+                            <div class="flex gap-1.5">
+                                <label class="flex items-center justify-center gap-1 px-3 py-2 rounded-xl border cursor-pointer text-xs font-bold transition-all has-[:checked]:bg-emerald-500 has-[:checked]:text-white has-[:checked]:border-emerald-500 bg-white text-gray-600 border-gray-200 shrink-0">
+                                    <input type="radio" name="amount_operation" value="add" checked class="hidden"> + إضافة
+                                </label>
+                                <label class="flex items-center justify-center gap-1 px-3 py-2 rounded-xl border cursor-pointer text-xs font-bold transition-all has-[:checked]:bg-red-500 has-[:checked]:text-white has-[:checked]:border-red-500 bg-white text-gray-600 border-gray-200 shrink-0">
+                                    <input type="radio" name="amount_operation" value="subtract" class="hidden"> − إنقاص
+                                </label>
+                                <input type="number" name="estimated_amount" min="0" step="0.01" placeholder="0"
+                                       class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-mono">
+                            </div>
                         </div>
                         <div class="md:col-span-2">
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">سبب المبلغ</label>
@@ -699,6 +791,11 @@
                         <div class="md:col-span-2">
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">ملاحظات</label>
                             <textarea name="notes" rows="2" placeholder="ملاحظات الجولة..."
+                                      class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"></textarea>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">حالة البيت</label>
+                            <textarea name="house_condition" rows="2" placeholder="وصف حالة البيت..."
                                       class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"></textarea>
                         </div>
                     </div>
@@ -856,6 +953,13 @@ function toggleAddVisit() {
 }
 function toggleEditVisit(id) {
     document.getElementById('edit-visit-' + id).classList.toggle('hidden');
+}
+function toggleAdjust(id) {
+    const el = document.getElementById('adjust-' + id);
+    el.classList.toggle('hidden');
+    if (!el.classList.contains('hidden')) {
+        el.querySelector('input[name="amount"]').focus();
+    }
 }
 function toggleAddressEdit() {
     document.getElementById('address-form').classList.toggle('hidden');

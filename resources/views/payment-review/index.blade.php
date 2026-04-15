@@ -20,13 +20,29 @@
             <h1 class="text-2xl font-black text-white">مراجعة بيانات الدفع</h1>
             <p class="text-violet-100 text-sm mt-0.5">مقارنة payment_info مع payment_info_AI وتسجيل نتيجة المراجعة</p>
         </div>
-        <a href="{{ route('payment-review.duplicate-ibans') }}"
-           class="flex items-center gap-2 bg-white/15 hover:bg-white/25 border border-white/30 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
-            </svg>
-            تكرار الآيبانات
-        </a>
+        <div class="flex items-center gap-2 flex-wrap">
+            <a href="{{ route('payment-review.export-matched') }}"
+               class="flex items-center gap-2 bg-white/15 hover:bg-white/25 border border-white/30 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                تصدير المتطابقين
+            </a>
+            <a href="{{ route('payment-review.import.show') }}"
+               class="flex items-center gap-2 bg-white/15 hover:bg-white/25 border border-white/30 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+                استيراد الآيبان
+            </a>
+            <a href="{{ route('payment-review.duplicate-ibans') }}"
+               class="flex items-center gap-2 bg-white/15 hover:bg-white/25 border border-white/30 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                </svg>
+                تكرار الآيبانات
+            </a>
+        </div>
     </div>
 </div>
 
@@ -63,60 +79,33 @@
                     </svg>
                 </span>
                 <input type="text" name="search" value="{{ $search }}"
-                       placeholder="بحث بالاسم..."
+                       placeholder="بحث بالاسم أو رقم الملف..."
                        class="w-full pr-10 pl-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition placeholder-gray-300">
             </div>
         </form>
 
         {{-- Filter buttons --}}
-        <div class="space-y-3">
-
-            {{-- Group 1: Review status --}}
-            <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-xs font-semibold text-gray-400 w-20 shrink-0">حالة المراجعة:</span>
-                @php
-                $reviewFilters = [
-                    'all'      => ['label' => 'الكل',           'count' => $totalCount,    'active' => 'bg-gray-800 text-white border-gray-800',           'inactive' => 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'],
-                    'pending'  => ['label' => 'لم يُراجَع',     'count' => $pendingCount,  'active' => 'bg-amber-500 text-white border-amber-500',          'inactive' => 'bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-400'],
-                    'reviewed' => ['label' => 'تمت المراجعة',   'count' => $reviewedCount, 'active' => 'bg-blue-500 text-white border-blue-500',            'inactive' => 'bg-blue-50 text-blue-700 border-blue-200 hover:border-blue-400'],
-                    'match'    => ['label' => 'تطابق ✓',        'count' => $matchCount,    'active' => 'bg-emerald-500 text-white border-emerald-500',      'inactive' => 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:border-emerald-400'],
-                    'mismatch' => ['label' => 'لا يتطابق ✗',    'count' => $mismatchCount, 'active' => 'bg-red-500 text-white border-red-500',              'inactive' => 'bg-red-50 text-red-600 border-red-200 hover:border-red-400'],
-                ];
-                $filterOptions = $reviewFilters;
-                @endphp
-                @foreach($reviewFilters as $key => $opt)
-                    <a href="{{ route('payment-review.index', ['filter' => $key, 'search' => $search]) }}"
-                       class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-bold transition-all {{ $filter === $key ? $opt['active'] : $opt['inactive'] }}">
-                        {{ $opt['label'] }}
-                        <span class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-black
-                            {{ $filter === $key ? 'bg-white/25 text-white' : 'bg-white/60 text-current' }}">
-                            {{ $opt['count'] }}
-                        </span>
-                    </a>
-                @endforeach
-            </div>
-
-            {{-- Group 2: Auto-match (before review) --}}
-            <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-xs font-semibold text-gray-400 w-20 shrink-0">التطابق التلقائي:</span>
-                @php
-                $autoFilters = [
-                    'auto_match'    => ['label' => 'يتطابق تلقائياً',    'count' => $autoMatchCount,    'active' => 'bg-teal-600 text-white border-teal-600',       'inactive' => 'bg-teal-50 text-teal-700 border-teal-200 hover:border-teal-400'],
-                    'auto_mismatch' => ['label' => 'لا يتطابق تلقائياً', 'count' => $autoMismatchCount, 'active' => 'bg-orange-500 text-white border-orange-500',    'inactive' => 'bg-orange-50 text-orange-700 border-orange-200 hover:border-orange-400'],
-                ];
-                @endphp
-                @foreach($autoFilters as $key => $opt)
-                    <a href="{{ route('payment-review.index', ['filter' => $key, 'search' => $search]) }}"
-                       class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-bold transition-all {{ $filter === $key ? $opt['active'] : $opt['inactive'] }}">
-                        {{ $opt['label'] }}
-                        <span class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-black
-                            {{ $filter === $key ? 'bg-white/25 text-white' : 'bg-white/60 text-current' }}">
-                            {{ $opt['count'] }}
-                        </span>
-                    </a>
-                @endforeach
-            </div>
-
+        @php
+        $autoFilters = [
+            'all'              => ['label' => 'الكل',                    'count' => $totalCount,           'active' => 'bg-gray-800 text-white border-gray-800',        'inactive' => 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'],
+            'auto_match'       => ['label' => 'يتطابق تلقائياً',        'count' => $autoMatchCount,       'active' => 'bg-teal-600 text-white border-teal-600',        'inactive' => 'bg-teal-50 text-teal-700 border-teal-200 hover:border-teal-400'],
+            'auto_mismatch'    => ['label' => 'لا يتطابق',              'count' => $autoMismatchCount,    'active' => 'bg-orange-500 text-white border-orange-500',    'inactive' => 'bg-orange-50 text-orange-700 border-orange-200 hover:border-orange-400'],
+            'mismatch_one'     => ['label' => 'خطأ رقم واحد',          'count' => $mismatchOneCount,     'active' => 'bg-blue-500 text-white border-blue-500',        'inactive' => 'bg-blue-50 text-blue-700 border-blue-200 hover:border-blue-400'],
+            'mismatch_partial' => ['label' => 'عدم تطابق جزئي',        'count' => $mismatchPartialCount, 'active' => 'bg-amber-500 text-white border-amber-500',      'inactive' => 'bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-400'],
+            'mismatch_full'    => ['label' => 'عدم تطابق كلي',         'count' => $mismatchFullCount,    'active' => 'bg-red-600 text-white border-red-600',          'inactive' => 'bg-red-50 text-red-700 border-red-200 hover:border-red-400'],
+        ];
+        @endphp
+        <div class="flex items-center gap-2 flex-wrap">
+            @foreach($autoFilters as $key => $opt)
+                <a href="{{ route('payment-review.index', ['filter' => $key, 'search' => $search]) }}"
+                   class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-bold transition-all {{ $filter === $key ? $opt['active'] : $opt['inactive'] }}">
+                    {{ $opt['label'] }}
+                    <span class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-black
+                        {{ $filter === $key ? 'bg-white/25 text-white' : 'bg-white/60 text-current' }}">
+                        {{ $opt['count'] }}
+                    </span>
+                </a>
+            @endforeach
         </div>
 
         @if($search || $filter !== 'all')
@@ -146,16 +135,14 @@
             <span class="text-sm font-bold text-gray-700">نتائج المراجعة</span>
             @if($filter !== 'all')
                 @php
-                $allFilterOptions = array_merge($reviewFilters ?? [], $autoFilters ?? []);
-                $filterLabel = $allFilterOptions[$filter]['label'] ?? $filter;
+                $filterLabel = $autoFilters[$filter]['label'] ?? $filter;
                 $filterBadgeClass = match($filter) {
-                    'pending'       => 'bg-amber-100 text-amber-700',
-                    'reviewed'      => 'bg-blue-100 text-blue-700',
-                    'match'         => 'bg-emerald-100 text-emerald-700',
-                    'mismatch'      => 'bg-red-100 text-red-600',
-                    'auto_match'    => 'bg-teal-100 text-teal-700',
-                    'auto_mismatch' => 'bg-orange-100 text-orange-700',
-                    default         => 'bg-gray-100 text-gray-600',
+                    'auto_match'       => 'bg-teal-100 text-teal-700',
+                    'auto_mismatch'    => 'bg-orange-100 text-orange-700',
+                    'mismatch_one'     => 'bg-blue-100 text-blue-700',
+                    'mismatch_partial' => 'bg-amber-100 text-amber-700',
+                    'mismatch_full'    => 'bg-red-100 text-red-700',
+                    default            => 'bg-gray-100 text-gray-600',
                 };
                 @endphp
                 <span class="text-xs font-bold px-2.5 py-1 rounded-full {{ $filterBadgeClass }}">
@@ -184,24 +171,16 @@
                         <th class="font-semibold text-gray-500 text-xs px-4 py-3.5 text-center w-16">تطابق</th>
                         <th class="font-semibold text-gray-500 text-xs px-4 py-3.5">الآيبان — payment_info</th>
                         <th class="font-semibold text-gray-500 text-xs px-4 py-3.5">الآيبان — AI</th>
-                        <th class="font-semibold text-gray-500 text-xs px-4 py-3.5 text-center">حالة المراجعة</th>
-                        <th class="font-semibold text-gray-500 text-xs px-4 py-3.5">تفاصيل</th>
-                        <th class="px-4 py-3.5 w-44"></th>
+                        <th class="px-4 py-3.5 w-36"></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
                     @foreach($members as $member)
                         @php
-                            $review  = $member->paymentReview;
-                            $pi      = $member->paymentInfo;
-                            $ai      = $member->paymentInfoAI;
-                            $rowClass = match($review?->status ?? 'pending') {
-                                'match'    => 'bg-emerald-50/40 hover:bg-emerald-50',
-                                'mismatch' => 'bg-red-50/40 hover:bg-red-50',
-                                default    => 'hover:bg-gray-50',
-                            };
+                            $pi = $member->paymentInfo;
+                            $ai = $member->paymentInfoAI;
                         @endphp
-                        <tr class="{{ $rowClass }} transition-colors group" id="row-{{ $member->id }}">
+                        <tr class="hover:bg-gray-50 transition-colors group" id="row-{{ $member->id }}">
 
                             {{-- Member --}}
                             <td class="px-4 py-3.5">
@@ -224,131 +203,116 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
                                         </svg>
                                     </span>
+                                @elseif($member->mismatch_type === 'one_digit')
+                                    <div class="flex flex-col items-center gap-1">
+                                        <span class="inline-flex items-center justify-center w-7 h-7 bg-blue-100 rounded-full">
+                                            <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                            </svg>
+                                        </span>
+                                        <span class="text-xs font-bold text-blue-600 leading-none">رقم واحد</span>
+                                    </div>
+                                @elseif($member->mismatch_type === 'partial')
+                                    <div class="flex flex-col items-center gap-1">
+                                        <span class="inline-flex items-center justify-center w-7 h-7 bg-amber-100 rounded-full">
+                                            <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                                            </svg>
+                                        </span>
+                                        <span class="text-xs font-bold text-amber-600 leading-none">جزئي</span>
+                                    </div>
                                 @else
-                                    <span title="لا يتطابق تلقائياً" class="inline-flex items-center justify-center w-7 h-7 bg-red-100 rounded-full">
-                                        <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-                                        </svg>
-                                    </span>
+                                    <div class="flex flex-col items-center gap-1">
+                                        <span class="inline-flex items-center justify-center w-7 h-7 bg-red-100 rounded-full">
+                                            <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                                            </svg>
+                                        </span>
+                                        <span class="text-xs font-bold text-red-600 leading-none">كلي</span>
+                                    </div>
                                 @endif
                             </td>
 
                             {{-- IBAN payment_info --}}
                             <td class="px-4 py-3.5">
-                                @if($pi?->iban)
-                                    <span class="font-mono text-xs @if(!$member->auto_match && $ai?->iban) bg-red-100 text-red-700 px-1.5 py-0.5 rounded @else text-gray-700 @endif">
-                                        {{ $pi->iban }}
-                                    </span>
-                                @else
-                                    <span class="text-gray-300 text-xs">—</span>
-                                @endif
+                                <div id="iban-display-{{ $member->id }}">
+                                    @if($pi?->iban)
+                                        <span class="font-mono text-xs @if(!$member->auto_match && $ai?->iban) bg-red-100 text-red-700 px-1.5 py-0.5 rounded @else text-gray-700 @endif">
+                                            {{ $pi->iban }}
+                                        </span>
+                                    @else
+                                        <span class="text-gray-300 text-xs">—</span>
+                                    @endif
+                                </div>
+                                <div id="iban-edit-{{ $member->id }}" class="hidden mt-1">
+                                    <form method="POST" action="{{ route('payment-review.update-iban', $member) }}" class="space-y-2">
+                                        @csrf
+                                        @method('PATCH')
+                                        <div class="space-y-1">
+                                            <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">payment_info</p>
+                                            <input type="text" name="iban" value="{{ $pi?->iban }}"
+                                                   class="w-full font-mono text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white"
+                                                   placeholder="IBAN...">
+                                            <input type="text" name="barcode" value="{{ $pi?->barcode }}"
+                                                   class="w-full font-mono text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white"
+                                                   placeholder="باركود...">
+                                        </div>
+                                        <div class="space-y-1">
+                                            <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">AI</p>
+                                            <input type="text" name="iban_ai" value="{{ $ai?->iban }}"
+                                                   class="w-full font-mono text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white"
+                                                   placeholder="IBAN AI...">
+                                            <input type="text" name="barcode_ai" value="{{ $ai?->barcode }}"
+                                                   class="w-full font-mono text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white"
+                                                   placeholder="باركود AI...">
+                                        </div>
+                                        <button type="submit"
+                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-violet-600 hover:bg-violet-700 text-white transition-colors">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                            حفظ
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
 
                             {{-- IBAN AI --}}
                             <td class="px-4 py-3.5">
-                                @if($ai?->iban)
-                                    <span class="font-mono text-xs @if(!$member->auto_match && $pi?->iban) bg-red-100 text-red-700 px-1.5 py-0.5 rounded @else text-gray-700 @endif">
-                                        {{ $ai->iban }}
-                                    </span>
-                                @else
-                                    <span class="text-gray-300 text-xs">—</span>
-                                @endif
-                            </td>
-
-                            {{-- Review status badge --}}
-                            <td class="px-4 py-3.5 text-center">
-                                @if(!$review || $review->isPending())
-                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                                        <span class="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse"></span>
-                                        لم يُراجَع
-                                    </span>
-                                @elseif($review->isMatch())
-                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                        تطابق
-                                    </span>
-                                @else
-                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-600 border border-red-200">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                                        لا يتطابق
-                                    </span>
-                                @endif
-                            </td>
-
-                            {{-- Reviewer / reviewed_at / notes --}}
-                            <td class="px-4 py-3.5 text-xs text-gray-400 max-w-[160px]">
-                                @if($review && !$review->isPending())
-                                    <p class="font-medium text-gray-600 truncate">{{ $review->reviewer?->name }}</p>
-                                    <p>{{ $review->reviewed_at?->format('Y/m/d H:i') }}</p>
-                                    @if($review->notes)
-                                        <p class="truncate text-gray-500 mt-0.5 italic" title="{{ $review->notes }}">{{ Str::limit($review->notes, 40) }}</p>
+                                <div id="iban-ai-display-{{ $member->id }}">
+                                    @if($ai?->iban)
+                                        <span class="font-mono text-xs @if(!$member->auto_match && $pi?->iban) bg-red-100 text-red-700 px-1.5 py-0.5 rounded @else text-gray-700 @endif">
+                                            {{ $ai->iban }}
+                                        </span>
+                                    @else
+                                        <span class="text-gray-300 text-xs">—</span>
                                     @endif
-                                @else
-                                    <span class="text-gray-300">—</span>
-                                @endif
+                                </div>
+                                <div id="iban-ai-edit-{{ $member->id }}" class="hidden"></div>
                             </td>
 
                             {{-- Actions --}}
-                            <td class="px-4 py-3.5">
-                                <div class="flex items-center gap-1">
-                                    {{-- Quick match --}}
-                                    <form method="POST" action="{{ route('payment-review.store', $member) }}">
-                                        @csrf
-                                        <input type="hidden" name="status" value="match">
-                                        <button type="submit"
-                                                title="تطابق"
-                                                class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-                                            </svg>
-                                            تطابق
-                                        </button>
-                                    </form>
-                                    {{-- Quick mismatch --}}
-                                    <form method="POST" action="{{ route('payment-review.store', $member) }}">
-                                        @csrf
-                                        <input type="hidden" name="status" value="mismatch">
-                                        <button type="submit"
-                                                title="لا يتطابق"
-                                                class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-                                            </svg>
-                                            لا يتطابق
-                                        </button>
-                                    </form>
-                                    {{-- Notes / detail toggle --}}
-                                    <button type="button"
-                                            onclick="toggleNotes({{ $member->id }})"
-                                            title="إضافة ملاحظة"
-                                            class="p-1.5 rounded-lg text-gray-400 hover:text-violet-600 hover:bg-violet-50 transition-colors">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+                            <td class="px-4 py-3.5 text-center">
+                                <div id="iban-action-{{ $member->id }}">
+                                    <button type="button" onclick="toggleIbanEdit({{ $member->id }})"
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100 hover:border-violet-300 transition-all">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                         </svg>
+                                        تعديل الآيبان
                                     </button>
                                 </div>
-
-                                {{-- Notes form (hidden by default) --}}
-                                <div id="notes-{{ $member->id }}" class="hidden mt-2">
-                                    <form method="POST" action="{{ route('payment-review.store', $member) }}" class="space-y-2">
-                                        @csrf
-                                        <input type="hidden" name="status" value="{{ $review?->status ?? 'pending' }}">
-                                        <textarea name="notes" rows="2"
-                                                  placeholder="ملاحظات..."
-                                                  class="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-400 resize-none">{{ $review?->notes }}</textarea>
-                                        <div class="flex gap-1.5">
-                                            <button type="submit"
-                                                    class="text-xs bg-violet-600 hover:bg-violet-700 text-white font-bold px-3 py-1.5 rounded-lg transition-colors">
-                                                حفظ
-                                            </button>
-                                            <button type="button" onclick="toggleNotes({{ $member->id }})"
-                                                    class="text-xs text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                                                إلغاء
-                                            </button>
-                                        </div>
-                                    </form>
+                                <div id="iban-cancel-{{ $member->id }}" class="hidden">
+                                    <button type="button" onclick="toggleIbanEdit({{ $member->id }})"
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-100 text-gray-500 border border-gray-200 hover:bg-gray-200 transition-all">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                        إلغاء
+                                    </button>
                                 </div>
                             </td>
+
                         </tr>
                     @endforeach
                 </tbody>
@@ -359,11 +323,19 @@
 
 @push('scripts')
 <script>
-function toggleNotes(id) {
-    const el = document.getElementById('notes-' + id);
-    el.classList.toggle('hidden');
-    if (!el.classList.contains('hidden')) {
-        el.querySelector('textarea').focus();
+function toggleIbanEdit(id) {
+    const display   = document.getElementById('iban-display-'    + id);
+    const edit      = document.getElementById('iban-edit-'       + id);
+    const aiDisplay = document.getElementById('iban-ai-display-' + id);
+    const action    = document.getElementById('iban-action-'     + id);
+    const cancel    = document.getElementById('iban-cancel-'     + id);
+    display.classList.toggle('hidden');
+    edit.classList.toggle('hidden');
+    if (aiDisplay) aiDisplay.classList.toggle('hidden');
+    if (action)   action.classList.toggle('hidden');
+    if (cancel)   cancel.classList.toggle('hidden');
+    if (!edit.classList.contains('hidden')) {
+        edit.querySelector('input').focus();
     }
 }
 

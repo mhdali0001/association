@@ -402,27 +402,7 @@
 
             {{-- Cards column --}}
             <div class="hero-cards fade-up-d1">
-                <div class="stat-card float-1">
-                    <div class="stat-icon">
-                        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-5-3.87M9 20H4v-2a4 4 0 015-3.87m6-4.13a4 4 0 11-8 0 4 4 0 018 0zm6-4a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        </svg>
-                    </div>
-                    <div class="stat-number">{{ \App\Models\Member::count() }}+</div>
-                    <div class="stat-label">مستفيد مسجل</div>
-                </div>
-
-                <div class="stat-card float-2">
-                    <div class="stat-icon">
-                        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
-                        </svg>
-                    </div>
-                    <div class="stat-number">3+</div>
-                    <div class="stat-label">جمعيات شريكة</div>
-                </div>
-
-                <div class="stat-card wide float-3">
+                <div class="stat-card wide float-1">
                     <div class="stat-wide-content">
                         <div class="stat-icon" style="margin-bottom:0;flex-shrink:0;">
                             <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
@@ -491,15 +471,7 @@
 
     {{-- ══════════════════════ STATS BAND ══════════════════════ --}}
     <section class="section-stats">
-        <div class="stats-grid">
-            <div class="stat-item">
-                <div class="stat-item-number">{{ \App\Models\Member::count() }}+</div>
-                <div class="stat-item-label">مستفيد مسجل في المنظومة</div>
-            </div>
-            <div class="stat-item" style="border-inline: 1px solid rgba(255,255,255,0.07);">
-                <div class="stat-item-number">3+</div>
-                <div class="stat-item-label">جمعيات شريكة</div>
-            </div>
+        <div class="stats-grid" style="grid-template-columns:1fr;">
             <div class="stat-item">
                 <div class="stat-item-number">100%</div>
                 <div class="stat-item-label">شفافية في الإدارة</div>

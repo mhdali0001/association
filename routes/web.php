@@ -49,9 +49,13 @@ Route::middleware('auth')->group(function () {
         Route::post('/beneficiaries',                  [BeneficiaryController::class,'store'])  ->name('beneficiaries.store');
         Route::put('/beneficiaries/{beneficiary}',     [BeneficiaryController::class,'update']) ->name('beneficiaries.update');
         Route::delete('/beneficiaries/{beneficiary}',  [BeneficiaryController::class,'destroy'])->name('beneficiaries.destroy');
-        Route::get('/payment-review',                    [PaymentReviewController::class, 'index'])         ->name('payment-review.index');
-        Route::post('/payment-review/{member}',          [PaymentReviewController::class, 'store'])         ->name('payment-review.store');
+        Route::get('/payment-review',                    [PaymentReviewController::class, 'index'])        ->name('payment-review.index');
+        Route::get('/payment-review/export-matched',     [PaymentReviewController::class, 'exportMatched']) ->name('payment-review.export-matched');
+        Route::get('/payment-review/import',             [PaymentReviewController::class, 'importShow'])   ->name('payment-review.import.show');
+        Route::post('/payment-review/import',            [PaymentReviewController::class, 'importStore'])  ->name('payment-review.import.store');
         Route::get('/payment-review/duplicate-ibans',    [PaymentReviewController::class, 'duplicateIbans'])->name('payment-review.duplicate-ibans');
+        Route::post('/payment-review/{member}',          [PaymentReviewController::class, 'store'])        ->name('payment-review.store');
+        Route::patch('/payment-review/{member}/iban',    [PaymentReviewController::class, 'updateIban'])   ->name('payment-review.update-iban');
         Route::get('/pending-changes',                          [PendingChangeController::class, 'index'])  ->name('pending-changes.index');
         Route::get('/pending-changes/{pendingChange}',          [PendingChangeController::class, 'show'])   ->name('pending-changes.show');
         Route::post('/pending-changes/{pendingChange}/approve',      [PendingChangeController::class, 'approve'])          ->name('pending-changes.approve');
@@ -95,9 +99,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/delegates',          [DelegateController::class, 'index'])         ->name('delegates.index');
     Route::get('/delegates/{delegate}',[DelegateController::class, 'show'])         ->name('delegates.show');
     Route::resource('field-visit-statuses', \App\Http\Controllers\FieldVisitStatusController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('house-types', \App\Http\Controllers\HouseTypeController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('regions', \App\Http\Controllers\RegionController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::post('/members/{member}/field-visits',                          [\App\Http\Controllers\FieldVisitController::class, 'store'])  ->name('field-visits.store');
-    Route::put('/members/{member}/field-visits/{fieldVisit}',             [\App\Http\Controllers\FieldVisitController::class, 'update']) ->name('field-visits.update');
+    Route::put('/members/{member}/field-visits/{fieldVisit}',             [\App\Http\Controllers\FieldVisitController::class, 'update'])        ->name('field-visits.update');
+    Route::patch('/members/{member}/field-visits/{fieldVisit}/adjust',   [\App\Http\Controllers\FieldVisitController::class, 'adjustAmount'])  ->name('field-visits.adjust');
     Route::delete('/members/{member}/field-visits/{fieldVisit}',          [\App\Http\Controllers\FieldVisitController::class, 'destroy'])->name('field-visits.destroy');
     // Donations — named routes before resource to avoid conflict with {donation}
     Route::get('/donations/monthly',       [DonationController::class, 'monthly'])     ->name('donations.monthly');

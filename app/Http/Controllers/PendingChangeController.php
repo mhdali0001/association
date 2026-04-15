@@ -32,7 +32,8 @@ class PendingChangeController extends Controller
         $status = $request->get('status', 'pending');
         $type   = $request->get('type');
 
-        $query = PendingChange::with('requester', 'reviewer')->latest();
+        $orderBy = ($status === 'rejected' || $status === 'approved') ? 'reviewed_at' : 'created_at';
+        $query = PendingChange::with('requester', 'reviewer')->orderBy($orderBy, 'desc');
 
         if ($status) {
             $query->where('status', $status);
@@ -44,7 +45,44 @@ class PendingChangeController extends Controller
         $changes       = $query->paginate(20)->withQueryString();
         $pendingCount  = PendingChange::where('status', 'pending')->count();
 
-        return view('pending-changes.index', compact('changes', 'status', 'pendingCount'));
+        // Resolve member_id per change
+        $visitIds = [];
+        $memberIds = [];
+        foreach ($changes as $c) {
+            if ($c->model_type === 'member') {
+                if ($c->model_id) $memberIds[] = $c->model_id;
+            } else {
+                $mid = $c->payload['member_id'] ?? $c->getAttribute('original')['member_id'] ?? null;
+                if ($mid) {
+                    $memberIds[] = $mid;
+                } elseif ($c->model_type === 'field_visit' && $c->model_id) {
+                    $visitIds[] = $c->model_id;
+                }
+            }
+        }
+
+        // For field_visits without member_id in payload, resolve via DB
+        if (!empty($visitIds)) {
+            $visitMemberIds = \App\Models\FieldVisit::whereIn('id', array_unique($visitIds))
+                ->pluck('member_id', 'id')->toArray(); // visitId => memberId
+            $memberIds = array_merge($memberIds, array_values($visitMemberIds));
+        } else {
+            $visitMemberIds = [];
+        }
+
+        $dossierMap = \App\Models\Member::whereIn('id', array_unique(array_filter($memberIds)))
+            ->pluck('dossier_number', 'id')
+            ->toArray();
+
+        // Build visitId => dossier map for fallback
+        $visitDossierMap = [];
+        foreach ($visitMemberIds as $visitId => $memberId) {
+            if (isset($dossierMap[$memberId])) {
+                $visitDossierMap[$visitId] = $dossierMap[$memberId];
+            }
+        }
+
+        return view('pending-changes.index', compact('changes', 'status', 'pendingCount', 'dossierMap', 'visitDossierMap'));
     }
 
     public function show(PendingChange $pendingChange)

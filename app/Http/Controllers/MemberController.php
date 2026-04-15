@@ -50,9 +50,22 @@ class MemberController extends Controller
         $addresses           = array_filter((array) $request->get('current_address', []));
         $associationIds      = array_filter((array) $request->get('association_id', []));
         $networks            = array_filter((array) $request->get('network', []));
-        $shamCash            = $request->get('sham_cash', '');
-        $fieldVisitStatusIds = array_filter((array) $request->get('field_visit_status_id', []));
+        $shamCash            = array_filter((array) $request->get('sham_cash', []));
         $regionIds           = array_filter((array) $request->get('region_id', []));
+        $estimatedFrom       = trim($request->get('estimated_from', ''));
+        $estimatedTo         = trim($request->get('estimated_to', ''));
+        $finalFrom           = trim($request->get('final_from', ''));
+        $finalTo             = trim($request->get('final_to', ''));
+        // Field visit filters
+        $fieldVisitStatusIds = array_filter((array) $request->get('field_visit_status_id', []));
+        $fvHouseTypeIds      = array_filter((array) $request->get('fv_house_type_id', []));
+        $fvVisitor           = trim($request->get('fv_visitor', ''));
+        $fvDateFrom          = trim($request->get('fv_date_from', ''));
+        $fvDateTo            = trim($request->get('fv_date_to', ''));
+        $fvAmountFrom        = trim($request->get('fv_amount_from', ''));
+        $fvAmountTo          = trim($request->get('fv_amount_to', ''));
+        $fvHouseCondition    = trim($request->get('fv_house_condition', ''));
+        $fvNotes             = trim($request->get('fv_notes', ''));
 
         $query = Member::query();
 
@@ -82,13 +95,38 @@ class MemberController extends Controller
         if (!empty($addresses))           $query->whereIn('current_address', $addresses);
         if (!empty($associationIds))      $query->whereIn('association_id', $associationIds);
         if (!empty($networks))            $query->whereIn('network', $networks);
-        if ($shamCash === 'done')         $query->where('sham_cash_account', 'done');
-        elseif ($shamCash === 'manual')   $query->where('sham_cash_account', 'manual');
-        elseif ($shamCash === 'none')     $query->whereNull('sham_cash_account');
-        if (!empty($fieldVisitStatusIds)) {
-            $query->whereHas('fieldVisits', fn($q) => $q->whereIn('field_visit_status_id', $fieldVisitStatusIds));
+        if (!empty($shamCash)) {
+            $query->where(function ($q) use ($shamCash) {
+                if (in_array('done',   $shamCash)) $q->orWhere('sham_cash_account', 'done');
+                if (in_array('manual', $shamCash)) $q->orWhere('sham_cash_account', 'manual');
+                if (in_array('none',   $shamCash)) $q->orWhereNull('sham_cash_account');
+            });
+        }
+        if (!empty($fieldVisitStatusIds) || !empty($fvHouseTypeIds) || $fvVisitor !== ''
+            || $fvDateFrom !== '' || $fvDateTo !== ''
+            || $fvAmountFrom !== '' || $fvAmountTo !== ''
+            || $fvHouseCondition !== '' || $fvNotes !== '') {
+            $query->whereHas('fieldVisits', function ($q) use (
+                $fieldVisitStatusIds, $fvHouseTypeIds, $fvVisitor,
+                $fvDateFrom, $fvDateTo, $fvAmountFrom, $fvAmountTo,
+                $fvHouseCondition, $fvNotes
+            ) {
+                if (!empty($fieldVisitStatusIds)) $q->whereIn('field_visit_status_id', $fieldVisitStatusIds);
+                if (!empty($fvHouseTypeIds))      $q->whereIn('house_type_id', $fvHouseTypeIds);
+                if ($fvVisitor !== '')             $q->where('visitor', 'like', "%{$fvVisitor}%");
+                if ($fvDateFrom !== '')            $q->where('visit_date', '>=', $fvDateFrom);
+                if ($fvDateTo !== '')              $q->where('visit_date', '<=', $fvDateTo);
+                if ($fvAmountFrom !== '')          $q->where('estimated_amount', '>=', (float) $fvAmountFrom);
+                if ($fvAmountTo !== '')            $q->where('estimated_amount', '<=', (float) $fvAmountTo);
+                if ($fvHouseCondition !== '')      $q->where('house_condition', 'like', "%{$fvHouseCondition}%");
+                if ($fvNotes !== '')               $q->where('notes', 'like', "%{$fvNotes}%");
+            });
         }
         if (!empty($regionIds)) $query->whereIn('region_id', $regionIds);
+        if ($estimatedFrom !== '') $query->where('estimated_amount', '>=', (float) str_replace(',', '', $estimatedFrom));
+        if ($estimatedTo   !== '') $query->where('estimated_amount', '<=', (float) str_replace(',', '', $estimatedTo));
+        if ($finalFrom     !== '') $query->where('final_amount', '>=', (float) str_replace(',', '', $finalFrom));
+        if ($finalTo       !== '') $query->where('final_amount', '<=', (float) str_replace(',', '', $finalTo));
 
         return $query;
     }
@@ -109,11 +147,17 @@ class MemberController extends Controller
         $associationIds      = array_filter((array) $request->get('association_id', []));
         $networks            = array_filter((array) $request->get('network', []));
 
-        $query = $this->buildFilteredQuery($request)->with(['verificationStatus', 'representative', 'paymentInfo', 'fieldVisits.status', 'region']);
+        $filteredQuery = $this->buildFilteredQuery($request);
 
-        $totalAmount          = $query->sum('estimated_amount');
-        $totalFinalAmount     = $query->sum('final_amount');
-        $members              = $query->orderByRaw('CAST(dossier_number AS UNSIGNED) ASC')->paginate(20)->withQueryString();
+        $totals = (clone $filteredQuery)
+            ->selectRaw('SUM(COALESCE(estimated_amount, 0)) as total_estimated, SUM(COALESCE(final_amount, estimated_amount, 0)) as total_final')
+            ->first();
+
+        $totalAmount      = $totals->total_estimated ?? 0;
+        $totalFinalAmount = $totals->total_final      ?? 0;
+
+        $query   = $filteredQuery->with(['verificationStatus', 'representative', 'paymentInfo', 'fieldVisits.status', 'region']);
+        $members = $query->orderByRaw('CAST(dossier_number AS UNSIGNED) ASC')->paginate(20)->withQueryString();
 
         // Collect duplicate IBANs for warning indicator
         $duplicateIbans = DB::table('payment_info')
@@ -127,10 +171,23 @@ class MemberController extends Controller
             ->toArray();
         $regionIds            = array_filter((array) $request->get('region_id', []));
         $fieldVisitStatusIds  = array_filter((array) $request->get('field_visit_status_id', []));
+        $fvHouseTypeIds       = array_filter((array) $request->get('fv_house_type_id', []));
+        $fvVisitor            = trim($request->get('fv_visitor', ''));
+        $fvDateFrom           = trim($request->get('fv_date_from', ''));
+        $fvDateTo             = trim($request->get('fv_date_to', ''));
+        $fvAmountFrom         = trim($request->get('fv_amount_from', ''));
+        $fvAmountTo           = trim($request->get('fv_amount_to', ''));
+        $fvHouseCondition     = trim($request->get('fv_house_condition', ''));
+        $fvNotes              = trim($request->get('fv_notes', ''));
+        $estimatedFrom        = trim($request->get('estimated_from', ''));
+        $estimatedTo          = trim($request->get('estimated_to', ''));
+        $finalFrom            = trim($request->get('final_from', ''));
+        $finalTo              = trim($request->get('final_to', ''));
         $regionList           = \App\Models\Region::active()->orderBy('name')->get();
         $verificationStatuses = VerificationStatus::active()->orderBy('name')->get();
         $finalStatusList      = FinalStatus::active()->orderBy('name')->get();
         $maritalStatusList    = MaritalStatus::active()->orderBy('id')->get();
+        $houseTypes           = \App\Models\HouseType::active()->orderBy('id')->get();
         $delegateList            = Member::whereNotNull('delegate')
                                          ->where('delegate', '!=', '')
                                          ->distinct()
@@ -155,8 +212,10 @@ class MemberController extends Controller
         return view('members.index', compact(
             'members', 'search', 'dossierFrom', 'dossierTo', 'totalAmount', 'totalFinalAmount',
             'verificationIds', 'finalStatusIds', 'maritalStatuses', 'genders', 'delegates', 'specialCases', 'specialDescriptions', 'addresses', 'associationIds', 'networks', 'fieldVisitStatusIds', 'regionIds',
+            'estimatedFrom', 'estimatedTo', 'finalFrom', 'finalTo',
+            'fvHouseTypeIds', 'fvVisitor', 'fvDateFrom', 'fvDateTo', 'fvAmountFrom', 'fvAmountTo', 'fvHouseCondition', 'fvNotes',
             'verificationStatuses', 'finalStatusList', 'maritalStatusList', 'delegateList', 'specialDescriptionList', 'addressList', 'associationList',
-            'duplicateIbans', 'fieldVisitStatuses', 'regionList'
+            'duplicateIbans', 'fieldVisitStatuses', 'regionList', 'houseTypes'
         ));
     }
 
@@ -180,10 +239,11 @@ class MemberController extends Controller
 
     public function show(Member $member)
     {
-        $member->load(['scores', 'paymentInfo', 'paymentInfoAI', 'association', 'associations', 'verificationStatus', 'representative', 'images.uploader', 'fieldVisits.status']);
+        $member->load(['scores', 'paymentInfo', 'paymentInfoAI', 'association', 'associations', 'verificationStatus', 'representative', 'images.uploader', 'fieldVisits.status', 'fieldVisits.houseType']);
         $fieldVisitStatuses = \App\Models\FieldVisitStatus::active()->orderBy('id')->get();
+        $houseTypes         = \App\Models\HouseType::active()->orderBy('id')->get();
         ActivityLogger::log('viewed', "عرض بيانات المستفيد: {$member->full_name}", $member);
-        return view('members.show', compact('member', 'fieldVisitStatuses'));
+        return view('members.show', compact('member', 'fieldVisitStatuses', 'houseTypes'));
     }
 
     // ── Bulk Amount Editor ─────────────────────────────────────────────

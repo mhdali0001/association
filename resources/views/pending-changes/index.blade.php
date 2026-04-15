@@ -94,9 +94,17 @@
                                 </span>
                             </td>
                             <td class="px-5 py-4 font-semibold text-gray-800">
-                                {{ $change->payload['full_name'] ?? $change->payload['member_name'] ?? $change->original['full_name'] ?? $change->original['member_name'] ?? '—' }}
-                                @if($change->model_id)
-                                    <span class="text-xs text-gray-400 font-normal mr-1">#{{ $change->model_id }}</span>
+                                {{ $change->payload['full_name'] ?? $change->payload['member_name'] ?? $change->getAttribute('original')['full_name'] ?? $change->getAttribute('original')['member_name'] ?? '—' }}
+                                @php
+                                    $memberId = $change->model_type === 'member'
+                                        ? $change->model_id
+                                        : ($change->payload['member_id'] ?? $change->getAttribute('original')['member_id'] ?? null);
+                                    $dossier = $dossierMap[$memberId]
+                                        ?? $visitDossierMap[$change->model_id]
+                                        ?? ($change->payload['dossier_number'] ?? $change->getAttribute('original')['dossier_number'] ?? null);
+                                @endphp
+                                @if($dossier)
+                                    <span class="text-xs text-emerald-600 font-bold bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5 mr-1">ملف {{ $dossier }}</span>
                                 @endif
                             </td>
                             <td class="px-5 py-4 text-gray-600">{{ $change->requester?->name ?? '—' }}</td>
