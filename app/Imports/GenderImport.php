@@ -25,10 +25,11 @@ class GenderImport implements ToCollection, WithHeadingRow, WithChunkReading
 
             $dossier    = trim($row['رقم_الملف']   ?? $row['dossier_number'] ?? $row['رقم الملف'] ?? '');
             $nationalId = trim($row['رقم_الهوية']  ?? $row['national_id']   ?? $row['رقم الهوية'] ?? '');
+            $phone      = trim($row['رقم_الهاتف_الثاني'] ?? $row['رقم_الهاتف2'] ?? $row['phone2'] ?? $row['رقم الهاتف الثاني'] ?? '');
             $rawGender  = trim($row['الجنس']        ?? $row['gender']        ?? '');
 
-            if ($dossier === '' && $nationalId === '') {
-                $this->errors[] = "الصف {$rowNum}: لا يوجد رقم ملف أو رقم هوية.";
+            if ($dossier === '' && $nationalId === '' && $phone === '') {
+                $this->errors[] = "الصف {$rowNum}: لا يوجد رقم ملف أو رقم هوية أو رقم هاتف.";
                 continue;
             }
 
@@ -54,8 +55,12 @@ class GenderImport implements ToCollection, WithHeadingRow, WithChunkReading
                     $member = Member::where('national_id', $nationalId)->first();
                 }
 
+                if (!$member && $phone !== '') {
+                    $member = Member::where('phone2', $phone)->first();
+                }
+
                 if (!$member) {
-                    $id = $dossier ?: $nationalId;
+                    $id = $dossier ?: $nationalId ?: $phone;
                     $this->skipped[] = "الصف {$rowNum}: لم يُعثر على عضو بالمعرّف ({$id}).";
                     continue;
                 }

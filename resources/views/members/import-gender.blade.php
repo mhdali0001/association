@@ -166,6 +166,7 @@
                 $cols = [
                     ['ar' => 'رقم_الملف',  'en' => 'dossier_number', 'required' => true,  'note' => 'رقم الملف للبحث عن العضو'],
                     ['ar' => 'رقم_الهوية', 'en' => 'national_id',    'required' => false, 'note' => 'بديل عن رقم الملف'],
+                    ['ar' => 'رقم_الهاتف_الثاني', 'en' => 'phone2',   'required' => false, 'note' => 'بديل ثانٍ للبحث عن العضو'],
                     ['ar' => 'الجنس',      'en' => 'gender',         'required' => true,  'note' => 'ذكر / أنثى أو male / female'],
                 ];
                 @endphp
@@ -221,7 +222,7 @@
             <div class="bg-amber-50 border border-amber-100 rounded-xl p-4 text-xs text-amber-700 leading-relaxed">
                 <p class="font-semibold mb-1">ملاحظات:</p>
                 <ul class="list-disc list-inside space-y-1 text-amber-600">
-                    <li>يكفي وجود رقم الملف <strong>أو</strong> رقم الهوية لتحديد العضو.</li>
+                    <li>يكفي وجود رقم الملف <strong>أو</strong> رقم الهوية <strong>أو</strong> رقم الهاتف لتحديد العضو.</li>
                     <li>سيتم تحديث حقل الجنس مباشرةً لكل عضو تم العثور عليه.</li>
                     <li>الصفوف التي لا تحتوي على قيمة جنس أو قيمة غير معروفة سيتم تخطيها.</li>
                 </ul>
