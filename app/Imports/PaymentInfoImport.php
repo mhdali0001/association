@@ -30,18 +30,19 @@ class PaymentInfoImport implements ToCollection, WithHeadingRow, WithChunkReadin
         foreach ($rows as $index => $row) {
             $rowNum = $this->rowOffset + $index;
 
-            $dossier    = trim($row['رقم_الملف']   ?? $row['dossier_number'] ?? '');
-            $nationalId = trim($row['رقم_الهوية']  ?? $row['national_id']   ?? '');
-            $iban       = str_replace(' ', '', trim($row['الآيبان']   ?? $row['iban']    ?? ''));
-            $barcode    = str_replace(' ', '', trim($row['الباركود']  ?? $row['barcode'] ?? ''));
+            $dossier       = trim($row['رقم_الملف']        ?? $row['dossier_number']  ?? '');
+            $nationalId    = trim($row['رقم_الهوية']       ?? $row['national_id']     ?? '');
+            $iban          = str_replace(' ', '', trim($row['الآيبان']        ?? $row['iban']           ?? ''));
+            $barcode       = str_replace(' ', '', trim($row['الباركود']       ?? $row['barcode']        ?? ''));
+            $recipientName = trim($row['اسم_المستلم']      ?? $row['recipient_name']  ?? $row['اسم المستلم'] ?? '');
 
             if ($dossier === '' && $nationalId === '') {
                 $this->errors[] = "الصف {$rowNum}: لا يوجد رقم ملف أو رقم هوية.";
                 continue;
             }
 
-            if ($iban === '' && $barcode === '') {
-                $this->skipped[] = "الصف {$rowNum}: لا يوجد آيبان ولا باركود — تم التخطي.";
+            if ($iban === '' && $barcode === '' && $recipientName === '') {
+                $this->skipped[] = "الصف {$rowNum}: لا يوجد آيبان ولا باركود ولا اسم مستلم — تم التخطي.";
                 continue;
             }
 
@@ -62,15 +63,21 @@ class PaymentInfoImport implements ToCollection, WithHeadingRow, WithChunkReadin
                     continue;
                 }
 
+                $fields = array_filter([
+                    'iban'           => $iban           ?: null,
+                    'barcode'        => $barcode        ?: null,
+                    'recipient_name' => $recipientName  ?: null,
+                ], fn($v) => $v !== null);
+
                 if ($this->target === 'payment_info_ai') {
                     PaymentInfoAI::updateOrCreate(
                         ['member_id' => $member->id],
-                        ['iban' => $iban ?: null, 'barcode' => $barcode ?: null]
+                        $fields
                     );
                 } else {
                     PaymentInfo::updateOrCreate(
                         ['member_id' => $member->id],
-                        ['iban' => $iban ?: null, 'barcode' => $barcode ?: null]
+                        $fields
                     );
                 }
 

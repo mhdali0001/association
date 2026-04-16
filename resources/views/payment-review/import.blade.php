@@ -185,10 +185,11 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 @php
                 $cols = [
-                    ['ar' => 'رقم_الملف',  'en' => 'dossier_number', 'required' => true,  'note' => 'رقم الملف للبحث عن العضو'],
-                    ['ar' => 'رقم_الهوية', 'en' => 'national_id',    'required' => false, 'note' => 'بديل عن رقم الملف'],
-                    ['ar' => 'الآيبان',    'en' => 'iban',           'required' => false, 'note' => 'رقم الحساب البنكي IBAN'],
-                    ['ar' => 'الباركود',   'en' => 'barcode',        'required' => false, 'note' => 'رقم الباركود أو المحفظة'],
+                    ['ar' => 'رقم_الملف',    'en' => 'dossier_number', 'required' => true,  'note' => 'رقم الملف للبحث عن العضو'],
+                    ['ar' => 'رقم_الهوية',   'en' => 'national_id',    'required' => false, 'note' => 'بديل عن رقم الملف'],
+                    ['ar' => 'الآيبان',      'en' => 'iban',           'required' => false, 'note' => 'رقم الحساب البنكي IBAN'],
+                    ['ar' => 'الباركود',     'en' => 'barcode',        'required' => false, 'note' => 'رقم الباركود أو المحفظة'],
+                    ['ar' => 'اسم_المستلم', 'en' => 'recipient_name', 'required' => false, 'note' => 'اسم صاحب الحساب أو المستلم'],
                 ];
                 @endphp
                 @foreach($cols as $col)
