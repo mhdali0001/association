@@ -10,7 +10,7 @@ class Member extends Model
         'full_name', 'age', 'gender', 'mother_name', 'national_id',
         'verification_status_id', 'final_status_id', 'dossier_number', 'current_address', 'region_id',
         'marital_status', 'disease_type', 'other_association', 'phone', 'phone2',
-        'representative_id', 'delegate', 'network', 'provider_status', 'job',
+        'representative_id', 'delegate', 'second_person', 'network', 'provider_status', 'job',
         'housing_status_id', 'dependents_count', 'illness_details',
         'special_cases', 'special_cases_description', 'score',
         'estimated_amount', 'final_amount', 'sham_cash_account', 'association_id',

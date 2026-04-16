@@ -46,6 +46,7 @@ class MemberController extends Controller
         $maritalStatuses     = array_filter((array) $request->get('marital_status', []));
         $genders             = array_filter((array) $request->get('gender', []));
         $delegates           = array_filter((array) $request->get('delegate', []));
+        $secondPersons       = array_filter((array) $request->get('second_person', []));
         $specialCases        = $request->get('special_cases', '');
         $specialDescriptions = array_filter((array) $request->get('special_cases_description', []));
         $addresses           = array_filter((array) $request->get('current_address', []));
@@ -86,6 +87,7 @@ class MemberController extends Controller
         if (!empty($maritalStatuses))     $query->whereIn('marital_status', $maritalStatuses);
         if (!empty($genders))             $query->whereIn('gender', $genders);
         if (!empty($delegates))           $query->whereIn('delegate', $delegates);
+        if (!empty($secondPersons))       $query->whereIn('second_person', $secondPersons);
         if ($specialCases === '1') {
             $query->where('special_cases', true);
         } elseif ($specialCases === '0') {
@@ -199,6 +201,13 @@ class MemberController extends Controller
                                          ->orderBy('delegate')
                                          ->pluck('delegate');
 
+        $secondPersons           = array_filter((array) $request->get('second_person', []));
+        $secondPersonList        = Member::whereNotNull('second_person')
+                                         ->where('second_person', '!=', '')
+                                         ->distinct()
+                                         ->orderBy('second_person')
+                                         ->pluck('second_person');
+
         $specialDescriptionList  = Member::whereNotNull('special_cases_description')
                                          ->where('special_cases_description', '!=', '')
                                          ->distinct()
@@ -216,10 +225,10 @@ class MemberController extends Controller
 
         return view('members.index', compact(
             'members', 'search', 'dossierFrom', 'dossierTo', 'totalAmount', 'totalFinalAmount',
-            'verificationIds', 'finalStatusIds', 'maritalStatuses', 'genders', 'delegates', 'specialCases', 'specialDescriptions', 'addresses', 'associationIds', 'networks', 'fieldVisitStatusIds', 'regionIds', 'housingStatusIds',
+            'verificationIds', 'finalStatusIds', 'maritalStatuses', 'genders', 'delegates', 'secondPersons', 'specialCases', 'specialDescriptions', 'addresses', 'associationIds', 'networks', 'fieldVisitStatusIds', 'regionIds', 'housingStatusIds',
             'estimatedFrom', 'estimatedTo', 'finalFrom', 'finalTo',
             'fvHouseTypeIds', 'fvHouseConditionIds', 'fvVisitor', 'fvDateFrom', 'fvDateTo', 'fvAmountFrom', 'fvAmountTo', 'fvNotes',
-            'verificationStatuses', 'finalStatusList', 'maritalStatusList', 'delegateList', 'specialDescriptionList', 'addressList', 'associationList',
+            'verificationStatuses', 'finalStatusList', 'maritalStatusList', 'delegateList', 'secondPersonList', 'specialDescriptionList', 'addressList', 'associationList',
             'duplicateIbans', 'fieldVisitStatuses', 'regionList', 'houseTypes', 'houseConditions', 'housingStatusList'
         ));
     }
@@ -595,6 +604,7 @@ class MemberController extends Controller
             'other_association'         => !empty($request->association_ids),
             'representative_id'         => $request->input('representative_id'),
             'delegate'                  => $request->input('delegate'),
+            'second_person'             => $request->input('second_person'),
             'association_id'            => $request->input('association_id'),
             'association_ids'           => $request->input('association_ids', []),
             'scores'                    => $scores,
@@ -610,7 +620,7 @@ class MemberController extends Controller
                 'full_name', 'age', 'gender', 'mother_name', 'national_id',
                 'verification_status_id', 'final_status_id', 'dossier_number', 'current_address', 'region_id',
                 'marital_status', 'disease_type', 'phone', 'phone2', 'network', 'provider_status',
-                'job', 'housing_status_id', 'dependents_count', 'illness_details',
+                'job', 'second_person', 'housing_status_id', 'dependents_count', 'illness_details',
                 'special_cases', 'special_cases_description', 'sham_cash_account',
                 'other_association', 'representative_id', 'delegate', 'association_id',
                 'score', 'estimated_amount', 'final_amount',
@@ -653,6 +663,7 @@ class MemberController extends Controller
             'special_cases_description'  => 'nullable|string',
             'representative_id'          => 'nullable|exists:users,id',
             'delegate'                   => 'nullable|string|max:255',
+            'second_person'              => 'nullable|string|max:255',
             'association_id'             => 'nullable|exists:associations,id',
             // scores
             'work_score'                 => 'nullable|integer|min:0|max:2',
@@ -715,6 +726,7 @@ class MemberController extends Controller
             'phone'                      => $data['phone'] ?? null,
             'representative_id'          => $data['representative_id'] ?? Auth::id(),
             'delegate'                   => $data['delegate'] ?? null,
+            'second_person'              => $data['second_person'] ?? null,
             'association_id'             => $data['association_id'] ?? null,
             'network'                    => $data['network'] ?? null,
             'provider_status'            => $data['provider_status'] ?? null,
@@ -808,6 +820,7 @@ class MemberController extends Controller
             'special_cases_description'  => 'nullable|string',
             'representative_id'          => 'nullable|exists:users,id',
             'delegate'                   => 'nullable|string|max:255',
+            'second_person'              => 'nullable|string|max:255',
             'association_id'             => 'nullable|exists:associations,id',
             'work_score'                 => 'nullable|integer|min:0|max:2',
             'housing_score'              => 'nullable|integer|min:0|max:4',
@@ -868,6 +881,7 @@ class MemberController extends Controller
             'phone2'                     => $data['phone2'] ?? null,
             'representative_id'          => $data['representative_id'] ?? $member->representative_id,
             'delegate'                   => $data['delegate'] ?? null,
+            'second_person'              => $data['second_person'] ?? null,
             'association_id'             => $data['association_id'] ?? null,
             'network'                    => $data['network'] ?? null,
             'provider_status'            => $data['provider_status'] ?? null,

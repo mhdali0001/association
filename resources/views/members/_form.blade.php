@@ -129,6 +129,13 @@
                    class="{{ $inputClass }}">
         </div>
 
+        <div>
+            <label class="{{ $labelClass }}">الفرد الثاني</label>
+            <input type="text" name="second_person" value="{{ $v('second_person') }}"
+                   placeholder="اسم الفرد الثاني"
+                   class="{{ $inputClass }}">
+        </div>
+
     </div>
 </div>
 

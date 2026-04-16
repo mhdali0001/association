@@ -392,6 +392,31 @@
                 </div>
             </div>
 
+            {{-- Second person multi-select --}}
+            <div class="ms-dropdown relative">
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">الفرد الثاني</label>
+                <button type="button"
+                        class="ms-btn w-full flex items-center justify-between text-base border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
+                               hover:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 transition text-right">
+                    <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                    <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                    @forelse($secondPersonList as $sp)
+                        <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
+                            <input type="checkbox" name="second_person[]" value="{{ $sp }}"
+                                   {{ in_array($sp, $secondPersons) ? 'checked' : '' }}
+                                   class="ms-check rounded border-gray-300 text-emerald-600 focus:ring-emerald-400">
+                            {{ $sp }}
+                        </label>
+                    @empty
+                        <p class="px-3 py-2 text-xs text-gray-400">لا يوجد أفراد ثانيون</p>
+                    @endforelse
+                </div>
+            </div>
+
             {{-- Special cases description multi-select --}}
             <div class="ms-dropdown relative">
                 <label class="block text-sm font-semibold text-gray-600 mb-1.5">وصف الحالة الخاصة</label>
@@ -673,7 +698,7 @@
             </button>
 
             @php
-                $hasFilters = $search || $dossierFrom !== '' || $dossierTo !== '' || !empty($verificationIds) || !empty($finalStatusIds) || !empty($maritalStatuses) || !empty($genders) || !empty($delegates) || $specialCases !== '' || !empty($specialDescriptions) || !empty($addresses) || !empty($associationIds) || !empty($networks) || !empty($housingStatusIds) || $hasFvFilters;
+                $hasFilters = $search || $dossierFrom !== '' || $dossierTo !== '' || !empty($verificationIds) || !empty($finalStatusIds) || !empty($maritalStatuses) || !empty($genders) || !empty($delegates) || !empty($secondPersons) || $specialCases !== '' || !empty($specialDescriptions) || !empty($addresses) || !empty($associationIds) || !empty($networks) || !empty($housingStatusIds) || $hasFvFilters;
             @endphp
 
             @if($hasFilters)
@@ -749,6 +774,12 @@
                 @foreach($delegates as $d)
                     <a href="{{ badgeRemoveUrl('delegate', $d) }}" class="inline-flex items-center gap-1 text-sm bg-teal-50 text-teal-700 border border-teal-200 rounded-full px-3 py-1 font-medium hover:bg-teal-100 transition-colors">
                         {{ $d }}
+                        <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </a>
+                @endforeach
+                @foreach($secondPersons as $sp)
+                    <a href="{{ badgeRemoveUrl('second_person', $sp) }}" class="inline-flex items-center gap-1 text-sm bg-purple-50 text-purple-700 border border-purple-200 rounded-full px-3 py-1 font-medium hover:bg-purple-100 transition-colors">
+                        {{ $sp }}
                         <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                     </a>
                 @endforeach
@@ -1499,6 +1530,7 @@ function toggleDuplicates() {
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">الهاتف</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">المنطقة</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">المندوب</th>
+                        <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">الفرد الثاني</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">وضع السكن</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">نوع الشبكة</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">الحالة الاجتماعية</th>
@@ -1549,6 +1581,7 @@ function toggleDuplicates() {
                             <td class="px-4 py-4 text-gray-800 font-semibold text-sm">{{ $member->phone ?? '—' }}</td>
                             <td class="px-4 py-4 text-gray-700 text-sm">{{ $member->region?->name ?? '—' }}</td>
                             <td class="px-4 py-4 text-gray-700 text-sm">{{ $member->delegate ?? '—' }}</td>
+                            <td class="px-4 py-4 text-gray-700 text-sm">{{ $member->second_person ?? '—' }}</td>
                             <td class="px-4 py-4">
                                 @if($member->housingStatus)
                                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border"
