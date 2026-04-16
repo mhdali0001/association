@@ -257,7 +257,7 @@
                 @php
                     $living = [
                         'الوظيفة / العمل' => $member->job,
-                        'وضع السكن'       => $member->housing_status,
+                        'وضع السكن'       => $member->housingStatus?->name,
                         'الشبكة'          => $member->network,
                         'حالة المشغل'     => $member->provider_status,
                     ];
@@ -643,9 +643,13 @@
                     @if($visit->notes)
                         <p class="text-xs text-gray-600 bg-white rounded-lg px-3 py-2 border border-gray-100">{{ $visit->notes }}</p>
                     @endif
-                    @if($visit->house_condition)
-                        <p class="text-xs text-gray-600 bg-amber-50 rounded-lg px-3 py-2 border border-amber-100">
-                            <span class="font-bold text-amber-700">حالة البيت:</span> {{ $visit->house_condition }}
+                    @if($visit->houseCondition)
+                        <p class="text-xs bg-amber-50 rounded-lg px-3 py-2 border border-amber-100">
+                            <span class="font-bold text-amber-700">حالة البيت:</span>
+                            <span class="inline-flex items-center gap-1 ml-1">
+                                <span class="inline-block w-2 h-2 rounded-full" style="background:{{ $visit->houseCondition->color }}"></span>
+                                {{ $visit->houseCondition->name }}
+                            </span>
                         </p>
                     @endif
                 </div>
@@ -713,10 +717,15 @@
                             <textarea name="notes" rows="2"
                                       class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none">{{ $visit->notes }}</textarea>
                         </div>
-                        <div class="md:col-span-2">
+                        <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">حالة البيت</label>
-                            <textarea name="house_condition" rows="2" placeholder="وصف حالة البيت..."
-                                      class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none">{{ $visit->house_condition }}</textarea>
+                            <select name="house_condition_id"
+                                    class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                                <option value="">— بدون —</option>
+                                @foreach($houseConditions as $hc)
+                                    <option value="{{ $hc->id }}" {{ $visit->house_condition_id == $hc->id ? 'selected' : '' }}>{{ $hc->name }}</option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
                     <div class="flex gap-2 mt-3">
@@ -793,10 +802,15 @@
                             <textarea name="notes" rows="2" placeholder="ملاحظات الجولة..."
                                       class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"></textarea>
                         </div>
-                        <div class="md:col-span-2">
+                        <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">حالة البيت</label>
-                            <textarea name="house_condition" rows="2" placeholder="وصف حالة البيت..."
-                                      class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"></textarea>
+                            <select name="house_condition_id"
+                                    class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                                <option value="">— بدون —</option>
+                                @foreach($houseConditions as $hc)
+                                    <option value="{{ $hc->id }}">{{ $hc->name }}</option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
                     <div class="flex gap-2 mt-3">

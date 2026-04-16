@@ -475,22 +475,48 @@
                 </div>
             </div>
 
+            {{-- Housing Status multi-select --}}
+            <div class="ms-dropdown relative">
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">وضع السكن</label>
+                <button type="button"
+                        class="ms-btn w-full flex items-center justify-between text-base border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
+                               hover:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 transition text-right">
+                    <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                    <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                    @forelse($housingStatusList as $hs)
+                        <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
+                            <input type="checkbox" name="housing_status_id[]" value="{{ $hs->id }}"
+                                   {{ in_array($hs->id, $housingStatusIds) ? 'checked' : '' }}
+                                   class="ms-check rounded border-gray-300 text-emerald-600 focus:ring-emerald-400">
+                            <span class="inline-block w-2 h-2 rounded-full flex-shrink-0" style="background:{{ $hs->color }}"></span>
+                            {{ $hs->name }}
+                        </label>
+                    @empty
+                        <p class="px-3 py-2 text-xs text-gray-400">لا توجد أوضاع سكن</p>
+                    @endforelse
+                </div>
+            </div>
+
         </div>
 
         {{-- Field Visit Filters (dedicated section) --}}
         @php
-            $hasFvFilters = !empty($fieldVisitStatusIds) || !empty($fvHouseTypeIds) || $fvVisitor !== ''
+            $hasFvFilters = !empty($fieldVisitStatusIds) || !empty($fvHouseTypeIds) || !empty($fvHouseConditionIds) || $fvVisitor !== ''
                 || $fvDateFrom !== '' || $fvDateTo !== ''
                 || $fvAmountFrom !== '' || $fvAmountTo !== ''
-                || $fvHouseCondition !== '' || $fvNotes !== '';
-            $fvActiveCount = (int)!empty($fieldVisitStatusIds) + (int)!empty($fvHouseTypeIds)
+                || $fvNotes !== '';
+            $fvActiveCount = (int)!empty($fieldVisitStatusIds) + (int)!empty($fvHouseTypeIds) + (int)!empty($fvHouseConditionIds)
                 + ($fvVisitor !== '' ? 1 : 0) + ($fvDateFrom !== '' || $fvDateTo !== '' ? 1 : 0)
                 + ($fvAmountFrom !== '' || $fvAmountTo !== '' ? 1 : 0)
-                + ($fvHouseCondition !== '' ? 1 : 0) + ($fvNotes !== '' ? 1 : 0);
+                + ($fvNotes !== '' ? 1 : 0);
         @endphp
-        <div class="border border-indigo-100 rounded-2xl overflow-hidden mb-4" id="fv-filter-section">
+        <div class="border border-indigo-100 rounded-2xl mb-4" id="fv-filter-section">
             <button type="button" onclick="toggleFvFilters()"
-                    class="w-full flex items-center justify-between gap-3 px-5 py-3 bg-indigo-50/60 hover:bg-indigo-50 transition-colors text-right">
+                    class="w-full flex items-center justify-between gap-3 px-5 py-3 bg-indigo-50/60 hover:bg-indigo-50 transition-colors text-right rounded-t-2xl">
                 <div class="flex items-center gap-2.5">
                     <div class="w-6 h-6 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
                         <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -506,7 +532,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
                 </svg>
             </button>
-            <div id="fv-filter-body" class="{{ $hasFvFilters ? '' : 'hidden' }} px-5 pb-5 pt-4 bg-indigo-50/20">
+            <div id="fv-filter-body" class="{{ $hasFvFilters ? '' : 'hidden' }} px-5 pb-5 pt-4 bg-indigo-50/20 rounded-b-2xl">
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
 
                     {{-- حالة الجولة الميدانية --}}
@@ -599,11 +625,29 @@
                     </div>
 
                     {{-- حالة البيت --}}
-                    <div>
+                    <div class="ms-dropdown relative">
                         <label class="block text-xs font-bold text-indigo-600 uppercase tracking-wide mb-1.5">حالة البيت</label>
-                        <input type="text" name="fv_house_condition" value="{{ $fvHouseCondition }}"
-                               placeholder="بحث في حالة البيت..."
-                               class="w-full text-sm border border-indigo-200 rounded-xl px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 transition placeholder-gray-300">
+                        <button type="button"
+                                class="ms-btn w-full flex items-center justify-between text-sm border border-indigo-200 rounded-xl px-3 py-2.5 bg-white
+                                       hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition text-right">
+                            <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                            <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-indigo-100 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                            @forelse($houseConditions as $hc)
+                                <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-indigo-50 cursor-pointer text-sm text-gray-700">
+                                    <input type="checkbox" name="fv_house_condition_id[]" value="{{ $hc->id }}"
+                                           {{ in_array($hc->id, $fvHouseConditionIds) ? 'checked' : '' }}
+                                           class="ms-check rounded border-gray-300 text-indigo-600 focus:ring-indigo-400">
+                                    <span class="inline-block w-2 h-2 rounded-full flex-shrink-0" style="background:{{ $hc->color }}"></span>
+                                    {{ $hc->name }}
+                                </label>
+                            @empty
+                                <p class="px-3 py-2 text-xs text-gray-400">لا توجد حالات</p>
+                            @endforelse
+                        </div>
                     </div>
 
                     {{-- الملاحظات --}}
@@ -629,7 +673,7 @@
             </button>
 
             @php
-                $hasFilters = $search || $dossierFrom !== '' || $dossierTo !== '' || !empty($verificationIds) || !empty($finalStatusIds) || !empty($maritalStatuses) || !empty($genders) || !empty($delegates) || $specialCases !== '' || !empty($specialDescriptions) || !empty($addresses) || !empty($associationIds) || !empty($networks) || $hasFvFilters;
+                $hasFilters = $search || $dossierFrom !== '' || $dossierTo !== '' || !empty($verificationIds) || !empty($finalStatusIds) || !empty($maritalStatuses) || !empty($genders) || !empty($delegates) || $specialCases !== '' || !empty($specialDescriptions) || !empty($addresses) || !empty($associationIds) || !empty($networks) || !empty($housingStatusIds) || $hasFvFilters;
             @endphp
 
             @if($hasFilters)
@@ -738,6 +782,12 @@
                         <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                     </a>
                 @endforeach
+                @foreach($housingStatusIds as $hsId)
+                    <a href="{{ badgeRemoveUrl('housing_status_id', $hsId) }}" class="inline-flex items-center gap-1 text-sm bg-lime-50 text-lime-700 border border-lime-200 rounded-full px-3 py-1 font-medium hover:bg-lime-100 transition-colors">
+                        وضع السكن: {{ $housingStatusList->firstWhere('id', $hsId)?->name }}
+                        <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </a>
+                @endforeach
                 @foreach($fieldVisitStatusIds as $fvsId)
                     <a href="{{ badgeRemoveUrl('field_visit_status_id', $fvsId) }}" class="inline-flex items-center gap-1 text-sm bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full px-3 py-1 font-medium hover:bg-indigo-100 transition-colors">
                         <svg class="w-3 h-3 opacity-70" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
@@ -770,12 +820,13 @@
                         <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                     </a>
                 @endif
-                @if($fvHouseCondition !== '')
-                    <a href="{{ badgeRemoveUrl('fv_house_condition') }}" class="inline-flex items-center gap-1 text-sm bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full px-3 py-1 font-medium hover:bg-indigo-100 transition-colors">
-                        حالة البيت: {{ Str::limit($fvHouseCondition, 20) }}
+                @foreach($fvHouseConditionIds as $hcId)
+                    <a href="{{ badgeRemoveUrl('fv_house_condition_id', $hcId) }}" class="inline-flex items-center gap-1 text-sm bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-3 py-1 font-medium hover:bg-amber-100 transition-colors">
+                        <svg class="w-3 h-3 opacity-70" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9.75L12 3l9 6.75V21H15v-6H9v6H3V9.75z"/></svg>
+                        {{ $houseConditions->firstWhere('id', $hcId)?->name }}
                         <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                     </a>
-                @endif
+                @endforeach
                 @if($fvNotes !== '')
                     <a href="{{ badgeRemoveUrl('fv_notes') }}" class="inline-flex items-center gap-1 text-sm bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full px-3 py-1 font-medium hover:bg-indigo-100 transition-colors">
                         ملاحظات الجولة: {{ Str::limit($fvNotes, 20) }}
@@ -897,6 +948,21 @@
                         <option value="done">تم</option>
                         <option value="manual">يدوي</option>
                         <option value="">لا</option>
+                    </select>
+                </div>
+
+                {{-- Housing Status --}}
+                <div class="be-field" data-field="housing_status_id">
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <input type="checkbox" name="apply_fields[]" value="housing_status_id" class="be-toggle rounded border-gray-300 text-blue-600 focus:ring-blue-400 cursor-pointer" onchange="toggleBulkField(this)">
+                        <label class="text-sm font-semibold text-gray-600 cursor-pointer select-none">وضع السكن</label>
+                    </div>
+                    <select name="fields[housing_status_id]" disabled
+                            class="be-input w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-100 text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
+                        <option value="">— بدون —</option>
+                        @foreach($housingStatusList as $hs)
+                            <option value="{{ $hs->id }}">{{ $hs->name }}</option>
+                        @endforeach
                     </select>
                 </div>
 
@@ -1433,6 +1499,7 @@ function toggleDuplicates() {
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">الهاتف</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">المنطقة</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">المندوب</th>
+                        <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">وضع السكن</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">نوع الشبكة</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">الحالة الاجتماعية</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">شام كاش</th>
@@ -1482,6 +1549,16 @@ function toggleDuplicates() {
                             <td class="px-4 py-4 text-gray-800 font-semibold text-sm">{{ $member->phone ?? '—' }}</td>
                             <td class="px-4 py-4 text-gray-700 text-sm">{{ $member->region?->name ?? '—' }}</td>
                             <td class="px-4 py-4 text-gray-700 text-sm">{{ $member->delegate ?? '—' }}</td>
+                            <td class="px-4 py-4">
+                                @if($member->housingStatus)
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border"
+                                          style="background:{{ $member->housingStatus->color }}22; color:{{ $member->housingStatus->color }}; border-color:{{ $member->housingStatus->color }}44">
+                                        {{ $member->housingStatus->name }}
+                                    </span>
+                                @else
+                                    <span class="text-gray-400 text-sm">—</span>
+                                @endif
+                            </td>
                             <td class="px-4 py-4">
                                 @if($member->network)
                                     <span class="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-semibold bg-cyan-50 text-cyan-700 border border-cyan-100">

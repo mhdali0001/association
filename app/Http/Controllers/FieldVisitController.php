@@ -26,7 +26,7 @@ class FieldVisitController extends Controller
             'amount_operation'      => 'nullable|in:add,subtract',
             'amount_reason'         => 'nullable|string',
             'notes'                 => 'nullable|string',
-            'house_condition'       => 'nullable|string',
+            'house_condition_id'    => 'nullable|exists:house_conditions,id',
         ]);
 
         if (isset($data['estimated_amount']) && ($data['amount_operation'] ?? 'add') === 'subtract') {
@@ -70,7 +70,7 @@ class FieldVisitController extends Controller
             'estimated_amount'      => 'nullable|numeric|min:0',
             'amount_reason'         => 'nullable|string',
             'notes'                 => 'nullable|string',
-            'house_condition'       => 'nullable|string',
+            'house_condition_id'    => 'nullable|exists:house_conditions,id',
         ]);
 
         if (!$this->isAdmin()) {
@@ -91,7 +91,7 @@ class FieldVisitController extends Controller
                     'estimated_amount'      => $fieldVisit->estimated_amount,
                     'amount_reason'         => $fieldVisit->amount_reason,
                     'notes'                 => $fieldVisit->notes,
-                    'house_condition'       => $fieldVisit->house_condition,
+                    'house_condition_id'    => $fieldVisit->house_condition_id,
                 ],
                 'requested_by' => Auth::id(),
                 'status'       => 'pending',
@@ -166,7 +166,7 @@ class FieldVisitController extends Controller
                     'estimated_amount'      => $fieldVisit->estimated_amount,
                     'amount_reason'         => $fieldVisit->amount_reason,
                     'notes'                 => $fieldVisit->notes,
-                    'house_condition'       => $fieldVisit->house_condition,
+                    'house_condition_id'    => $fieldVisit->house_condition_id,
                 ],
                 'original'     => [],
                 'requested_by' => Auth::id(),

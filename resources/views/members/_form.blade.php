@@ -174,11 +174,13 @@
 
         <div>
             <label class="{{ $labelClass }}">وضع السكن</label>
-            <select name="housing_status" class="{{ $selectClass }}">
+            <select name="housing_status_id" class="{{ $selectClass }}">
                 <option value="">— غير محدد —</option>
-                <option value="ملك"     {{ $v('housing_status') === 'ملك'     ? 'selected' : '' }}>ملك</option>
-                <option value="استضافة" {{ $v('housing_status') === 'استضافة' ? 'selected' : '' }}>استضافة</option>
-                <option value="إيجار"   {{ $v('housing_status') === 'إيجار'   ? 'selected' : '' }}>إيجار</option>
+                @foreach($housingStatuses as $hs)
+                    <option value="{{ $hs->id }}" {{ (int)$v('housing_status_id') === $hs->id ? 'selected' : '' }}>
+                        {{ $hs->name }}
+                    </option>
+                @endforeach
             </select>
         </div>
 

@@ -32,6 +32,7 @@ class MemberController extends Controller
             'associations'         => Association::active()->orderBy('id')->get(),
             'representatives'      => User::orderBy('name')->get(),
             'regionsList'          => \App\Models\Region::active()->orderBy('name')->get(),
+            'housingStatuses'      => \App\Models\HousingStatus::active()->orderBy('name')->get(),
         ];
     }
 
@@ -52,6 +53,7 @@ class MemberController extends Controller
         $networks            = array_filter((array) $request->get('network', []));
         $shamCash            = array_filter((array) $request->get('sham_cash', []));
         $regionIds           = array_filter((array) $request->get('region_id', []));
+        $housingStatusIds    = array_filter((array) $request->get('housing_status_id', []));
         $estimatedFrom       = trim($request->get('estimated_from', ''));
         $estimatedTo         = trim($request->get('estimated_to', ''));
         $finalFrom           = trim($request->get('final_from', ''));
@@ -64,7 +66,7 @@ class MemberController extends Controller
         $fvDateTo            = trim($request->get('fv_date_to', ''));
         $fvAmountFrom        = trim($request->get('fv_amount_from', ''));
         $fvAmountTo          = trim($request->get('fv_amount_to', ''));
-        $fvHouseCondition    = trim($request->get('fv_house_condition', ''));
+        $fvHouseConditionIds = array_filter((array) $request->get('fv_house_condition_id', []));
         $fvNotes             = trim($request->get('fv_notes', ''));
 
         $query = Member::query();
@@ -102,27 +104,27 @@ class MemberController extends Controller
                 if (in_array('none',   $shamCash)) $q->orWhereNull('sham_cash_account');
             });
         }
-        if (!empty($fieldVisitStatusIds) || !empty($fvHouseTypeIds) || $fvVisitor !== ''
+        if (!empty($fieldVisitStatusIds) || !empty($fvHouseTypeIds) || !empty($fvHouseConditionIds) || $fvVisitor !== ''
             || $fvDateFrom !== '' || $fvDateTo !== ''
             || $fvAmountFrom !== '' || $fvAmountTo !== ''
-            || $fvHouseCondition !== '' || $fvNotes !== '') {
+            || $fvNotes !== '') {
             $query->whereHas('fieldVisits', function ($q) use (
-                $fieldVisitStatusIds, $fvHouseTypeIds, $fvVisitor,
-                $fvDateFrom, $fvDateTo, $fvAmountFrom, $fvAmountTo,
-                $fvHouseCondition, $fvNotes
+                $fieldVisitStatusIds, $fvHouseTypeIds, $fvHouseConditionIds, $fvVisitor,
+                $fvDateFrom, $fvDateTo, $fvAmountFrom, $fvAmountTo, $fvNotes
             ) {
-                if (!empty($fieldVisitStatusIds)) $q->whereIn('field_visit_status_id', $fieldVisitStatusIds);
-                if (!empty($fvHouseTypeIds))      $q->whereIn('house_type_id', $fvHouseTypeIds);
-                if ($fvVisitor !== '')             $q->where('visitor', 'like', "%{$fvVisitor}%");
-                if ($fvDateFrom !== '')            $q->where('visit_date', '>=', $fvDateFrom);
-                if ($fvDateTo !== '')              $q->where('visit_date', '<=', $fvDateTo);
-                if ($fvAmountFrom !== '')          $q->where('estimated_amount', '>=', (float) $fvAmountFrom);
-                if ($fvAmountTo !== '')            $q->where('estimated_amount', '<=', (float) $fvAmountTo);
-                if ($fvHouseCondition !== '')      $q->where('house_condition', 'like', "%{$fvHouseCondition}%");
+                if (!empty($fieldVisitStatusIds))  $q->whereIn('field_visit_status_id', $fieldVisitStatusIds);
+                if (!empty($fvHouseTypeIds))        $q->whereIn('house_type_id', $fvHouseTypeIds);
+                if (!empty($fvHouseConditionIds))   $q->whereIn('house_condition_id', $fvHouseConditionIds);
+                if ($fvVisitor !== '')              $q->where('visitor', 'like', "%{$fvVisitor}%");
+                if ($fvDateFrom !== '')             $q->where('visit_date', '>=', $fvDateFrom);
+                if ($fvDateTo !== '')               $q->where('visit_date', '<=', $fvDateTo);
+                if ($fvAmountFrom !== '')           $q->where('estimated_amount', '>=', (float) $fvAmountFrom);
+                if ($fvAmountTo !== '')             $q->where('estimated_amount', '<=', (float) $fvAmountTo);
                 if ($fvNotes !== '')               $q->where('notes', 'like', "%{$fvNotes}%");
             });
         }
-        if (!empty($regionIds)) $query->whereIn('region_id', $regionIds);
+        if (!empty($regionIds))        $query->whereIn('region_id', $regionIds);
+        if (!empty($housingStatusIds)) $query->whereIn('housing_status_id', $housingStatusIds);
         if ($estimatedFrom !== '') $query->where('estimated_amount', '>=', (float) str_replace(',', '', $estimatedFrom));
         if ($estimatedTo   !== '') $query->where('estimated_amount', '<=', (float) str_replace(',', '', $estimatedTo));
         if ($finalFrom     !== '') $query->where('final_amount', '>=', (float) str_replace(',', '', $finalFrom));
@@ -156,7 +158,7 @@ class MemberController extends Controller
         $totalAmount      = $totals->total_estimated ?? 0;
         $totalFinalAmount = $totals->total_final      ?? 0;
 
-        $query   = $filteredQuery->with(['verificationStatus', 'representative', 'paymentInfo', 'fieldVisits.status', 'region']);
+        $query   = $filteredQuery->with(['verificationStatus', 'representative', 'paymentInfo', 'fieldVisits.status', 'region', 'housingStatus']);
         $members = $query->orderByRaw('CAST(dossier_number AS UNSIGNED) ASC')->paginate(20)->withQueryString();
 
         // Collect duplicate IBANs for warning indicator
@@ -170,6 +172,7 @@ class MemberController extends Controller
             ->flip()
             ->toArray();
         $regionIds            = array_filter((array) $request->get('region_id', []));
+        $housingStatusIds     = array_filter((array) $request->get('housing_status_id', []));
         $fieldVisitStatusIds  = array_filter((array) $request->get('field_visit_status_id', []));
         $fvHouseTypeIds       = array_filter((array) $request->get('fv_house_type_id', []));
         $fvVisitor            = trim($request->get('fv_visitor', ''));
@@ -177,7 +180,7 @@ class MemberController extends Controller
         $fvDateTo             = trim($request->get('fv_date_to', ''));
         $fvAmountFrom         = trim($request->get('fv_amount_from', ''));
         $fvAmountTo           = trim($request->get('fv_amount_to', ''));
-        $fvHouseCondition     = trim($request->get('fv_house_condition', ''));
+        $fvHouseConditionIds  = array_filter((array) $request->get('fv_house_condition_id', []));
         $fvNotes              = trim($request->get('fv_notes', ''));
         $estimatedFrom        = trim($request->get('estimated_from', ''));
         $estimatedTo          = trim($request->get('estimated_to', ''));
@@ -188,6 +191,8 @@ class MemberController extends Controller
         $finalStatusList      = FinalStatus::active()->orderBy('name')->get();
         $maritalStatusList    = MaritalStatus::active()->orderBy('id')->get();
         $houseTypes           = \App\Models\HouseType::active()->orderBy('id')->get();
+        $houseConditions      = \App\Models\HouseCondition::active()->orderBy('name')->get();
+        $housingStatusList    = \App\Models\HousingStatus::active()->orderBy('name')->get();
         $delegateList            = Member::whereNotNull('delegate')
                                          ->where('delegate', '!=', '')
                                          ->distinct()
@@ -211,11 +216,11 @@ class MemberController extends Controller
 
         return view('members.index', compact(
             'members', 'search', 'dossierFrom', 'dossierTo', 'totalAmount', 'totalFinalAmount',
-            'verificationIds', 'finalStatusIds', 'maritalStatuses', 'genders', 'delegates', 'specialCases', 'specialDescriptions', 'addresses', 'associationIds', 'networks', 'fieldVisitStatusIds', 'regionIds',
+            'verificationIds', 'finalStatusIds', 'maritalStatuses', 'genders', 'delegates', 'specialCases', 'specialDescriptions', 'addresses', 'associationIds', 'networks', 'fieldVisitStatusIds', 'regionIds', 'housingStatusIds',
             'estimatedFrom', 'estimatedTo', 'finalFrom', 'finalTo',
-            'fvHouseTypeIds', 'fvVisitor', 'fvDateFrom', 'fvDateTo', 'fvAmountFrom', 'fvAmountTo', 'fvHouseCondition', 'fvNotes',
+            'fvHouseTypeIds', 'fvHouseConditionIds', 'fvVisitor', 'fvDateFrom', 'fvDateTo', 'fvAmountFrom', 'fvAmountTo', 'fvNotes',
             'verificationStatuses', 'finalStatusList', 'maritalStatusList', 'delegateList', 'specialDescriptionList', 'addressList', 'associationList',
-            'duplicateIbans', 'fieldVisitStatuses', 'regionList', 'houseTypes'
+            'duplicateIbans', 'fieldVisitStatuses', 'regionList', 'houseTypes', 'houseConditions', 'housingStatusList'
         ));
     }
 
@@ -239,11 +244,12 @@ class MemberController extends Controller
 
     public function show(Member $member)
     {
-        $member->load(['scores', 'paymentInfo', 'paymentInfoAI', 'association', 'associations', 'verificationStatus', 'representative', 'images.uploader', 'fieldVisits.status', 'fieldVisits.houseType']);
+        $member->load(['scores', 'paymentInfo', 'paymentInfoAI', 'association', 'associations', 'verificationStatus', 'representative', 'images.uploader', 'fieldVisits.status', 'fieldVisits.houseType', 'fieldVisits.houseCondition']);
         $fieldVisitStatuses = \App\Models\FieldVisitStatus::active()->orderBy('id')->get();
         $houseTypes         = \App\Models\HouseType::active()->orderBy('id')->get();
+        $houseConditions    = \App\Models\HouseCondition::active()->orderBy('name')->get();
         ActivityLogger::log('viewed', "عرض بيانات المستفيد: {$member->full_name}", $member);
-        return view('members.show', compact('member', 'fieldVisitStatuses', 'houseTypes'));
+        return view('members.show', compact('member', 'fieldVisitStatuses', 'houseTypes', 'houseConditions'));
     }
 
     // ── Bulk Amount Editor ─────────────────────────────────────────────
@@ -439,7 +445,7 @@ class MemberController extends Controller
                     'network'                   => $member->network,
                     'provider_status'           => $member->provider_status,
                     'job'                       => $member->job,
-                    'housing_status'            => $member->housing_status,
+                    'housing_status_id'         => $member->housing_status_id,
                     'dependents_count'          => $member->dependents_count,
                     'illness_details'           => $member->illness_details,
                     'special_cases'             => $member->special_cases,
@@ -500,7 +506,7 @@ class MemberController extends Controller
                     'network'                   => $member->network,
                     'provider_status'           => $member->provider_status,
                     'job'                       => $member->job,
-                    'housing_status'            => $member->housing_status,
+                    'housing_status_id'         => $member->housing_status_id,
                     'dependents_count'          => $member->dependents_count,
                     'illness_details'           => $member->illness_details,
                     'special_cases'             => $member->special_cases,
@@ -579,7 +585,7 @@ class MemberController extends Controller
             'network'                   => $request->input('network'),
             'provider_status'           => $request->input('provider_status'),
             'job'                       => $request->input('job'),
-            'housing_status'            => $request->input('housing_status'),
+            'housing_status_id'         => $request->input('housing_status_id') ?: null,
             'dependents_count'          => $request->input('dependents_count'),
             'illness_details'           => $request->input('illness_details'),
             'special_cases'             => $request->boolean('special_cases'),
@@ -604,7 +610,7 @@ class MemberController extends Controller
                 'full_name', 'age', 'gender', 'mother_name', 'national_id',
                 'verification_status_id', 'final_status_id', 'dossier_number', 'current_address', 'region_id',
                 'marital_status', 'disease_type', 'phone', 'phone2', 'network', 'provider_status',
-                'job', 'housing_status', 'dependents_count', 'illness_details',
+                'job', 'housing_status_id', 'dependents_count', 'illness_details',
                 'special_cases', 'special_cases_description', 'sham_cash_account',
                 'other_association', 'representative_id', 'delegate', 'association_id',
                 'score', 'estimated_amount', 'final_amount',
@@ -641,7 +647,7 @@ class MemberController extends Controller
             'network'                    => 'nullable|in:MTN,SYRIATEL',
             'provider_status'            => 'nullable|string|max:100',
             'job'                        => 'nullable|string|max:150',
-            'housing_status'             => 'nullable|string|max:150',
+            'housing_status_id'          => 'nullable|exists:housing_statuses,id',
             'dependents_count'           => 'nullable|integer|min:0',
             'illness_details'            => 'nullable|string',
             'special_cases_description'  => 'nullable|string',
@@ -713,7 +719,7 @@ class MemberController extends Controller
             'network'                    => $data['network'] ?? null,
             'provider_status'            => $data['provider_status'] ?? null,
             'job'                        => $data['job'] ?? null,
-            'housing_status'             => $data['housing_status'] ?? null,
+            'housing_status_id'          => $data['housing_status_id'] ?? null,
             'dependents_count'           => $data['dependents_count'] ?? null,
             'illness_details'            => $data['illness_details'] ?? null,
             'special_cases'              => $request->boolean('special_cases'),
@@ -795,7 +801,7 @@ class MemberController extends Controller
             'network'                    => 'nullable|in:MTN,SYRIATEL',
             'provider_status'            => 'nullable|string|max:100',
             'job'                        => 'nullable|string|max:150',
-            'housing_status'             => 'nullable|string|max:150',
+            'housing_status_id'          => 'nullable|exists:housing_statuses,id',
             'dependents_count'           => 'nullable|integer|min:0',
             'illness_details'            => 'nullable|string',
             'special_cases_description'  => 'nullable|string',
@@ -864,7 +870,7 @@ class MemberController extends Controller
             'network'                    => $data['network'] ?? null,
             'provider_status'            => $data['provider_status'] ?? null,
             'job'                        => $data['job'] ?? null,
-            'housing_status'             => $data['housing_status'] ?? null,
+            'housing_status_id'          => $data['housing_status_id'] ?? null,
             'dependents_count'           => $data['dependents_count'] ?? null,
             'illness_details'            => $data['illness_details'] ?? null,
             'special_cases'              => $request->boolean('special_cases'),
@@ -915,7 +921,7 @@ class MemberController extends Controller
 
         ActivityLogger::log('updated', "تعديل بيانات المستفيد: {$member->full_name}", $member);
 
-        return redirect()->route('members.index')->with('success', 'تم تحديث بيانات المستفيد بنجاح.');
+        return redirect()->route('members.edit', $member)->with('success', 'تم تحديث بيانات المستفيد بنجاح.');
     }
 
     public function destroy(Member $member)
@@ -996,7 +1002,7 @@ class MemberController extends Controller
             return redirect()->route('members.index')->with('success', 'لم يتم تحديد أي حقل للتعديل.');
         }
 
-        $allowed = ['network', 'marital_status', 'sham_cash_account', 'current_address', 'region_id', 'verification_status_id', 'final_status_id', 'estimated_amount', 'final_amount', 'field_visit_status_id'];
+        $allowed = ['network', 'marital_status', 'sham_cash_account', 'current_address', 'region_id', 'housing_status_id', 'verification_status_id', 'final_status_id', 'estimated_amount', 'final_amount', 'field_visit_status_id'];
         $data    = [];
 
         foreach ($fields as $field) {
@@ -1004,7 +1010,7 @@ class MemberController extends Controller
             $value = $request->input("fields.{$field}");
             if ($field === 'sham_cash_account') {
                 $data[$field] = in_array($value, ['done', 'manual']) ? $value : null;
-            } elseif (in_array($field, ['verification_status_id', 'final_status_id', 'field_visit_status_id'])) {
+            } elseif (in_array($field, ['verification_status_id', 'final_status_id', 'field_visit_status_id', 'housing_status_id'])) {
                 $data[$field] = $value ?: null;
             } elseif (in_array($field, ['estimated_amount', 'final_amount'])) {
                 $data[$field] = $value !== '' && $value !== null ? (float) $value : null;

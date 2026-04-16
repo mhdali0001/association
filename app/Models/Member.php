@@ -11,7 +11,7 @@ class Member extends Model
         'verification_status_id', 'final_status_id', 'dossier_number', 'current_address', 'region_id',
         'marital_status', 'disease_type', 'other_association', 'phone', 'phone2',
         'representative_id', 'delegate', 'network', 'provider_status', 'job',
-        'housing_status', 'dependents_count', 'illness_details',
+        'housing_status_id', 'dependents_count', 'illness_details',
         'special_cases', 'special_cases_description', 'score',
         'estimated_amount', 'final_amount', 'sham_cash_account', 'association_id',
     ];
@@ -42,6 +42,11 @@ class Member extends Model
     public function finalStatus()
     {
         return $this->belongsTo(FinalStatus::class, 'final_status_id');
+    }
+
+    public function housingStatus()
+    {
+        return $this->belongsTo(HousingStatus::class, 'housing_status_id');
     }
 
     public function scores()

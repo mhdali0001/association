@@ -84,6 +84,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/members/import',                [MemberImportController::class, 'store'])   ->name('members.import.store');
     Route::get('/members/import-gender',          [\App\Http\Controllers\GenderImportController::class, 'show'])  ->name('members.import-gender.show');
     Route::post('/members/import-gender',         [\App\Http\Controllers\GenderImportController::class, 'store']) ->name('members.import-gender.store');
+    Route::get('/members/import-region',          [\App\Http\Controllers\RegionImportController::class, 'show'])  ->name('members.import-region.show');
+    Route::post('/members/import-region',         [\App\Http\Controllers\RegionImportController::class, 'store']) ->name('members.import-region.store');
     Route::get('/members/import/template', [MemberImportController::class, 'template'])->name('members.import.template');
     Route::get('/members/import/{importResult}/status',        [MemberImportController::class, 'status'])->name('members.import.status');
     Route::post('/members/import/{importResult}/chunk',        [MemberImportController::class, 'chunk']) ->name('members.import.chunk');
@@ -101,7 +103,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/delegates',          [DelegateController::class, 'index'])         ->name('delegates.index');
     Route::get('/delegates/{delegate}',[DelegateController::class, 'show'])         ->name('delegates.show');
     Route::resource('field-visit-statuses', \App\Http\Controllers\FieldVisitStatusController::class)->only(['index', 'store', 'update', 'destroy']);
-    Route::resource('house-types', \App\Http\Controllers\HouseTypeController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('house-types',      \App\Http\Controllers\HouseTypeController::class)     ->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('house-conditions', \App\Http\Controllers\HouseConditionController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('housing-statuses', \App\Http\Controllers\HousingStatusController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('regions', \App\Http\Controllers\RegionController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::post('/members/{member}/field-visits',                          [\App\Http\Controllers\FieldVisitController::class, 'store'])  ->name('field-visits.store');
     Route::put('/members/{member}/field-visits/{fieldVisit}',             [\App\Http\Controllers\FieldVisitController::class, 'update'])        ->name('field-visits.update');
