@@ -226,6 +226,8 @@ class PendingChange extends Model
             if ($visit && !empty($o)) {
                 $visit->update([
                     'field_visit_status_id' => $o['field_visit_status_id'] ?? null,
+                    'house_type_id'         => $o['house_type_id']         ?? null,
+                    'house_condition_id'    => $o['house_condition_id']    ?? null,
                     'visit_date'            => $o['visit_date']            ?? null,
                     'visitor'               => $o['visitor']               ?? null,
                     'estimated_amount'      => $o['estimated_amount']      ?? null,
@@ -238,6 +240,8 @@ class PendingChange extends Model
             if ($member) {
                 $member->fieldVisits()->create([
                     'field_visit_status_id' => $p['field_visit_status_id'] ?? null,
+                    'house_type_id'         => $p['house_type_id']         ?? null,
+                    'house_condition_id'    => $p['house_condition_id']    ?? null,
                     'visit_date'            => $p['visit_date']            ?? null,
                     'visitor'               => $p['visitor']               ?? null,
                     'estimated_amount'      => $p['estimated_amount']      ?? null,
@@ -679,6 +683,8 @@ class PendingChange extends Model
         return [
             'member_name'           => 'المستفيد',
             'field_visit_status_id' => 'حالة الجولة',
+            'house_type_id'         => 'نوع البيت',
+            'house_condition_id'    => 'حالة البيت',
             'visit_date'            => 'تاريخ الزيارة',
             'visitor'               => 'اسم الزائر',
             'estimated_amount'      => 'المبلغ المقدر (ل.س)',
@@ -703,6 +709,8 @@ class PendingChange extends Model
 
         $data = [
             'field_visit_status_id' => $p['field_visit_status_id'] ?? null,
+            'house_type_id'         => $p['house_type_id']         ?? null,
+            'house_condition_id'    => $p['house_condition_id']    ?? null,
             'visit_date'            => $p['visit_date']            ?? null,
             'visitor'               => $p['visitor']               ?? null,
             'estimated_amount'      => $p['estimated_amount']      ?? null,

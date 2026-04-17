@@ -74,13 +74,17 @@
         : null;
 
     // Maps for ID → name resolution
-    $fvsMap = \App\Models\FieldVisitStatus::pluck('name', 'id')->toArray();
-    $vsMap  = \App\Models\VerificationStatus::pluck('name', 'id')->toArray();
+    $fvsMap       = \App\Models\FieldVisitStatus::pluck('name', 'id')->toArray();
+    $vsMap        = \App\Models\VerificationStatus::pluck('name', 'id')->toArray();
+    $houseTypeMap = \App\Models\HouseType::pluck('name', 'id')->toArray();
+    $houseCondMap = \App\Models\HouseCondition::pluck('name', 'id')->toArray();
 
     // Helper: resolve any known ID field to its display name
-    $resolveId = function($field, $value) use ($fvsMap, $vsMap) {
-        if ($field === 'field_visit_status_id')  return $fvsMap[$value] ?? $value;
-        if ($field === 'verification_status_id') return $vsMap[$value]  ?? $value;
+    $resolveId = function($field, $value) use ($fvsMap, $vsMap, $houseTypeMap, $houseCondMap) {
+        if ($field === 'field_visit_status_id')  return $fvsMap[$value]       ?? $value;
+        if ($field === 'verification_status_id') return $vsMap[$value]        ?? $value;
+        if ($field === 'house_type_id')          return $houseTypeMap[$value] ?? $value;
+        if ($field === 'house_condition_id')     return $houseCondMap[$value] ?? $value;
         return $value;
     };
 @endphp
@@ -439,6 +443,30 @@
                                 @foreach(\App\Models\FieldVisitStatus::orderBy('name')->get() as $fvs)
                                     <option value="{{ $fvs->id }}" {{ ($editPayload['field_visit_status_id'] ?? '') == $fvs->id ? 'selected' : '' }}>
                                         {{ $fvs->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">نوع البيت</label>
+                            <select name="payload[house_type_id]"
+                                    class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50">
+                                <option value="">— اختر النوع —</option>
+                                @foreach(\App\Models\HouseType::active()->orderBy('name')->get() as $ht)
+                                    <option value="{{ $ht->id }}" {{ ($editPayload['house_type_id'] ?? '') == $ht->id ? 'selected' : '' }}>
+                                        {{ $ht->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">حالة البيت</label>
+                            <select name="payload[house_condition_id]"
+                                    class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50">
+                                <option value="">— اختر الحالة —</option>
+                                @foreach(\App\Models\HouseCondition::active()->orderBy('name')->get() as $hc)
+                                    <option value="{{ $hc->id }}" {{ ($editPayload['house_condition_id'] ?? '') == $hc->id ? 'selected' : '' }}>
+                                        {{ $hc->name }}
                                     </option>
                                 @endforeach
                             </select>
