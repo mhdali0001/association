@@ -157,6 +157,7 @@
                         'الحالة النهائية'    => $member->finalStatus?->name,
                         'المدخل'             => $member->representative?->name,
                         'مندوب'              => $member->delegate,
+                        'الفرد الثاني'       => $member->second_person,
                     ];
                 @endphp
                 @foreach($personal as $label => $value)
