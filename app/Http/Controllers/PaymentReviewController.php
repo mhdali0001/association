@@ -47,6 +47,14 @@ class PaymentReviewController extends Controller
 
         if ($shamCash === 'done') {
             $query->where('sham_cash_account', 'done');
+        } elseif ($shamCash === 'done_no_iban') {
+            $query->where('sham_cash_account', 'done')
+                  ->where(function ($q) {
+                      $q->whereDoesntHave('paymentInfo')
+                        ->orWhereHas('paymentInfo', fn($s) => $s->where(function ($x) {
+                            $x->whereNull('iban')->orWhere('iban', '');
+                        }));
+                  });
         } elseif ($shamCash === 'manual') {
             $query->where('sham_cash_account', 'manual');
         } elseif ($shamCash === 'none') {

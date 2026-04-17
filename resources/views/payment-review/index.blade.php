@@ -128,13 +128,26 @@
         {{-- Sham cash filter --}}
         <div class="flex items-center gap-2 flex-wrap pt-1">
             <span class="text-xs font-semibold text-gray-500 ml-1">شام كاش:</span>
-            @foreach(['' => 'الكل', 'done' => 'نعم', 'manual' => 'يدوي', 'none' => 'لا'] as $val => $lbl)
+            @foreach(['' => 'الكل', 'done' => 'نعم', 'done_no_iban' => 'نعم — بدون آيبان', 'manual' => 'يدوي', 'none' => 'لا'] as $val => $lbl)
                 <a href="{{ route('payment-review.index', array_filter(['filter' => $filter, 'search' => $search, 'sham_cash' => $val, 'date_from' => $dateFrom, 'date_to' => $dateTo], fn($v) => $v !== '')) }}"
                    class="inline-flex items-center px-3 py-1.5 rounded-xl border text-sm font-semibold transition-all
-                       {{ $shamCash === $val
-                           ? ($val === '' ? 'bg-gray-800 text-white border-gray-800' : ($val === 'done' ? 'bg-emerald-600 text-white border-emerald-600' : ($val === 'manual' ? 'bg-amber-500 text-white border-amber-500' : 'bg-red-500 text-white border-red-500')))
-                           : ($val === '' ? 'bg-white text-gray-600 border-gray-200 hover:border-gray-400' : ($val === 'done' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:border-emerald-400' : ($val === 'manual' ? 'bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-400' : 'bg-red-50 text-red-700 border-red-200 hover:border-red-400')))
-                       }}">
+                       @php
+                           $activeClass = match($val) {
+                               'done'         => 'bg-emerald-600 text-white border-emerald-600',
+                               'done_no_iban' => 'bg-teal-600 text-white border-teal-600',
+                               'manual'       => 'bg-amber-500 text-white border-amber-500',
+                               'none'         => 'bg-red-500 text-white border-red-500',
+                               default        => 'bg-gray-800 text-white border-gray-800',
+                           };
+                           $inactiveClass = match($val) {
+                               'done'         => 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:border-emerald-400',
+                               'done_no_iban' => 'bg-teal-50 text-teal-700 border-teal-200 hover:border-teal-400',
+                               'manual'       => 'bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-400',
+                               'none'         => 'bg-red-50 text-red-700 border-red-200 hover:border-red-400',
+                               default        => 'bg-white text-gray-600 border-gray-200 hover:border-gray-400',
+                           };
+                       @endphp
+                       {{ $shamCash === $val ? $activeClass : $inactiveClass }}">
                     {{ $lbl }}
                 </a>
             @endforeach
