@@ -54,6 +54,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/payment-review/import',             [PaymentReviewController::class, 'importShow'])   ->name('payment-review.import.show');
         Route::post('/payment-review/import',            [PaymentReviewController::class, 'importStore'])  ->name('payment-review.import.store');
         Route::get('/payment-review/duplicate-ibans',    [PaymentReviewController::class, 'duplicateIbans'])->name('payment-review.duplicate-ibans');
+        Route::post('/payment-review/bulk-delete',        [PaymentReviewController::class, 'bulkDelete'])   ->name('payment-review.bulk-delete');
         Route::post('/payment-review/{member}',          [PaymentReviewController::class, 'store'])        ->name('payment-review.store');
         Route::patch('/payment-review/{member}/iban',    [PaymentReviewController::class, 'updateIban'])   ->name('payment-review.update-iban');
         Route::get('/pending-changes',                          [PendingChangeController::class, 'index'])  ->name('pending-changes.index');

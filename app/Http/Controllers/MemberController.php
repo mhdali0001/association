@@ -77,7 +77,8 @@ class MemberController extends Controller
                 $q->where('full_name', 'like', "%{$search}%")
                   ->orWhere('national_id', 'like', "%{$search}%")
                   ->orWhere('phone', 'like', "%{$search}%")
-                  ->orWhere('dossier_number', 'like', "%{$search}%");
+                  ->orWhere('dossier_number', 'like', "%{$search}%")
+                  ->orWhere('second_person', 'like', "%{$search}%");
             });
         }
         if ($dossierFrom !== '') $query->whereRaw('CAST(dossier_number AS UNSIGNED) >= ?', [(int) $dossierFrom]);
@@ -86,8 +87,8 @@ class MemberController extends Controller
         if (!empty($finalStatusIds))      $query->whereIn('final_status_id', $finalStatusIds);
         if (!empty($maritalStatuses))     $query->whereIn('marital_status', $maritalStatuses);
         if (!empty($genders))             $query->whereIn('gender', $genders);
-        if (!empty($delegates))           $query->whereIn('delegate', $delegates);
-        if (!empty($secondPersons))       $query->whereIn('second_person', $secondPersons);
+        if (!empty($delegates))       $query->whereIn('delegate', $delegates);
+        if (!empty($secondPersons))   $query->whereIn('second_person', $secondPersons);
         if ($specialCases === '1') {
             $query->where('special_cases', true);
         } elseif ($specialCases === '0') {

@@ -16,8 +16,11 @@ class PaymentReviewController extends Controller
 {
     public function index(Request $request)
     {
-        $filter = $request->get('filter', 'all');
-        $search = trim($request->get('search', ''));
+        $filter   = $request->get('filter', 'all');
+        $search   = trim($request->get('search', ''));
+        $shamCash = $request->get('sham_cash', '');
+        $dateFrom = trim($request->get('date_from', ''));
+        $dateTo   = trim($request->get('date_to', ''));
 
         // Load all members that have at least one payment record (either table)
         $query = Member::query()
@@ -36,6 +39,19 @@ class PaymentReviewController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('full_name', 'like', "%{$search}%")
                   ->orWhere('dossier_number', 'like', "%{$search}%");
+            });
+        }
+
+        if ($dateFrom !== '') $query->whereDate('created_at', '>=', $dateFrom);
+        if ($dateTo   !== '') $query->whereDate('created_at', '<=', $dateTo);
+
+        if ($shamCash === 'done') {
+            $query->where('sham_cash_account', 'done');
+        } elseif ($shamCash === 'manual') {
+            $query->where('sham_cash_account', 'manual');
+        } elseif ($shamCash === 'none') {
+            $query->where(function ($q) {
+                $q->whereNull('sham_cash_account')->orWhere('sham_cash_account', '');
             });
         }
 
@@ -79,7 +95,7 @@ class PaymentReviewController extends Controller
         };
 
         return view('payment-review.index', compact(
-            'members', 'filter', 'search',
+            'members', 'filter', 'search', 'shamCash', 'dateFrom', 'dateTo',
             'totalCount', 'autoMatchCount', 'autoMismatchCount',
             'mismatchOneCount', 'mismatchPartialCount', 'mismatchFullCount'
         ));
@@ -157,6 +173,23 @@ class PaymentReviewController extends Controller
         return view('payment-review.duplicate-ibans', compact(
             'membersByIban', 'search', 'totalDuplicateIbans', 'totalAffectedMembers'
         ));
+    }
+
+    public function bulkDelete(Request $request)
+    {
+        $ids = array_filter((array) $request->input('ids', []));
+
+        if (empty($ids)) {
+            return back()->with('error', 'لم يتم تحديد أي سجل.');
+        }
+
+        PaymentInfo::whereIn('member_id', $ids)->delete();
+        \App\Models\PaymentInfoAI::whereIn('member_id', $ids)->delete();
+        PaymentReview::whereIn('member_id', $ids)->delete();
+
+        \App\Services\ActivityLogger::log('deleted', 'حذف جماعي لبيانات الدفع — ' . count($ids) . ' عضو');
+
+        return back()->with('success', 'تم حذف بيانات الدفع لـ ' . count($ids) . ' عضو بنجاح.');
     }
 
     public function store(Request $request, Member $member)

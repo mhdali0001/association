@@ -1109,6 +1109,38 @@ document.addEventListener('DOMContentLoaded', function () {
 
         updateLabel();
 
+        // Mark all label items as ms-option for search filtering
+        panel.querySelectorAll('label').forEach(function (lbl) {
+            lbl.classList.add('ms-option');
+        });
+
+        // Inject sticky search box for panels with 4+ options
+        var allOptions = panel.querySelectorAll('.ms-option');
+        var searchInput = null;
+        if (allOptions.length >= 4) {
+            var stickyHeader = document.createElement('div');
+            stickyHeader.className = 'sticky top-0 bg-white z-10 px-2 pt-2 pb-1 border-b border-gray-100';
+
+            searchInput = document.createElement('input');
+            searchInput.type = 'text';
+            searchInput.placeholder = 'ابحث...';
+            searchInput.className = 'ms-search w-full text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50';
+            searchInput.setAttribute('dir', 'rtl');
+
+            stickyHeader.appendChild(searchInput);
+            panel.insertBefore(stickyHeader, panel.firstChild);
+
+            searchInput.addEventListener('input', function () {
+                var q = searchInput.value.trim().toLowerCase();
+                panel.querySelectorAll('.ms-option').forEach(function (opt) {
+                    var text = opt.textContent.trim().toLowerCase();
+                    opt.style.display = (!q || text.includes(q)) ? '' : 'none';
+                });
+            });
+
+            searchInput.addEventListener('click', function (e) { e.stopPropagation(); });
+        }
+
         // Inject "تحديد الكل / إلغاء التحديد" button
         const checks = dropdown.querySelectorAll('.ms-check');
         if (checks.length >= 2) {
@@ -1159,6 +1191,12 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!isOpen) {
                 panel.classList.remove('hidden');
                 arrow.classList.add('rotate-180');
+                // Reset search and show all options when opening
+                if (searchInput) {
+                    searchInput.value = '';
+                    panel.querySelectorAll('.ms-option').forEach(function (opt) { opt.style.display = ''; });
+                    setTimeout(function () { searchInput.focus(); }, 50);
+                }
             }
         });
 

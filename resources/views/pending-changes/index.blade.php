@@ -46,7 +46,7 @@
 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-6">
     <div class="flex border-b border-gray-100">
         @foreach(['pending' => ['label' => 'معلّقة', 'color' => 'amber'], 'approved' => ['label' => 'موافق عليها', 'color' => 'emerald'], 'rejected' => ['label' => 'مرفوضة', 'color' => 'red']] as $s => $info)
-            <a href="{{ route('pending-changes.index', ['status' => $s]) }}"
+            <a href="{{ route('pending-changes.index', array_filter(['status' => $s, 'date_from' => $dateFrom, 'date_to' => $dateTo, 'model_type' => $modelType], fn($v) => $v !== '')) }}"
                class="flex-1 text-center py-3.5 text-sm font-semibold transition-colors border-b-2 {{ $status === $s ? 'border-'.$info['color'].'-500 text-'.$info['color'].'-600 bg-'.$info['color'].'-50/50' : 'border-transparent text-gray-400 hover:text-gray-600' }}">
                 {{ $info['label'] }}
                 @if($s === 'pending' && $pendingCount > 0)
@@ -54,6 +54,57 @@
                 @endif
             </a>
         @endforeach
+    </div>
+
+    {{-- Filters bar --}}
+    <div class="flex flex-col gap-3 px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+
+        {{-- Model type filter (links) --}}
+        <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-xs font-semibold text-gray-500 shrink-0">نوع التعديل:</span>
+            @php
+            $modelTypes = [
+                ''                    => 'الكل',
+                'member'              => 'مستفيد',
+                'field_visit'         => 'جولة ميدانية',
+                'donation'            => 'تبرع',
+                'member_image'        => 'ملف / صورة',
+                'marital_status'      => 'حالة اجتماعية',
+                'association'         => 'جمعية',
+                'verification_status' => 'حالة تحقق',
+            ];
+            @endphp
+            @foreach($modelTypes as $val => $lbl)
+                <a href="{{ route('pending-changes.index', array_filter(['status' => $status, 'model_type' => $val, 'date_from' => $dateFrom, 'date_to' => $dateTo], fn($v) => $v !== '')) }}"
+                   class="px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all
+                       {{ $modelType === $val
+                           ? 'bg-amber-500 text-white border-amber-500'
+                           : 'bg-white text-gray-600 border-gray-200 hover:border-amber-400 hover:text-amber-700' }}">
+                    {{ $lbl }}
+                </a>
+            @endforeach
+        </div>
+
+        {{-- Date range (form) --}}
+        <form method="GET" action="{{ route('pending-changes.index') }}" class="flex items-center gap-2 flex-wrap">
+            <input type="hidden" name="status" value="{{ $status }}">
+            <input type="hidden" name="model_type" value="{{ $modelType }}">
+            <span class="text-xs font-semibold text-gray-500 shrink-0">تاريخ الإضافة:</span>
+            <input type="date" name="date_from" value="{{ $dateFrom }}"
+                   class="text-sm border border-gray-200 rounded-xl px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 transition">
+            <span class="text-xs text-gray-400">—</span>
+            <input type="date" name="date_to" value="{{ $dateTo }}"
+                   class="text-sm border border-gray-200 rounded-xl px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 transition">
+            <button type="submit"
+                    class="text-sm bg-amber-500 hover:bg-amber-600 text-white font-semibold px-3 py-1.5 rounded-xl transition-colors">
+                تطبيق
+            </button>
+            @if($dateFrom !== '' || $dateTo !== '' || $modelType !== '')
+                <a href="{{ route('pending-changes.index', ['status' => $status]) }}"
+                   class="text-sm text-gray-400 hover:text-gray-600 underline">مسح الكل</a>
+            @endif
+        </form>
+
     </div>
 
     {{-- Table --}}

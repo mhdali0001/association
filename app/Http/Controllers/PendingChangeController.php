@@ -29,8 +29,11 @@ class PendingChangeController extends Controller
 
     public function index(Request $request)
     {
-        $status = $request->get('status', 'pending');
-        $type   = $request->get('type');
+        $status     = $request->get('status', 'pending');
+        $type       = $request->get('type');
+        $modelType  = trim($request->get('model_type', ''));
+        $dateFrom   = trim($request->get('date_from', ''));
+        $dateTo     = trim($request->get('date_to', ''));
 
         $orderBy = ($status === 'rejected' || $status === 'approved') ? 'reviewed_at' : 'created_at';
         $query = PendingChange::with('requester', 'reviewer')->orderBy($orderBy, 'desc');
@@ -41,6 +44,9 @@ class PendingChangeController extends Controller
         if ($type) {
             $query->where('model_type', $type)->where('action', $type === 'delete' ? 'delete' : $query->getModel()->getTable());
         }
+        if ($modelType !== '') $query->where('model_type', $modelType);
+        if ($dateFrom  !== '') $query->whereDate('created_at', '>=', $dateFrom);
+        if ($dateTo    !== '') $query->whereDate('created_at', '<=', $dateTo);
 
         $changes       = $query->paginate(20)->withQueryString();
         $pendingCount  = PendingChange::where('status', 'pending')->count();
@@ -82,7 +88,7 @@ class PendingChangeController extends Controller
             }
         }
 
-        return view('pending-changes.index', compact('changes', 'status', 'pendingCount', 'dossierMap', 'visitDossierMap'));
+        return view('pending-changes.index', compact('changes', 'status', 'pendingCount', 'dossierMap', 'visitDossierMap', 'dateFrom', 'dateTo', 'modelType'));
     }
 
     public function show(PendingChange $pendingChange)

@@ -72,6 +72,9 @@
         {{-- Search --}}
         <form method="GET" action="{{ route('payment-review.index') }}" id="filter-form">
             <input type="hidden" name="filter" value="{{ $filter }}">
+            <input type="hidden" name="sham_cash" value="{{ $shamCash }}">
+            <input type="hidden" name="date_from" value="{{ $dateFrom }}">
+            <input type="hidden" name="date_to" value="{{ $dateTo }}">
             <div class="relative">
                 <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none">
                     <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -97,7 +100,7 @@
         @endphp
         <div class="flex items-center gap-2 flex-wrap">
             @foreach($autoFilters as $key => $opt)
-                <a href="{{ route('payment-review.index', ['filter' => $key, 'search' => $search]) }}"
+                <a href="{{ route('payment-review.index', array_filter(['filter' => $key, 'search' => $search, 'sham_cash' => $shamCash, 'date_from' => $dateFrom, 'date_to' => $dateTo], fn($v) => $v !== '')) }}"
                    class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-bold transition-all {{ $filter === $key ? $opt['active'] : $opt['inactive'] }}">
                     {{ $opt['label'] }}
                     <span class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-black
@@ -108,7 +111,36 @@
             @endforeach
         </div>
 
-        @if($search || $filter !== 'all')
+        {{-- Date range filter --}}
+        <div class="flex items-center gap-2 flex-wrap pt-1">
+            <span class="text-xs font-semibold text-gray-500 ml-1">تاريخ الإضافة:</span>
+            <input type="date" name="date_from" value="{{ $dateFrom }}" form="filter-form"
+                   class="text-sm border border-gray-200 rounded-xl px-3 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-400 transition">
+            <span class="text-xs text-gray-400">—</span>
+            <input type="date" name="date_to" value="{{ $dateTo }}" form="filter-form"
+                   class="text-sm border border-gray-200 rounded-xl px-3 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-400 transition">
+            <button type="submit" form="filter-form"
+                    class="text-sm bg-violet-600 hover:bg-violet-700 text-white font-semibold px-3 py-1.5 rounded-xl transition-colors">
+                تطبيق
+            </button>
+        </div>
+
+        {{-- Sham cash filter --}}
+        <div class="flex items-center gap-2 flex-wrap pt-1">
+            <span class="text-xs font-semibold text-gray-500 ml-1">شام كاش:</span>
+            @foreach(['' => 'الكل', 'done' => 'نعم', 'manual' => 'يدوي', 'none' => 'لا'] as $val => $lbl)
+                <a href="{{ route('payment-review.index', array_filter(['filter' => $filter, 'search' => $search, 'sham_cash' => $val, 'date_from' => $dateFrom, 'date_to' => $dateTo], fn($v) => $v !== '')) }}"
+                   class="inline-flex items-center px-3 py-1.5 rounded-xl border text-sm font-semibold transition-all
+                       {{ $shamCash === $val
+                           ? ($val === '' ? 'bg-gray-800 text-white border-gray-800' : ($val === 'done' ? 'bg-emerald-600 text-white border-emerald-600' : ($val === 'manual' ? 'bg-amber-500 text-white border-amber-500' : 'bg-red-500 text-white border-red-500')))
+                           : ($val === '' ? 'bg-white text-gray-600 border-gray-200 hover:border-gray-400' : ($val === 'done' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:border-emerald-400' : ($val === 'manual' ? 'bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-400' : 'bg-red-50 text-red-700 border-red-200 hover:border-red-400')))
+                       }}">
+                    {{ $lbl }}
+                </a>
+            @endforeach
+        </div>
+
+        @if($search || $filter !== 'all' || $shamCash !== '' || $dateFrom !== '' || $dateTo !== '')
             <div class="flex">
                 <a href="{{ route('payment-review.index') }}"
                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors">
@@ -163,10 +195,32 @@
             <p class="text-gray-400 text-sm">لا توجد سجلات مطابقة</p>
         </div>
     @else
+        {{-- Bulk action bar --}}
+        <div id="bulk-bar" class="hidden items-center gap-3 px-4 py-3 bg-red-50 border-b border-red-100">
+            <span id="bulk-count" class="text-sm font-bold text-red-700">0 محدد</span>
+            <form id="bulk-delete-form" action="{{ route('payment-review.bulk-delete') }}" method="POST"
+                  onsubmit="return confirm('حذف بيانات الدفع للسجلات المحددة؟ لا يمكن التراجع عن هذه العملية.')">
+                @csrf
+                <div id="bulk-ids-container"></div>
+                <button type="submit"
+                        class="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    حذف المحدد
+                </button>
+            </form>
+            <button type="button" onclick="clearSelection()"
+                    class="text-sm text-gray-500 hover:text-gray-700 underline">إلغاء التحديد</button>
+        </div>
+
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>
                     <tr class="bg-gray-50/70 border-b border-gray-100 text-right">
+                        <th class="px-4 py-3.5 w-10">
+                            <input type="checkbox" id="select-all-pr" class="rounded border-gray-300 text-red-600 focus:ring-red-400">
+                        </th>
                         <th class="font-semibold text-gray-500 text-xs px-4 py-3.5">العضو</th>
                         <th class="font-semibold text-gray-500 text-xs px-4 py-3.5 text-center w-16">تطابق</th>
                         <th class="font-semibold text-gray-500 text-xs px-4 py-3.5">الآيبان — payment_info</th>
@@ -181,6 +235,9 @@
                             $ai = $member->paymentInfoAI;
                         @endphp
                         <tr class="hover:bg-gray-50 transition-colors group" id="row-{{ $member->id }}">
+                            <td class="px-4 py-3.5 w-10">
+                                <input type="checkbox" class="pr-row-check rounded border-gray-300 text-red-600 focus:ring-red-400" value="{{ $member->id }}">
+                            </td>
 
                             {{-- Member --}}
                             <td class="px-4 py-3.5">
@@ -338,6 +395,64 @@ function toggleIbanEdit(id) {
         edit.querySelector('input').focus();
     }
 }
+
+// Bulk select logic
+(function () {
+    var selectAll   = document.getElementById('select-all-pr');
+    var bulkBar     = document.getElementById('bulk-bar');
+    var bulkCount   = document.getElementById('bulk-count');
+    var idsContainer = document.getElementById('bulk-ids-container');
+
+    function getChecked() {
+        return document.querySelectorAll('.pr-row-check:checked');
+    }
+
+    function updateBulkBar() {
+        var checked = getChecked();
+        if (checked.length > 0) {
+            bulkBar.classList.remove('hidden');
+            bulkBar.classList.add('flex');
+            bulkCount.textContent = checked.length + ' محدد';
+        } else {
+            bulkBar.classList.add('hidden');
+            bulkBar.classList.remove('flex');
+        }
+        // Rebuild hidden inputs
+        idsContainer.innerHTML = '';
+        checked.forEach(function (cb) {
+            var inp = document.createElement('input');
+            inp.type = 'hidden';
+            inp.name = 'ids[]';
+            inp.value = cb.value;
+            idsContainer.appendChild(inp);
+        });
+        // Update select-all state
+        if (selectAll) {
+            var all = document.querySelectorAll('.pr-row-check');
+            selectAll.indeterminate = checked.length > 0 && checked.length < all.length;
+            selectAll.checked = all.length > 0 && checked.length === all.length;
+        }
+    }
+
+    document.querySelectorAll('.pr-row-check').forEach(function (cb) {
+        cb.addEventListener('change', updateBulkBar);
+    });
+
+    if (selectAll) {
+        selectAll.addEventListener('change', function () {
+            document.querySelectorAll('.pr-row-check').forEach(function (cb) {
+                cb.checked = selectAll.checked;
+            });
+            updateBulkBar();
+        });
+    }
+
+    window.clearSelection = function () {
+        document.querySelectorAll('.pr-row-check').forEach(function (cb) { cb.checked = false; });
+        if (selectAll) selectAll.checked = false;
+        updateBulkBar();
+    };
+})();
 
 // Submit search form on Enter
 document.getElementById('filter-form').addEventListener('submit', function (e) {
