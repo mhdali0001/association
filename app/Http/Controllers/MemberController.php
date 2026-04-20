@@ -62,7 +62,7 @@ class MemberController extends Controller
         // Field visit filters
         $fieldVisitStatusIds = array_filter((array) $request->get('field_visit_status_id', []));
         $fvHouseTypeIds      = array_filter((array) $request->get('fv_house_type_id', []));
-        $fvVisitor           = trim($request->get('fv_visitor', ''));
+        $fvVisitors          = array_filter((array) $request->get('fv_visitors', []));
         $fvDateFrom          = trim($request->get('fv_date_from', ''));
         $fvDateTo            = trim($request->get('fv_date_to', ''));
         $fvAmountFrom        = trim($request->get('fv_amount_from', ''));
@@ -107,18 +107,18 @@ class MemberController extends Controller
                 if (in_array('none',   $shamCash)) $q->orWhereNull('sham_cash_account');
             });
         }
-        if (!empty($fieldVisitStatusIds) || !empty($fvHouseTypeIds) || !empty($fvHouseConditionIds) || $fvVisitor !== ''
+        if (!empty($fieldVisitStatusIds) || !empty($fvHouseTypeIds) || !empty($fvHouseConditionIds) || !empty($fvVisitors)
             || $fvDateFrom !== '' || $fvDateTo !== ''
             || $fvAmountFrom !== '' || $fvAmountTo !== ''
             || $fvNotes !== '') {
             $query->whereHas('fieldVisits', function ($q) use (
-                $fieldVisitStatusIds, $fvHouseTypeIds, $fvHouseConditionIds, $fvVisitor,
+                $fieldVisitStatusIds, $fvHouseTypeIds, $fvHouseConditionIds, $fvVisitors,
                 $fvDateFrom, $fvDateTo, $fvAmountFrom, $fvAmountTo, $fvNotes
             ) {
                 if (!empty($fieldVisitStatusIds))  $q->whereIn('field_visit_status_id', $fieldVisitStatusIds);
                 if (!empty($fvHouseTypeIds))        $q->whereIn('house_type_id', $fvHouseTypeIds);
                 if (!empty($fvHouseConditionIds))   $q->whereIn('house_condition_id', $fvHouseConditionIds);
-                if ($fvVisitor !== '')              $q->where('visitor', 'like', "%{$fvVisitor}%");
+                if (!empty($fvVisitors))            $q->whereIn('visitor', $fvVisitors);
                 if ($fvDateFrom !== '')             $q->where('visit_date', '>=', $fvDateFrom);
                 if ($fvDateTo !== '')               $q->where('visit_date', '<=', $fvDateTo);
                 if ($fvAmountFrom !== '')           $q->where('estimated_amount', '>=', (float) $fvAmountFrom);
@@ -178,7 +178,7 @@ class MemberController extends Controller
         $housingStatusIds     = array_filter((array) $request->get('housing_status_id', []));
         $fieldVisitStatusIds  = array_filter((array) $request->get('field_visit_status_id', []));
         $fvHouseTypeIds       = array_filter((array) $request->get('fv_house_type_id', []));
-        $fvVisitor            = trim($request->get('fv_visitor', ''));
+        $fvVisitors           = array_filter((array) $request->get('fv_visitors', []));
         $fvDateFrom           = trim($request->get('fv_date_from', ''));
         $fvDateTo             = trim($request->get('fv_date_to', ''));
         $fvAmountFrom         = trim($request->get('fv_amount_from', ''));
@@ -223,12 +223,17 @@ class MemberController extends Controller
 
         $associationList      = Association::active()->orderBy('name')->get();
         $fieldVisitStatuses   = FieldVisitStatus::active()->orderBy('id')->get();
+        $fvVisitorList        = \App\Models\FieldVisit::whereNotNull('visitor')
+                                    ->where('visitor', '!=', '')
+                                    ->distinct()
+                                    ->orderBy('visitor')
+                                    ->pluck('visitor');
 
         return view('members.index', compact(
             'members', 'search', 'dossierFrom', 'dossierTo', 'totalAmount', 'totalFinalAmount',
             'verificationIds', 'finalStatusIds', 'maritalStatuses', 'genders', 'delegates', 'secondPersons', 'specialCases', 'specialDescriptions', 'addresses', 'associationIds', 'networks', 'fieldVisitStatusIds', 'regionIds', 'housingStatusIds',
             'estimatedFrom', 'estimatedTo', 'finalFrom', 'finalTo',
-            'fvHouseTypeIds', 'fvHouseConditionIds', 'fvVisitor', 'fvDateFrom', 'fvDateTo', 'fvAmountFrom', 'fvAmountTo', 'fvNotes',
+            'fvHouseTypeIds', 'fvHouseConditionIds', 'fvVisitors', 'fvVisitorList', 'fvDateFrom', 'fvDateTo', 'fvAmountFrom', 'fvAmountTo', 'fvNotes',
             'verificationStatuses', 'finalStatusList', 'maritalStatusList', 'delegateList', 'secondPersonList', 'specialDescriptionList', 'addressList', 'associationList',
             'duplicateIbans', 'fieldVisitStatuses', 'regionList', 'houseTypes', 'houseConditions', 'housingStatusList'
         ));

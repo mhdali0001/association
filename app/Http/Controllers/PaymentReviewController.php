@@ -61,6 +61,12 @@ class PaymentReviewController extends Controller
             $query->where(function ($q) {
                 $q->whereNull('sham_cash_account')->orWhere('sham_cash_account', '');
             });
+        } elseif ($shamCash === 'iban_no_done') {
+            $query->where(function ($q) {
+                $q->whereNull('sham_cash_account')
+                  ->orWhere('sham_cash_account', '')
+                  ->orWhere('sham_cash_account', 'manual');
+            })->whereHas('paymentInfo', fn($s) => $s->whereNotNull('iban')->where('iban', '!=', ''));
         }
 
         // Annotate all members with auto-match result and mismatch type

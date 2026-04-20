@@ -496,6 +496,15 @@
                             <textarea name="payload[notes]" rows="2"
                                       class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50 resize-none">{{ $editPayload['notes'] ?? '' }}</textarea>
                         </div>
+                        <div class="flex items-center pt-1">
+                            <label class="inline-flex items-center gap-2 cursor-pointer">
+                                <input type="hidden" name="payload[has_video]" value="0">
+                                <input type="checkbox" name="payload[has_video]" value="1"
+                                       {{ !empty($editPayload['has_video']) ? 'checked' : '' }}
+                                       class="w-4 h-4 text-rose-600 border-gray-300 rounded focus:ring-rose-400">
+                                <span class="text-xs font-bold text-gray-600">يوجد فيديو</span>
+                            </label>
+                        </div>
                     </div>
 
                 {{-- Donation fields --}}

@@ -117,7 +117,7 @@
     <div class="relative bg-gradient-to-br from-violet-500 to-violet-700 rounded-2xl p-4 text-white shadow-md overflow-hidden">
         <div class="absolute -bottom-3 -left-3 w-16 h-16 bg-white/10 rounded-full"></div>
         <p class="text-violet-100 text-xs font-medium mb-1">عدد المعالين</p>
-        <p class="text-4xl font-black">{{ $member->dependents_count ?? '—' }}</p>
+        <p class="text-4xl font-black">{{ $member->scores?->dependents_score ?? $member->dependents_count ?? '—' }}</p>
         <p class="text-violet-200 text-xs mt-0.5">فرد</p>
     </div>
     <div class="relative bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl p-4 text-white shadow-md overflow-hidden">
@@ -653,6 +653,12 @@
                             </span>
                         </p>
                     @endif
+                    @if($visit->has_video)
+                        <span class="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
+                            يوجد فيديو
+                        </span>
+                    @endif
                 </div>
                 <div class="flex gap-1 shrink-0">
                     <button onclick="toggleEditVisit({{ $visit->id }})"
@@ -727,6 +733,14 @@
                                     <option value="{{ $hc->id }}" {{ $visit->house_condition_id == $hc->id ? 'selected' : '' }}>{{ $hc->name }}</option>
                                 @endforeach
                             </select>
+                        </div>
+                        <div class="flex items-center">
+                            <label class="inline-flex items-center gap-2 cursor-pointer mt-4">
+                                <input type="hidden" name="has_video" value="0">
+                                <input type="checkbox" name="has_video" value="1" {{ $visit->has_video ? 'checked' : '' }}
+                                       class="w-4 h-4 text-rose-600 border-gray-300 rounded focus:ring-rose-400">
+                                <span class="text-xs font-bold text-gray-600">يوجد فيديو</span>
+                            </label>
                         </div>
                     </div>
                     <div class="flex gap-2 mt-3">
@@ -812,6 +826,14 @@
                                     <option value="{{ $hc->id }}">{{ $hc->name }}</option>
                                 @endforeach
                             </select>
+                        </div>
+                        <div class="flex items-center">
+                            <label class="inline-flex items-center gap-2 cursor-pointer mt-4">
+                                <input type="hidden" name="has_video" value="0">
+                                <input type="checkbox" name="has_video" value="1"
+                                       class="w-4 h-4 text-rose-600 border-gray-300 rounded focus:ring-rose-400">
+                                <span class="text-xs font-bold text-gray-600">يوجد فيديو</span>
+                            </label>
                         </div>
                     </div>
                     <div class="flex gap-2 mt-3">

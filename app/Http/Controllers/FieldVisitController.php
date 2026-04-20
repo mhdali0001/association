@@ -27,7 +27,9 @@ class FieldVisitController extends Controller
             'amount_reason'         => 'nullable|string',
             'notes'                 => 'nullable|string',
             'house_condition_id'    => 'nullable|exists:house_conditions,id',
+            'has_video'             => 'nullable|boolean',
         ]);
+        $data['has_video'] = $request->boolean('has_video');
 
         if (isset($data['estimated_amount']) && ($data['amount_operation'] ?? 'add') === 'subtract') {
             $data['estimated_amount'] = -abs($data['estimated_amount']);
@@ -71,7 +73,9 @@ class FieldVisitController extends Controller
             'amount_reason'         => 'nullable|string',
             'notes'                 => 'nullable|string',
             'house_condition_id'    => 'nullable|exists:house_conditions,id',
+            'has_video'             => 'nullable|boolean',
         ]);
+        $data['has_video'] = $request->boolean('has_video');
 
         if (!$this->isAdmin()) {
             PendingChange::create([
@@ -92,6 +96,7 @@ class FieldVisitController extends Controller
                     'amount_reason'         => $fieldVisit->amount_reason,
                     'notes'                 => $fieldVisit->notes,
                     'house_condition_id'    => $fieldVisit->house_condition_id,
+                    'has_video'             => $fieldVisit->has_video,
                 ],
                 'requested_by' => Auth::id(),
                 'status'       => 'pending',
@@ -167,6 +172,7 @@ class FieldVisitController extends Controller
                     'amount_reason'         => $fieldVisit->amount_reason,
                     'notes'                 => $fieldVisit->notes,
                     'house_condition_id'    => $fieldVisit->house_condition_id,
+                    'has_video'             => $fieldVisit->has_video,
                 ],
                 'original'     => [],
                 'requested_by' => Auth::id(),

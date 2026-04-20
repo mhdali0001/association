@@ -233,6 +233,7 @@ class PendingChange extends Model
                     'estimated_amount'      => $o['estimated_amount']      ?? null,
                     'amount_reason'         => $o['amount_reason']         ?? null,
                     'notes'                 => $o['notes']                 ?? null,
+                    'has_video'             => (bool) ($o['has_video']     ?? false),
                 ]);
             }
         } elseif ($this->action === 'delete') {
@@ -247,6 +248,7 @@ class PendingChange extends Model
                     'estimated_amount'      => $p['estimated_amount']      ?? null,
                     'amount_reason'         => $p['amount_reason']         ?? null,
                     'notes'                 => $p['notes']                 ?? null,
+                    'has_video'             => (bool) ($p['has_video']     ?? false),
                 ]);
             }
         }
@@ -690,6 +692,7 @@ class PendingChange extends Model
             'estimated_amount'      => 'المبلغ المقدر (ل.س)',
             'amount_reason'         => 'سبب المبلغ',
             'notes'                 => 'ملاحظات',
+            'has_video'             => 'يوجد فيديو',
         ];
     }
 
@@ -716,6 +719,7 @@ class PendingChange extends Model
             'estimated_amount'      => $p['estimated_amount']      ?? null,
             'amount_reason'         => $p['amount_reason']         ?? null,
             'notes'                 => $p['notes']                 ?? null,
+            'has_video'             => (bool) ($p['has_video']     ?? false),
         ];
 
         $member = \App\Models\Member::find($p['member_id'] ?? null);

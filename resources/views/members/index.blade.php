@@ -530,12 +530,12 @@
 
         {{-- Field Visit Filters (dedicated section) --}}
         @php
-            $hasFvFilters = !empty($fieldVisitStatusIds) || !empty($fvHouseTypeIds) || !empty($fvHouseConditionIds) || $fvVisitor !== ''
+            $hasFvFilters = !empty($fieldVisitStatusIds) || !empty($fvHouseTypeIds) || !empty($fvHouseConditionIds) || !empty($fvVisitors)
                 || $fvDateFrom !== '' || $fvDateTo !== ''
                 || $fvAmountFrom !== '' || $fvAmountTo !== ''
                 || $fvNotes !== '';
             $fvActiveCount = (int)!empty($fieldVisitStatusIds) + (int)!empty($fvHouseTypeIds) + (int)!empty($fvHouseConditionIds)
-                + ($fvVisitor !== '' ? 1 : 0) + ($fvDateFrom !== '' || $fvDateTo !== '' ? 1 : 0)
+                + (!empty($fvVisitors) ? 1 : 0) + ($fvDateFrom !== '' || $fvDateTo !== '' ? 1 : 0)
                 + ($fvAmountFrom !== '' || $fvAmountTo !== '' ? 1 : 0)
                 + ($fvNotes !== '' ? 1 : 0);
         @endphp
@@ -612,12 +612,29 @@
                         </div>
                     </div>
 
-                    {{-- اسم الزائر --}}
-                    <div>
-                        <label class="block text-xs font-bold text-indigo-600 uppercase tracking-wide mb-1.5">اسم الزائر</label>
-                        <input type="text" name="fv_visitor" value="{{ $fvVisitor }}"
-                               placeholder="بحث باسم الزائر..."
-                               class="w-full text-sm border border-indigo-200 rounded-xl px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 transition placeholder-gray-300">
+                    {{-- الزائر --}}
+                    <div class="ms-dropdown relative">
+                        <label class="block text-xs font-bold text-indigo-600 uppercase tracking-wide mb-1.5">الزائر</label>
+                        <button type="button"
+                                class="ms-btn w-full flex items-center justify-between text-sm border border-indigo-200 rounded-xl px-3 py-2.5 bg-white
+                                       hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition text-right">
+                            <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                            <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-indigo-100 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                            @forelse($fvVisitorList as $vis)
+                                <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-indigo-50 cursor-pointer text-sm text-gray-700 ms-option">
+                                    <input type="checkbox" name="fv_visitors[]" value="{{ $vis }}"
+                                           {{ in_array($vis, $fvVisitors) ? 'checked' : '' }}
+                                           class="ms-check rounded border-gray-300 text-indigo-600 focus:ring-indigo-400">
+                                    {{ $vis }}
+                                </label>
+                            @empty
+                                <p class="px-3 py-2 text-sm text-gray-400">لا يوجد زوار مسجّلون</p>
+                            @endforelse
+                        </div>
                     </div>
 
                     {{-- تاريخ الزيارة --}}
@@ -833,12 +850,13 @@
                         <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                     </a>
                 @endforeach
-                @if($fvVisitor !== '')
-                    <a href="{{ badgeRemoveUrl('fv_visitor') }}" class="inline-flex items-center gap-1 text-sm bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full px-3 py-1 font-medium hover:bg-indigo-100 transition-colors">
-                        زائر: {{ Str::limit($fvVisitor, 20) }}
+                @foreach($fvVisitors as $vis)
+                    <a href="{{ badgeRemoveUrl('fv_visitors', $vis) }}" class="inline-flex items-center gap-1 text-sm bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full px-3 py-1 font-medium hover:bg-indigo-100 transition-colors">
+                        <svg class="w-3 h-3 opacity-70" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                        {{ Str::limit($vis, 20) }}
                         <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                     </a>
-                @endif
+                @endforeach
                 @if($fvDateFrom !== '' || $fvDateTo !== '')
                     <a href="{{ badgeRemoveUrl('fv_date_from') }}" class="inline-flex items-center gap-1 text-sm bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full px-3 py-1 font-medium hover:bg-indigo-100 transition-colors">
                         تاريخ الجولة: {{ $fvDateFrom ?: '…' }} — {{ $fvDateTo ?: '…' }}

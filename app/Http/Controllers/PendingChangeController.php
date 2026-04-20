@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PendingChange;
+use App\Models\User;
 use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,11 +30,12 @@ class PendingChangeController extends Controller
 
     public function index(Request $request)
     {
-        $status     = $request->get('status', 'pending');
-        $type       = $request->get('type');
-        $modelType  = trim($request->get('model_type', ''));
-        $dateFrom   = trim($request->get('date_from', ''));
-        $dateTo     = trim($request->get('date_to', ''));
+        $status      = $request->get('status', 'pending');
+        $type        = $request->get('type');
+        $modelType   = trim($request->get('model_type', ''));
+        $dateFrom    = trim($request->get('date_from', ''));
+        $dateTo      = trim($request->get('date_to', ''));
+        $requestedBy = trim($request->get('requested_by', ''));
 
         $orderBy = ($status === 'rejected' || $status === 'approved') ? 'reviewed_at' : 'created_at';
         $query = PendingChange::with('requester', 'reviewer')->orderBy($orderBy, 'desc');
@@ -44,12 +46,14 @@ class PendingChangeController extends Controller
         if ($type) {
             $query->where('model_type', $type)->where('action', $type === 'delete' ? 'delete' : $query->getModel()->getTable());
         }
-        if ($modelType !== '') $query->where('model_type', $modelType);
-        if ($dateFrom  !== '') $query->whereDate('created_at', '>=', $dateFrom);
-        if ($dateTo    !== '') $query->whereDate('created_at', '<=', $dateTo);
+        if ($modelType   !== '') $query->where('model_type', $modelType);
+        if ($requestedBy !== '') $query->where('requested_by', $requestedBy);
+        if ($dateFrom    !== '') $query->whereDate('created_at', '>=', $dateFrom);
+        if ($dateTo      !== '') $query->whereDate('created_at', '<=', $dateTo);
 
         $changes       = $query->paginate(20)->withQueryString();
         $pendingCount  = PendingChange::where('status', 'pending')->count();
+        $usersList     = User::orderBy('name')->get(['id', 'name']);
 
         // Resolve member_id per change
         $visitIds = [];
@@ -88,7 +92,7 @@ class PendingChangeController extends Controller
             }
         }
 
-        return view('pending-changes.index', compact('changes', 'status', 'pendingCount', 'dossierMap', 'visitDossierMap', 'dateFrom', 'dateTo', 'modelType'));
+        return view('pending-changes.index', compact('changes', 'status', 'pendingCount', 'dossierMap', 'visitDossierMap', 'dateFrom', 'dateTo', 'modelType', 'requestedBy', 'usersList'));
     }
 
     public function show(PendingChange $pendingChange)
