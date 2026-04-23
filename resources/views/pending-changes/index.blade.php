@@ -32,6 +32,52 @@
     </div>
 </div>
 
+{{-- Stats row --}}
+@php $hasActiveFilters = $modelType !== '' || $requestedBy !== '' || $dateFrom !== '' || $dateTo !== ''; @endphp
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        </div>
+        <div>
+            <p class="text-xs text-gray-400 font-medium flex items-center gap-1">
+                الإجمالي
+                @if($hasActiveFilters)
+                    <span class="text-[10px] bg-amber-100 text-amber-600 rounded-full px-1.5 font-bold">مفلتر</span>
+                @endif
+            </p>
+            <p class="text-2xl font-black text-gray-700">{{ number_format($totalCount) }}</p>
+        </div>
+    </div>
+    <div class="bg-white rounded-2xl border border-amber-100 shadow-sm px-5 py-4 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+            <span class="w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse"></span>
+        </div>
+        <div>
+            <p class="text-xs text-amber-500 font-medium">معلّقة</p>
+            <p class="text-2xl font-black text-amber-600">{{ number_format($pendingCount) }}</p>
+        </div>
+    </div>
+    <div class="bg-white rounded-2xl border border-emerald-100 shadow-sm px-5 py-4 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <div>
+            <p class="text-xs text-emerald-500 font-medium">موافق عليها</p>
+            <p class="text-2xl font-black text-emerald-600">{{ number_format($approvedCount) }}</p>
+        </div>
+    </div>
+    <div class="bg-white rounded-2xl border border-red-100 shadow-sm px-5 py-4 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </div>
+        <div>
+            <p class="text-xs text-red-400 font-medium">مرفوضة</p>
+            <p class="text-2xl font-black text-red-500">{{ number_format($rejectedCount) }}</p>
+        </div>
+    </div>
+</div>
+
 {{-- Alerts --}}
 @if(session('success'))
     <div class="mb-5 flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl px-4 py-3">

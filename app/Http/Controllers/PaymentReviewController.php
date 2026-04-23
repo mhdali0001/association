@@ -22,7 +22,7 @@ class PaymentReviewController extends Controller
         $dateFrom = trim($request->get('date_from', ''));
         $dateTo   = trim($request->get('date_to', ''));
 
-        // Load all members that have at least one payment record (either table)
+        // Load all members that have IBAN/barcode info OR a sham_cash_account status
         $query = Member::query()
             ->with(['paymentInfo', 'paymentInfoAI'])
             ->where(function ($q) {
@@ -31,7 +31,10 @@ class PaymentReviewController extends Controller
                 }))
                 ->orWhereHas('paymentInfoAI', fn($s) => $s->where(function ($x) {
                     $x->whereNotNull('iban')->orWhereNotNull('barcode');
-                }));
+                }))
+                ->orWhere(function ($x) {
+                    $x->whereNotNull('sham_cash_account')->where('sham_cash_account', '!=', '');
+                });
             })
             ->orderBy('full_name');
 

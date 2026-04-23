@@ -28,8 +28,10 @@ class FieldVisitController extends Controller
             'notes'                 => 'nullable|string',
             'house_condition_id'    => 'nullable|exists:house_conditions,id',
             'has_video'             => 'nullable|boolean',
+            'has_special_case'      => 'nullable|boolean',
         ]);
-        $data['has_video'] = $request->boolean('has_video');
+        $data['has_video']        = $request->boolean('has_video');
+        $data['has_special_case'] = $request->boolean('has_special_case');
 
         if (isset($data['estimated_amount']) && ($data['amount_operation'] ?? 'add') === 'subtract') {
             $data['estimated_amount'] = -abs($data['estimated_amount']);
@@ -74,8 +76,10 @@ class FieldVisitController extends Controller
             'notes'                 => 'nullable|string',
             'house_condition_id'    => 'nullable|exists:house_conditions,id',
             'has_video'             => 'nullable|boolean',
+            'has_special_case'      => 'nullable|boolean',
         ]);
-        $data['has_video'] = $request->boolean('has_video');
+        $data['has_video']        = $request->boolean('has_video');
+        $data['has_special_case'] = $request->boolean('has_special_case');
 
         if (!$this->isAdmin()) {
             PendingChange::create([
@@ -97,6 +101,7 @@ class FieldVisitController extends Controller
                     'notes'                 => $fieldVisit->notes,
                     'house_condition_id'    => $fieldVisit->house_condition_id,
                     'has_video'             => $fieldVisit->has_video,
+                    'has_special_case'      => $fieldVisit->has_special_case,
                 ],
                 'requested_by' => Auth::id(),
                 'status'       => 'pending',
@@ -173,6 +178,7 @@ class FieldVisitController extends Controller
                     'notes'                 => $fieldVisit->notes,
                     'house_condition_id'    => $fieldVisit->house_condition_id,
                     'has_video'             => $fieldVisit->has_video,
+                    'has_special_case'      => $fieldVisit->has_special_case,
                 ],
                 'original'     => [],
                 'requested_by' => Auth::id(),

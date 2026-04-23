@@ -659,6 +659,12 @@
                             يوجد فيديو
                         </span>
                     @endif
+                    @if($visit->has_special_case)
+                        <span class="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-200">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                            حالة خاصة
+                        </span>
+                    @endif
                 </div>
                 <div class="flex gap-1 shrink-0">
                     <button onclick="toggleEditVisit({{ $visit->id }})"
@@ -710,8 +716,17 @@
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">المبلغ المقدر (ل.س)</label>
-                            <input type="number" name="estimated_amount" value="{{ $visit->estimated_amount }}" min="0" step="0.01"
-                                   class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                            <div class="flex items-center gap-1.5">
+                                <button type="button"
+                                        onclick="adjustVisitAmount('amount-{{ $visit->id }}', -1000)"
+                                        class="shrink-0 w-8 h-9 flex items-center justify-center rounded-xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 font-bold text-base transition-colors">−</button>
+                                <input type="number" name="estimated_amount" id="amount-{{ $visit->id }}"
+                                       value="{{ $visit->estimated_amount }}" step="1000"
+                                       class="flex-1 min-w-0 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-mono text-center">
+                                <button type="button"
+                                        onclick="adjustVisitAmount('amount-{{ $visit->id }}', 1000)"
+                                        class="shrink-0 w-8 h-9 flex items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 font-bold text-base transition-colors">+</button>
+                            </div>
                         </div>
                         <div class="md:col-span-2">
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">سبب المبلغ</label>
@@ -734,12 +749,18 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="flex items-center">
+                        <div class="flex items-center gap-4">
                             <label class="inline-flex items-center gap-2 cursor-pointer mt-4">
                                 <input type="hidden" name="has_video" value="0">
                                 <input type="checkbox" name="has_video" value="1" {{ $visit->has_video ? 'checked' : '' }}
                                        class="w-4 h-4 text-rose-600 border-gray-300 rounded focus:ring-rose-400">
                                 <span class="text-xs font-bold text-gray-600">يوجد فيديو</span>
+                            </label>
+                            <label class="inline-flex items-center gap-2 cursor-pointer mt-4">
+                                <input type="hidden" name="has_special_case" value="0">
+                                <input type="checkbox" name="has_special_case" value="1" {{ $visit->has_special_case ? 'checked' : '' }}
+                                       class="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-400">
+                                <span class="text-xs font-bold text-gray-600">حالة خاصة</span>
                             </label>
                         </div>
                     </div>
@@ -827,12 +848,18 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="flex items-center">
+                        <div class="flex items-center gap-4">
                             <label class="inline-flex items-center gap-2 cursor-pointer mt-4">
                                 <input type="hidden" name="has_video" value="0">
                                 <input type="checkbox" name="has_video" value="1"
                                        class="w-4 h-4 text-rose-600 border-gray-300 rounded focus:ring-rose-400">
                                 <span class="text-xs font-bold text-gray-600">يوجد فيديو</span>
+                            </label>
+                            <label class="inline-flex items-center gap-2 cursor-pointer mt-4">
+                                <input type="hidden" name="has_special_case" value="0">
+                                <input type="checkbox" name="has_special_case" value="1"
+                                       class="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-400">
+                                <span class="text-xs font-bold text-gray-600">حالة خاصة</span>
                             </label>
                         </div>
                     </div>
@@ -990,6 +1017,11 @@ function toggleAddVisit() {
 }
 function toggleEditVisit(id) {
     document.getElementById('edit-visit-' + id).classList.toggle('hidden');
+}
+function adjustVisitAmount(inputId, delta) {
+    const input = document.getElementById(inputId);
+    const current = parseFloat(input.value) || 0;
+    input.value = current + delta;
 }
 function toggleAdjust(id) {
     const el = document.getElementById('adjust-' + id);

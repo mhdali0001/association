@@ -69,6 +69,8 @@ class MemberController extends Controller
         $fvAmountTo          = trim($request->get('fv_amount_to', ''));
         $fvHouseConditionIds = array_filter((array) $request->get('fv_house_condition_id', []));
         $fvNotes             = trim($request->get('fv_notes', ''));
+        $fvHasVideo         = $request->get('fv_has_video', '');
+        $fvHasSpecialCase   = $request->get('fv_has_special_case', '');
 
         $query = Member::query();
 
@@ -110,10 +112,11 @@ class MemberController extends Controller
         if (!empty($fieldVisitStatusIds) || !empty($fvHouseTypeIds) || !empty($fvHouseConditionIds) || !empty($fvVisitors)
             || $fvDateFrom !== '' || $fvDateTo !== ''
             || $fvAmountFrom !== '' || $fvAmountTo !== ''
-            || $fvNotes !== '') {
+            || $fvNotes !== '' || $fvHasVideo !== '' || $fvHasSpecialCase !== '') {
             $query->whereHas('fieldVisits', function ($q) use (
                 $fieldVisitStatusIds, $fvHouseTypeIds, $fvHouseConditionIds, $fvVisitors,
-                $fvDateFrom, $fvDateTo, $fvAmountFrom, $fvAmountTo, $fvNotes
+                $fvDateFrom, $fvDateTo, $fvAmountFrom, $fvAmountTo, $fvNotes,
+                $fvHasVideo, $fvHasSpecialCase
             ) {
                 if (!empty($fieldVisitStatusIds))  $q->whereIn('field_visit_status_id', $fieldVisitStatusIds);
                 if (!empty($fvHouseTypeIds))        $q->whereIn('house_type_id', $fvHouseTypeIds);
@@ -124,6 +127,10 @@ class MemberController extends Controller
                 if ($fvAmountFrom !== '')           $q->where('estimated_amount', '>=', (float) $fvAmountFrom);
                 if ($fvAmountTo !== '')             $q->where('estimated_amount', '<=', (float) $fvAmountTo);
                 if ($fvNotes !== '')               $q->where('notes', 'like', "%{$fvNotes}%");
+                if ($fvHasVideo === '1')           $q->where('has_video', true);
+                elseif ($fvHasVideo === '0')       $q->where(fn($s) => $s->where('has_video', false)->orWhereNull('has_video'));
+                if ($fvHasSpecialCase === '1')     $q->where('has_special_case', true);
+                elseif ($fvHasSpecialCase === '0') $q->where(fn($s) => $s->where('has_special_case', false)->orWhereNull('has_special_case'));
             });
         }
         if (!empty($regionIds))        $query->whereIn('region_id', $regionIds);
@@ -185,6 +192,8 @@ class MemberController extends Controller
         $fvAmountTo           = trim($request->get('fv_amount_to', ''));
         $fvHouseConditionIds  = array_filter((array) $request->get('fv_house_condition_id', []));
         $fvNotes              = trim($request->get('fv_notes', ''));
+        $fvHasVideo           = $request->get('fv_has_video', '');
+        $fvHasSpecialCase     = $request->get('fv_has_special_case', '');
         $estimatedFrom        = trim($request->get('estimated_from', ''));
         $estimatedTo          = trim($request->get('estimated_to', ''));
         $finalFrom            = trim($request->get('final_from', ''));
@@ -233,7 +242,7 @@ class MemberController extends Controller
             'members', 'search', 'dossierFrom', 'dossierTo', 'totalAmount', 'totalFinalAmount',
             'verificationIds', 'finalStatusIds', 'maritalStatuses', 'genders', 'delegates', 'secondPersons', 'specialCases', 'specialDescriptions', 'addresses', 'associationIds', 'networks', 'fieldVisitStatusIds', 'regionIds', 'housingStatusIds',
             'estimatedFrom', 'estimatedTo', 'finalFrom', 'finalTo',
-            'fvHouseTypeIds', 'fvHouseConditionIds', 'fvVisitors', 'fvVisitorList', 'fvDateFrom', 'fvDateTo', 'fvAmountFrom', 'fvAmountTo', 'fvNotes',
+            'fvHouseTypeIds', 'fvHouseConditionIds', 'fvVisitors', 'fvVisitorList', 'fvDateFrom', 'fvDateTo', 'fvAmountFrom', 'fvAmountTo', 'fvNotes', 'fvHasVideo', 'fvHasSpecialCase',
             'verificationStatuses', 'finalStatusList', 'maritalStatusList', 'delegateList', 'secondPersonList', 'specialDescriptionList', 'addressList', 'associationList',
             'duplicateIbans', 'fieldVisitStatuses', 'regionList', 'houseTypes', 'houseConditions', 'housingStatusList'
         ));
@@ -794,10 +803,13 @@ class MemberController extends Controller
 
     public function edit(Member $member)
     {
-        $member->load(['scores', 'paymentInfo', 'paymentInfoAI', 'association', 'associations', 'fieldVisits']);
-        $visitAmount = $member->fieldVisits->first()?->estimated_amount ?? 0;
+        $member->load(['scores', 'paymentInfo', 'paymentInfoAI', 'association', 'associations', 'fieldVisits.status', 'fieldVisits.houseType', 'fieldVisits.houseCondition']);
+        $visitAmount        = $member->fieldVisits->first()?->estimated_amount ?? 0;
+        $fieldVisitStatuses = \App\Models\FieldVisitStatus::active()->orderBy('id')->get();
+        $houseTypes         = \App\Models\HouseType::active()->orderBy('id')->get();
+        $houseConditions    = \App\Models\HouseCondition::active()->orderBy('name')->get();
         ActivityLogger::log('viewed', "فتح نموذج تعديل المستفيد: {$member->full_name}", $member);
-        return view('members.edit', array_merge($this->formData(), compact('member', 'visitAmount')));
+        return view('members.edit', array_merge($this->formData(), compact('member', 'visitAmount', 'fieldVisitStatuses', 'houseTypes', 'houseConditions')));
     }
 
     public function update(Request $request, Member $member)

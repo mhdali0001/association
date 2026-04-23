@@ -496,13 +496,20 @@
                             <textarea name="payload[notes]" rows="2"
                                       class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50 resize-none">{{ $editPayload['notes'] ?? '' }}</textarea>
                         </div>
-                        <div class="flex items-center pt-1">
+                        <div class="flex items-center gap-4 pt-1">
                             <label class="inline-flex items-center gap-2 cursor-pointer">
                                 <input type="hidden" name="payload[has_video]" value="0">
                                 <input type="checkbox" name="payload[has_video]" value="1"
                                        {{ !empty($editPayload['has_video']) ? 'checked' : '' }}
                                        class="w-4 h-4 text-rose-600 border-gray-300 rounded focus:ring-rose-400">
                                 <span class="text-xs font-bold text-gray-600">يوجد فيديو</span>
+                            </label>
+                            <label class="inline-flex items-center gap-2 cursor-pointer">
+                                <input type="hidden" name="payload[has_special_case]" value="0">
+                                <input type="checkbox" name="payload[has_special_case]" value="1"
+                                       {{ !empty($editPayload['has_special_case']) ? 'checked' : '' }}
+                                       class="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-400">
+                                <span class="text-xs font-bold text-gray-600">حالة خاصة</span>
                             </label>
                         </div>
                     </div>
@@ -549,40 +556,211 @@
                         @endif
                     </div>
 
-                {{-- Member fields (key fields only) --}}
+                {{-- Member fields (all fields) --}}
                 @elseif($modelType === 'member')
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">الاسم الكامل</label>
-                            <input type="text" name="payload[full_name]" value="{{ $editPayload['full_name'] ?? '' }}"
-                                   class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">رقم الهوية</label>
-                            <input type="text" name="payload[national_id]" value="{{ $editPayload['national_id'] ?? '' }}"
-                                   class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">الهاتف</label>
-                            <input type="text" name="payload[phone]" value="{{ $editPayload['phone'] ?? '' }}"
-                                   class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">العنوان الحالي</label>
-                            <input type="text" name="payload[current_address]" value="{{ $editPayload['current_address'] ?? '' }}"
-                                   class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">نوع المرض</label>
-                            <input type="text" name="payload[disease_type]" value="{{ $editPayload['disease_type'] ?? '' }}"
-                                   class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">وصف الحالة الخاصة</label>
-                            <input type="text" name="payload[special_cases_description]" value="{{ $editPayload['special_cases_description'] ?? '' }}"
-                                   class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50">
-                        </div>
+                @php
+                    $verificationStatuses = \App\Models\VerificationStatus::active()->orderBy('name')->get();
+                    $maritalStatusList    = \App\Models\MaritalStatus::active()->orderBy('id')->get();
+                    $associationList      = \App\Models\Association::active()->orderBy('name')->get();
+                    $representativeList   = \App\Models\User::orderBy('name')->get();
+                    $housingStatusList    = \App\Models\HousingStatus::active()->orderBy('name')->get();
+                    $inp = 'w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50';
+                @endphp
+
+                {{-- Section: البيانات الشخصية --}}
+                <p class="text-xs font-bold text-blue-600 uppercase tracking-wider mb-2">البيانات الشخصية</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">الاسم الكامل</label>
+                        <input type="text" name="payload[full_name]" value="{{ $editPayload['full_name'] ?? '' }}" class="{{ $inp }}">
                     </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">اسم الأم</label>
+                        <input type="text" name="payload[mother_name]" value="{{ $editPayload['mother_name'] ?? '' }}" class="{{ $inp }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">رقم الهوية</label>
+                        <input type="text" name="payload[national_id]" value="{{ $editPayload['national_id'] ?? '' }}" class="{{ $inp }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">العمر</label>
+                        <input type="number" name="payload[age]" value="{{ $editPayload['age'] ?? '' }}" min="0" class="{{ $inp }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">الجنس</label>
+                        <select name="payload[gender]" class="{{ $inp }}">
+                            <option value="">— اختر —</option>
+                            <option value="ذكر" {{ ($editPayload['gender'] ?? '') === 'ذكر' ? 'selected' : '' }}>ذكر</option>
+                            <option value="أنثى" {{ ($editPayload['gender'] ?? '') === 'أنثى' ? 'selected' : '' }}>أنثى</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">الحالة الاجتماعية</label>
+                        <select name="payload[marital_status]" class="{{ $inp }}">
+                            <option value="">— اختر —</option>
+                            @foreach($maritalStatusList as $ms)
+                                <option value="{{ $ms->name }}" {{ ($editPayload['marital_status'] ?? '') === $ms->name ? 'selected' : '' }}>{{ $ms->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">الهاتف</label>
+                        <input type="text" name="payload[phone]" value="{{ $editPayload['phone'] ?? '' }}" class="{{ $inp }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">الهاتف الثاني</label>
+                        <input type="text" name="payload[phone2]" value="{{ $editPayload['phone2'] ?? '' }}" class="{{ $inp }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">رقم الاضبارة</label>
+                        <input type="text" name="payload[dossier_number]" value="{{ $editPayload['dossier_number'] ?? '' }}" class="{{ $inp }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">العنوان الحالي</label>
+                        <input type="text" name="payload[current_address]" value="{{ $editPayload['current_address'] ?? '' }}" class="{{ $inp }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">حالة التحقق</label>
+                        <select name="payload[verification_status_id]" class="{{ $inp }}">
+                            <option value="">— اختر —</option>
+                            @foreach($verificationStatuses as $vs)
+                                <option value="{{ $vs->id }}" {{ ($editPayload['verification_status_id'] ?? '') == $vs->id ? 'selected' : '' }}>{{ $vs->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">المندوب</label>
+                        <input type="text" name="payload[delegate]" value="{{ $editPayload['delegate'] ?? '' }}" class="{{ $inp }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">الممثل المسؤول</label>
+                        <select name="payload[representative_id]" class="{{ $inp }}">
+                            <option value="">— اختر —</option>
+                            @foreach($representativeList as $rep)
+                                <option value="{{ $rep->id }}" {{ ($editPayload['representative_id'] ?? '') == $rep->id ? 'selected' : '' }}>{{ $rep->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">الجمعية</label>
+                        <select name="payload[association_id]" class="{{ $inp }}">
+                            <option value="">— اختر —</option>
+                            @foreach($associationList as $assoc)
+                                <option value="{{ $assoc->id }}" {{ ($editPayload['association_id'] ?? '') == $assoc->id ? 'selected' : '' }}>{{ $assoc->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                {{-- Section: الوضع المعيشي --}}
+                <p class="text-xs font-bold text-blue-600 uppercase tracking-wider mb-2">الوضع المعيشي</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">العمل</label>
+                        <input type="text" name="payload[job]" value="{{ $editPayload['job'] ?? '' }}" class="{{ $inp }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">وضع السكن</label>
+                        <select name="payload[housing_status]" class="{{ $inp }}">
+                            <option value="">— اختر —</option>
+                            @foreach($housingStatusList as $hs)
+                                <option value="{{ $hs->name }}" {{ ($editPayload['housing_status'] ?? '') === $hs->name ? 'selected' : '' }}>{{ $hs->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">الشبكة</label>
+                        <input type="text" name="payload[network]" value="{{ $editPayload['network'] ?? '' }}" class="{{ $inp }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">حالة المعيل</label>
+                        <input type="text" name="payload[provider_status]" value="{{ $editPayload['provider_status'] ?? '' }}" class="{{ $inp }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">عدد المعالين</label>
+                        <input type="number" name="payload[dependents_count]" value="{{ $editPayload['dependents_count'] ?? '' }}" min="0" class="{{ $inp }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">المبلغ المقدر (ل.س)</label>
+                        <input type="number" name="payload[estimated_amount]" value="{{ $editPayload['estimated_amount'] ?? '' }}" step="0.01" class="{{ $inp }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">حساب شام كاش</label>
+                        <select name="payload[sham_cash_account]" class="{{ $inp }}">
+                            <option value="">— لا يوجد —</option>
+                            <option value="done" {{ ($editPayload['sham_cash_account'] ?? '') === 'done' ? 'selected' : '' }}>تم</option>
+                            <option value="manual" {{ ($editPayload['sham_cash_account'] ?? '') === 'manual' ? 'selected' : '' }}>يدوي</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-4 pt-5">
+                        <label class="inline-flex items-center gap-2 cursor-pointer">
+                            <input type="hidden" name="payload[other_association]" value="0">
+                            <input type="checkbox" name="payload[other_association]" value="1"
+                                   {{ !empty($editPayload['other_association']) ? 'checked' : '' }}
+                                   class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-400">
+                            <span class="text-xs font-bold text-gray-600">جمعية أخرى</span>
+                        </label>
+                    </div>
+                </div>
+
+                {{-- Section: الحالة الصحية --}}
+                <p class="text-xs font-bold text-blue-600 uppercase tracking-wider mb-2">الحالة الصحية</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">نوع المرض</label>
+                        <input type="text" name="payload[disease_type]" value="{{ $editPayload['disease_type'] ?? '' }}" class="{{ $inp }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">وصف الحالة الخاصة</label>
+                        <input type="text" name="payload[special_cases_description]" value="{{ $editPayload['special_cases_description'] ?? '' }}" class="{{ $inp }}">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-bold text-gray-500 mb-1">تفاصيل المرض</label>
+                        <textarea name="payload[illness_details]" rows="2"
+                                  class="{{ $inp }} resize-none">{{ $editPayload['illness_details'] ?? '' }}</textarea>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <label class="inline-flex items-center gap-2 cursor-pointer">
+                            <input type="hidden" name="payload[special_cases]" value="0">
+                            <input type="checkbox" name="payload[special_cases]" value="1"
+                                   {{ !empty($editPayload['special_cases']) ? 'checked' : '' }}
+                                   class="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-400">
+                            <span class="text-xs font-bold text-gray-600">حالة خاصة</span>
+                        </label>
+                    </div>
+                </div>
+
+                {{-- Section: النقاط --}}
+                @if(!empty($editPayload['scores']))
+                <p class="text-xs font-bold text-blue-600 uppercase tracking-wider mb-2">النقاط</p>
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
+                    @foreach(['work_score' => 'نقاط العمل','housing_score' => 'نقاط السكن','dependents_score' => 'نقاط الأفراد','dependent_status_score' => 'نقاط المعيل','illness_score' => 'نقاط المرض','special_cases_score' => 'نقاط الخاصة'] as $sf => $slbl)
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">{{ $slbl }}</label>
+                        <input type="number" name="payload[scores][{{ $sf }}]" value="{{ $editPayload['scores'][$sf] ?? 0 }}" min="0" step="0.5" class="{{ $inp }}">
+                    </div>
+                    @endforeach
+                </div>
+                @endif
+
+                {{-- Section: بيانات الدفع --}}
+                @if(!empty($editPayload['payment']))
+                <p class="text-xs font-bold text-blue-600 uppercase tracking-wider mb-2">بيانات الدفع</p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">اسم المستلم</label>
+                        <input type="text" name="payload[payment][recipient_name]" value="{{ $editPayload['payment']['recipient_name'] ?? '' }}" class="{{ $inp }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">رقم الآيبان</label>
+                        <input type="text" name="payload[payment][iban]" value="{{ $editPayload['payment']['iban'] ?? '' }}" class="{{ $inp }}" dir="ltr">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">الباركود</label>
+                        <input type="text" name="payload[payment][barcode]" value="{{ $editPayload['payment']['barcode'] ?? '' }}" class="{{ $inp }}" dir="ltr">
+                    </div>
+                </div>
+                @endif
                 @endif
 
                 <div class="flex gap-3 items-end">
