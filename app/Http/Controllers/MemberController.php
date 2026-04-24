@@ -71,6 +71,7 @@ class MemberController extends Controller
         $fvNotes             = trim($request->get('fv_notes', ''));
         $fvHasVideo         = $request->get('fv_has_video', '');
         $fvHasSpecialCase   = $request->get('fv_has_special_case', '');
+        $fvCount            = trim($request->get('fv_count', ''));
 
         $query = Member::query();
 
@@ -133,6 +134,13 @@ class MemberController extends Controller
                 elseif ($fvHasSpecialCase === '0') $q->where(fn($s) => $s->where('has_special_case', false)->orWhereNull('has_special_case'));
             });
         }
+        if ($fvCount !== '') {
+            if ($fvCount === '0') {
+                $query->doesntHave('fieldVisits');
+            } else {
+                $query->has('fieldVisits', '>=', (int) $fvCount);
+            }
+        }
         if (!empty($regionIds))        $query->whereIn('region_id', $regionIds);
         if (!empty($housingStatusIds)) $query->whereIn('housing_status_id', $housingStatusIds);
         if ($estimatedFrom !== '') $query->where('estimated_amount', '>=', (float) str_replace(',', '', $estimatedFrom));
@@ -194,6 +202,7 @@ class MemberController extends Controller
         $fvNotes              = trim($request->get('fv_notes', ''));
         $fvHasVideo           = $request->get('fv_has_video', '');
         $fvHasSpecialCase     = $request->get('fv_has_special_case', '');
+        $fvCount              = trim($request->get('fv_count', ''));
         $estimatedFrom        = trim($request->get('estimated_from', ''));
         $estimatedTo          = trim($request->get('estimated_to', ''));
         $finalFrom            = trim($request->get('final_from', ''));
@@ -242,7 +251,7 @@ class MemberController extends Controller
             'members', 'search', 'dossierFrom', 'dossierTo', 'totalAmount', 'totalFinalAmount',
             'verificationIds', 'finalStatusIds', 'maritalStatuses', 'genders', 'delegates', 'secondPersons', 'specialCases', 'specialDescriptions', 'addresses', 'associationIds', 'networks', 'fieldVisitStatusIds', 'regionIds', 'housingStatusIds',
             'estimatedFrom', 'estimatedTo', 'finalFrom', 'finalTo',
-            'fvHouseTypeIds', 'fvHouseConditionIds', 'fvVisitors', 'fvVisitorList', 'fvDateFrom', 'fvDateTo', 'fvAmountFrom', 'fvAmountTo', 'fvNotes', 'fvHasVideo', 'fvHasSpecialCase',
+            'fvHouseTypeIds', 'fvHouseConditionIds', 'fvVisitors', 'fvVisitorList', 'fvDateFrom', 'fvDateTo', 'fvAmountFrom', 'fvAmountTo', 'fvNotes', 'fvHasVideo', 'fvHasSpecialCase', 'fvCount',
             'verificationStatuses', 'finalStatusList', 'maritalStatusList', 'delegateList', 'secondPersonList', 'specialDescriptionList', 'addressList', 'associationList',
             'duplicateIbans', 'fieldVisitStatuses', 'regionList', 'houseTypes', 'houseConditions', 'housingStatusList'
         ));

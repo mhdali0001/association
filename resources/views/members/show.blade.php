@@ -716,16 +716,16 @@
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">المبلغ المقدر (ل.س)</label>
-                            <div class="flex items-center gap-1.5">
-                                <button type="button"
-                                        onclick="adjustVisitAmount('amount-{{ $visit->id }}', -1000)"
-                                        class="shrink-0 w-8 h-9 flex items-center justify-center rounded-xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 font-bold text-base transition-colors">−</button>
+                            <div class="flex gap-1.5">
+                                <label class="flex items-center justify-center gap-1 px-3 py-2 rounded-xl border cursor-pointer text-xs font-bold transition-all has-[:checked]:bg-emerald-500 has-[:checked]:text-white has-[:checked]:border-emerald-500 bg-white text-gray-600 border-gray-200 shrink-0">
+                                    <input type="radio" name="amount_operation" value="add" {{ ($visit->estimated_amount ?? 0) >= 0 ? 'checked' : '' }} class="hidden"> + إضافة
+                                </label>
+                                <label class="flex items-center justify-center gap-1 px-3 py-2 rounded-xl border cursor-pointer text-xs font-bold transition-all has-[:checked]:bg-red-500 has-[:checked]:text-white has-[:checked]:border-red-500 bg-white text-gray-600 border-gray-200 shrink-0">
+                                    <input type="radio" name="amount_operation" value="subtract" {{ ($visit->estimated_amount ?? 0) < 0 ? 'checked' : '' }} class="hidden"> − إنقاص
+                                </label>
                                 <input type="number" name="estimated_amount" id="amount-{{ $visit->id }}"
-                                       value="{{ $visit->estimated_amount }}" step="1000"
-                                       class="flex-1 min-w-0 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-mono text-center">
-                                <button type="button"
-                                        onclick="adjustVisitAmount('amount-{{ $visit->id }}', 1000)"
-                                        class="shrink-0 w-8 h-9 flex items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 font-bold text-base transition-colors">+</button>
+                                       value="{{ abs($visit->estimated_amount ?? 0) }}" min="0" step="0.01"
+                                       class="flex-1 min-w-0 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-mono">
                             </div>
                         </div>
                         <div class="md:col-span-2">

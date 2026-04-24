@@ -723,6 +723,19 @@
                         </select>
                     </div>
 
+                    {{-- عدد الجولات --}}
+                    <div>
+                        <label class="block text-xs font-bold text-indigo-600 uppercase tracking-wide mb-1.5">عدد الجولات</label>
+                        <select name="fv_count" onwheel="this.blur()"
+                                class="w-full text-sm border border-indigo-200 rounded-xl px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 transition text-gray-500">
+                            <option value="">— الكل —</option>
+                            <option value="0" {{ $fvCount === '0' ? 'selected' : '' }}>بدون جولات</option>
+                            <option value="1" {{ $fvCount === '1' ? 'selected' : '' }}>جولة واحدة فأكثر</option>
+                            <option value="2" {{ $fvCount === '2' ? 'selected' : '' }}>جولتان فأكثر</option>
+                            <option value="3" {{ $fvCount === '3' ? 'selected' : '' }}>3 جولات فأكثر</option>
+                        </select>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -914,6 +927,12 @@
                 @if($fvHasSpecialCase !== '')
                     <a href="{{ badgeRemoveUrl('fv_has_special_case') }}" class="inline-flex items-center gap-1 text-sm bg-orange-50 text-orange-700 border border-orange-200 rounded-full px-3 py-1 font-medium hover:bg-orange-100 transition-colors">
                         حالة خاصة: {{ $fvHasSpecialCase === '1' ? 'نعم' : 'لا' }}
+                        <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </a>
+                @endif
+                @if($fvCount !== '')
+                    <a href="{{ badgeRemoveUrl('fv_count') }}" class="inline-flex items-center gap-1 text-sm bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full px-3 py-1 font-medium hover:bg-indigo-100 transition-colors">
+                        عدد الجولات: {{ $fvCount === '0' ? 'بدون' : $fvCount.'+' }}
                         <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                     </a>
                 @endif

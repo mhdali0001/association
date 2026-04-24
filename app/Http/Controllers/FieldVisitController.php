@@ -72,6 +72,7 @@ class FieldVisitController extends Controller
             'visit_date'            => 'nullable|date',
             'visitor'               => 'nullable|string|max:255',
             'estimated_amount'      => 'nullable|numeric|min:0',
+            'amount_operation'      => 'nullable|in:add,subtract',
             'amount_reason'         => 'nullable|string',
             'notes'                 => 'nullable|string',
             'house_condition_id'    => 'nullable|exists:house_conditions,id',
@@ -80,6 +81,11 @@ class FieldVisitController extends Controller
         ]);
         $data['has_video']        = $request->boolean('has_video');
         $data['has_special_case'] = $request->boolean('has_special_case');
+
+        if (isset($data['estimated_amount']) && ($data['amount_operation'] ?? 'add') === 'subtract') {
+            $data['estimated_amount'] = -abs($data['estimated_amount']);
+        }
+        unset($data['amount_operation']);
 
         if (!$this->isAdmin()) {
             PendingChange::create([
