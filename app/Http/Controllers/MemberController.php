@@ -570,6 +570,13 @@ class MemberController extends Controller
 
     private function buildMemberPayload(Request $request, ?Member $member = null): array
     {
+        $rawScorePayload = min(2,  (int)($request->work_score ?? 0))
+                         + min(4,  (int)($request->housing_score ?? 0))
+                         + min(20, (int)($request->dependents_score ?? 0))
+                         + min(2,  (int)($request->dependent_status_score ?? 0))
+                         + min(5,  (int)($request->illness_score ?? 0))
+                         + min(10, (int)($request->special_cases_score ?? 0));
+        $deductionPayload = max(0, (int)($request->score_deduction ?? 0));
         $scores = [
             'work_score'             => min(2,  (int)($request->work_score ?? 0)),
             'housing_score'          => min(4,  (int)($request->housing_score ?? 0)),
@@ -577,6 +584,9 @@ class MemberController extends Controller
             'dependent_status_score' => min(2,  (int)($request->dependent_status_score ?? 0)),
             'illness_score'          => min(5,  (int)($request->illness_score ?? 0)),
             'special_cases_score'    => min(10, (int)($request->special_cases_score ?? 0)),
+            'score_deduction'        => $deductionPayload,
+            'score_deduction_reason' => $request->score_deduction_reason ?? null,
+            'total_score'            => max(0, $rawScorePayload - $deductionPayload),
         ];
 
         $payment = [
@@ -653,6 +663,7 @@ class MemberController extends Controller
                 'scores' => $member->scores?->only([
                     'work_score', 'housing_score', 'dependents_score',
                     'dependent_status_score', 'illness_score', 'special_cases_score', 'total_score',
+                    'score_deduction', 'score_deduction_reason',
                 ]) ?? [],
                 'payment' => $member->paymentInfo?->only([
                     'iban', 'barcode', 'iban_image', 'barcode_image', 'recipient_name',
@@ -696,6 +707,8 @@ class MemberController extends Controller
             'dependent_status_score'     => 'nullable|integer|min:0|max:2',
             'illness_score'              => 'nullable|integer|min:0|max:5',
             'special_cases_score'        => 'nullable|integer|min:0|max:10',
+            'score_deduction'            => 'nullable|integer|min:0',
+            'score_deduction_reason'     => 'nullable|string|max:500',
             'final_amount'               => 'nullable|numeric|min:0',
             // payment
             'iban'                       => 'nullable|string|max:50',
@@ -729,9 +742,12 @@ class MemberController extends Controller
         $dependentStatusScore   = min(2,  (int)($request->dependent_status_score ?? 0));
         $illnessScore           = min(5,  (int)($request->illness_score ?? 0));
         $specialScore           = min(10, (int)($request->special_cases_score ?? 0));
+        $scoreDeduction         = max(0,  (int)($request->score_deduction ?? 0));
+        $scoreDeductionReason   = $request->score_deduction_reason ?? null;
         // store region_id in data array for use below
         $data['region_id'] = $request->input('region_id') ?: null;
-        $totalScore             = $workScore + $housingScore + $dependentsScore + $dependentStatusScore + $illnessScore + $specialScore;
+        $rawScore               = $workScore + $housingScore + $dependentsScore + $dependentStatusScore + $illnessScore + $specialScore;
+        $totalScore             = max(0, $rawScore - $scoreDeduction);
 
         $member = Member::create([
             'full_name'                  => $data['full_name'],
@@ -775,6 +791,8 @@ class MemberController extends Controller
             'illness_score'          => $illnessScore,
             'special_cases_score'    => $specialScore,
             'total_score'            => $totalScore,
+            'score_deduction'        => $scoreDeduction,
+            'score_deduction_reason' => $scoreDeductionReason,
         ]);
 
         $ibanImagePath    = null;
@@ -855,6 +873,8 @@ class MemberController extends Controller
             'dependent_status_score'     => 'nullable|integer|min:0|max:2',
             'illness_score'              => 'nullable|integer|min:0|max:5',
             'special_cases_score'        => 'nullable|integer|min:0|max:10',
+            'score_deduction'            => 'nullable|integer|min:0',
+            'score_deduction_reason'     => 'nullable|string|max:500',
             'final_amount'               => 'nullable|numeric|min:0',
             'iban'                       => 'nullable|string|max:50',
             'barcode'                    => 'nullable|string|max:100',
@@ -888,7 +908,10 @@ class MemberController extends Controller
         $dependentStatusScore = min(2,  (int)($request->dependent_status_score ?? 0));
         $illnessScore         = min(5,  (int)($request->illness_score ?? 0));
         $specialScore         = min(10, (int)($request->special_cases_score ?? 0));
-        $totalScore           = $workScore + $housingScore + $dependentsScore + $dependentStatusScore + $illnessScore + $specialScore;
+        $scoreDeduction       = max(0,  (int)($request->score_deduction ?? 0));
+        $scoreDeductionReason = $request->score_deduction_reason ?? null;
+        $rawScore             = $workScore + $housingScore + $dependentsScore + $dependentStatusScore + $illnessScore + $specialScore;
+        $totalScore           = max(0, $rawScore - $scoreDeduction);
 
         $member->update([
             'full_name'                  => $data['full_name'],
@@ -934,6 +957,8 @@ class MemberController extends Controller
             'illness_score'          => $illnessScore,
             'special_cases_score'    => $specialScore,
             'total_score'            => $totalScore,
+            'score_deduction'        => $scoreDeduction,
+            'score_deduction_reason' => $scoreDeductionReason,
         ])->save();
 
         $payment = $member->paymentInfo ?? new PaymentInfo(['member_id' => $member->id]);

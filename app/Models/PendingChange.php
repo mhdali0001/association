@@ -371,7 +371,10 @@ class PendingChange extends Model
         $dependentStatusScore = (int)($scores['dependent_status_score'] ?? 0);
         $illnessScore         = (int)($scores['illness_score']          ?? 0);
         $specialScore         = (int)($scores['special_cases_score']    ?? 0);
-        $totalScore           = $workScore + $housingScore + $dependentsScore + $dependentStatusScore + $illnessScore + $specialScore;
+        $scoreDeduction       = max(0, (int)($scores['score_deduction'] ?? 0));
+        $scoreDeductionReason = $scores['score_deduction_reason']       ?? null;
+        $rawScore             = $workScore + $housingScore + $dependentsScore + $dependentStatusScore + $illnessScore + $specialScore;
+        $totalScore           = max(0, $rawScore - $scoreDeduction);
 
         $memberData = [
             'full_name'                 => $p['full_name']                 ?? null,
@@ -413,6 +416,8 @@ class PendingChange extends Model
             'illness_score'          => $illnessScore,
             'special_cases_score'    => $specialScore,
             'total_score'            => $totalScore,
+            'score_deduction'        => $scoreDeduction,
+            'score_deduction_reason' => $scoreDeductionReason,
         ];
 
         $payment   = $p['payment']    ?? [];

@@ -10,6 +10,7 @@ class MemberScore extends Model
     protected $fillable = [
         'member_id', 'work_score', 'housing_score',
         'dependents_score', 'dependent_status_score', 'illness_score', 'special_cases_score', 'total_score',
+        'score_deduction', 'score_deduction_reason',
     ];
 
     public function member()

@@ -440,6 +440,23 @@
         </div>
         @endforeach
 
+        {{-- انقاص النقاط --}}
+        <div class="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl">
+            <div>
+                <label class="block text-xs font-bold text-red-600 uppercase tracking-wide mb-1.5">انقاص النقاط</label>
+                <input type="number" name="score_deduction" min="0" oninput="calcTotal()"
+                       value="{{ $scores?->score_deduction ?? 0 }}"
+                       class="w-full border border-red-200 bg-white text-red-700 font-bold rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 transition text-center">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-red-600 uppercase tracking-wide mb-1.5">سبب الانقاص</label>
+                <input type="text" name="score_deduction_reason"
+                       value="{{ $scores?->score_deduction_reason ?? '' }}"
+                       placeholder="سبب انقاص النقاط..."
+                       class="w-full border border-red-200 bg-white text-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 transition">
+            </div>
+        </div>
+
         {{-- Total --}}
         <div class="lg:col-span-3">
             <label class="{{ $labelClass }} mb-2">المجموع الكلي</label>
@@ -585,6 +602,9 @@ function calcTotal() {
         const el = document.querySelector('[name="' + f + '"]');
         if (el) total += Math.max(0, parseInt(el.value) || 0);
     });
+    const deductionEl = document.querySelector('[name="score_deduction"]');
+    const deduction = deductionEl ? Math.max(0, parseInt(deductionEl.value) || 0) : 0;
+    total = Math.max(0, total - deduction);
     const display = document.getElementById('total_score_display');
     if (display) display.textContent = total;
     const bar = document.getElementById('total_score_bar');

@@ -440,6 +440,17 @@
                         </div>
                     </div>
                 @endforeach
+                @if(($member->scores->score_deduction ?? 0) > 0)
+                <div class="flex justify-between items-center bg-red-50 border border-red-200 rounded-xl px-3 py-2.5 mt-1">
+                    <div>
+                        <span class="text-sm font-bold text-red-700">انقاص النقاط</span>
+                        @if($member->scores->score_deduction_reason)
+                            <p class="text-xs text-red-400 mt-0.5">{{ $member->scores->score_deduction_reason }}</p>
+                        @endif
+                    </div>
+                    <span class="text-2xl font-black text-red-600">−{{ $member->scores->score_deduction }}</span>
+                </div>
+                @endif
                 <div class="pt-3 border-t border-gray-100 flex justify-between items-center bg-gradient-to-l from-emerald-50 to-teal-50 rounded-xl px-3 py-2.5 mt-1">
                     <span class="text-sm font-bold text-emerald-700">المجموع الكلي</span>
                     <span class="text-2xl font-black text-emerald-600">{{ $member->scores->total_score }}</span>

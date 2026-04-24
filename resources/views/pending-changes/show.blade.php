@@ -733,13 +733,26 @@
                 {{-- Section: النقاط --}}
                 @if(!empty($editPayload['scores']))
                 <p class="text-xs font-bold text-blue-600 uppercase tracking-wider mb-2">النقاط</p>
-                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-3">
                     @foreach(['work_score' => 'نقاط العمل','housing_score' => 'نقاط السكن','dependents_score' => 'نقاط الأفراد','dependent_status_score' => 'نقاط المعيل','illness_score' => 'نقاط المرض','special_cases_score' => 'نقاط الخاصة'] as $sf => $slbl)
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-1">{{ $slbl }}</label>
                         <input type="number" name="payload[scores][{{ $sf }}]" value="{{ $editPayload['scores'][$sf] ?? 0 }}" min="0" step="0.5" class="{{ $inp }}">
                     </div>
                     @endforeach
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
+                    <div>
+                        <label class="block text-xs font-bold text-red-600 mb-1">انقاص النقاط</label>
+                        <input type="number" name="payload[scores][score_deduction]" value="{{ $editPayload['scores']['score_deduction'] ?? 0 }}" min="0"
+                               class="w-full border border-red-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-red-400 bg-white text-red-700 font-bold text-center">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-red-600 mb-1">سبب الانقاص</label>
+                        <input type="text" name="payload[scores][score_deduction_reason]" value="{{ $editPayload['scores']['score_deduction_reason'] ?? '' }}"
+                               placeholder="سبب انقاص النقاط..."
+                               class="w-full border border-red-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-red-400 bg-white">
+                    </div>
                 </div>
                 @endif
 
