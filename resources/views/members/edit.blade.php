@@ -148,7 +148,7 @@
                                 <button type="button" onclick="evAdjust('ev-amt-{{ $visit->id }}', -1000)"
                                         class="shrink-0 w-8 h-9 flex items-center justify-center rounded-xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 font-bold text-base transition-colors">−</button>
                                 <input type="number" name="estimated_amount" id="ev-amt-{{ $visit->id }}"
-                                       value="{{ $visit->estimated_amount }}" step="1000"
+                                       value="{{ $visit->estimated_amount }}" step="any"
                                        class="flex-1 min-w-0 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-mono text-center">
                                 <button type="button" onclick="evAdjust('ev-amt-{{ $visit->id }}', 1000)"
                                         class="shrink-0 w-8 h-9 flex items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 font-bold text-base transition-colors">+</button>

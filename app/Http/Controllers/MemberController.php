@@ -63,6 +63,7 @@ class MemberController extends Controller
         $fieldVisitStatusIds = array_filter((array) $request->get('field_visit_status_id', []));
         $fvHouseTypeIds      = array_filter((array) $request->get('fv_house_type_id', []));
         $fvVisitors          = array_filter((array) $request->get('fv_visitors', []));
+        $fvCreatedByIds      = array_filter((array) $request->get('fv_created_by', []));
         $fvDateFrom          = trim($request->get('fv_date_from', ''));
         $fvDateTo            = trim($request->get('fv_date_to', ''));
         $fvAmountFrom        = trim($request->get('fv_amount_from', ''));
@@ -111,11 +112,12 @@ class MemberController extends Controller
             });
         }
         if (!empty($fieldVisitStatusIds) || !empty($fvHouseTypeIds) || !empty($fvHouseConditionIds) || !empty($fvVisitors)
+            || !empty($fvCreatedByIds)
             || $fvDateFrom !== '' || $fvDateTo !== ''
             || $fvAmountFrom !== '' || $fvAmountTo !== ''
             || $fvNotes !== '' || $fvHasVideo !== '' || $fvHasSpecialCase !== '') {
             $query->whereHas('fieldVisits', function ($q) use (
-                $fieldVisitStatusIds, $fvHouseTypeIds, $fvHouseConditionIds, $fvVisitors,
+                $fieldVisitStatusIds, $fvHouseTypeIds, $fvHouseConditionIds, $fvVisitors, $fvCreatedByIds,
                 $fvDateFrom, $fvDateTo, $fvAmountFrom, $fvAmountTo, $fvNotes,
                 $fvHasVideo, $fvHasSpecialCase
             ) {
@@ -123,6 +125,7 @@ class MemberController extends Controller
                 if (!empty($fvHouseTypeIds))        $q->whereIn('house_type_id', $fvHouseTypeIds);
                 if (!empty($fvHouseConditionIds))   $q->whereIn('house_condition_id', $fvHouseConditionIds);
                 if (!empty($fvVisitors))            $q->whereIn('visitor', $fvVisitors);
+                if (!empty($fvCreatedByIds))        $q->whereIn('created_by', $fvCreatedByIds);
                 if ($fvDateFrom !== '')             $q->where('visit_date', '>=', $fvDateFrom);
                 if ($fvDateTo !== '')               $q->where('visit_date', '<=', $fvDateTo);
                 if ($fvAmountFrom !== '')           $q->where('estimated_amount', '>=', (float) $fvAmountFrom);
@@ -194,6 +197,7 @@ class MemberController extends Controller
         $fieldVisitStatusIds  = array_filter((array) $request->get('field_visit_status_id', []));
         $fvHouseTypeIds       = array_filter((array) $request->get('fv_house_type_id', []));
         $fvVisitors           = array_filter((array) $request->get('fv_visitors', []));
+        $fvCreatedByIds       = array_filter((array) $request->get('fv_created_by', []));
         $fvDateFrom           = trim($request->get('fv_date_from', ''));
         $fvDateTo             = trim($request->get('fv_date_to', ''));
         $fvAmountFrom         = trim($request->get('fv_amount_from', ''));
@@ -247,11 +251,15 @@ class MemberController extends Controller
                                     ->orderBy('visitor')
                                     ->pluck('visitor');
 
+        $fvCreatedByList      = \App\Models\User::whereIn('id',
+                                    \App\Models\FieldVisit::whereNotNull('created_by')->distinct()->pluck('created_by')
+                                )->orderBy('name')->get(['id', 'name']);
+
         return view('members.index', compact(
             'members', 'search', 'dossierFrom', 'dossierTo', 'totalAmount', 'totalFinalAmount',
             'verificationIds', 'finalStatusIds', 'maritalStatuses', 'genders', 'delegates', 'secondPersons', 'specialCases', 'specialDescriptions', 'addresses', 'associationIds', 'networks', 'fieldVisitStatusIds', 'regionIds', 'housingStatusIds',
             'estimatedFrom', 'estimatedTo', 'finalFrom', 'finalTo',
-            'fvHouseTypeIds', 'fvHouseConditionIds', 'fvVisitors', 'fvVisitorList', 'fvDateFrom', 'fvDateTo', 'fvAmountFrom', 'fvAmountTo', 'fvNotes', 'fvHasVideo', 'fvHasSpecialCase', 'fvCount',
+            'fvHouseTypeIds', 'fvHouseConditionIds', 'fvVisitors', 'fvVisitorList', 'fvCreatedByIds', 'fvCreatedByList', 'fvDateFrom', 'fvDateTo', 'fvAmountFrom', 'fvAmountTo', 'fvNotes', 'fvHasVideo', 'fvHasSpecialCase', 'fvCount',
             'verificationStatuses', 'finalStatusList', 'maritalStatusList', 'delegateList', 'secondPersonList', 'specialDescriptionList', 'addressList', 'associationList',
             'duplicateIbans', 'fieldVisitStatuses', 'regionList', 'houseTypes', 'houseConditions', 'housingStatusList'
         ));
@@ -289,45 +297,11 @@ class MemberController extends Controller
 
     private function buildBulkAmountQuery(Request $request): \Illuminate\Database\Eloquent\Builder
     {
-        $query = Member::query();
+        $query     = $this->buildFilteredQuery($request);
+        $hasAmount = $request->get('has_amount', '');
 
-        $search              = $request->get('search');
-        $dossierFrom         = trim($request->get('dossier_from', ''));
-        $dossierTo           = trim($request->get('dossier_to', ''));
-        $verificationIds     = array_filter((array) $request->get('verification_status_id', []));
-        $finalStatusIds      = array_filter((array) $request->get('final_status_id', []));
-        $addresses           = array_filter((array) $request->get('current_address', []));
-        $networks            = array_filter((array) $request->get('network', []));
-        $maritalStatuses     = array_filter((array) $request->get('marital_status', []));
-        $hasAmount           = $request->get('has_amount', '');
-        $genders             = array_filter((array) $request->get('gender', []));
-        $associationIds      = array_filter((array) $request->get('association_id', []));
-        $specialCases        = $request->get('special_cases', '');
-        $specialDescriptions = array_filter((array) $request->get('special_cases_description', []));
-        $delegates           = array_filter((array) $request->get('delegate', []));
-
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('full_name',      'like', "%{$search}%")
-                  ->orWhere('national_id',  'like', "%{$search}%")
-                  ->orWhere('dossier_number','like', "%{$search}%");
-            });
-        }
-        if ($dossierFrom !== '') $query->whereRaw('CAST(dossier_number AS UNSIGNED) >= ?', [(int) $dossierFrom]);
-        if ($dossierTo   !== '') $query->whereRaw('CAST(dossier_number AS UNSIGNED) <= ?', [(int) $dossierTo]);
-        if (!empty($verificationIds))     $query->whereIn('verification_status_id', $verificationIds);
-        if (!empty($finalStatusIds))      $query->whereIn('final_status_id', $finalStatusIds);
-        if (!empty($addresses))           $query->whereIn('current_address', $addresses);
-        if (!empty($networks))            $query->whereIn('network', $networks);
-        if (!empty($maritalStatuses))     $query->whereIn('marital_status', $maritalStatuses);
-        if ($hasAmount === '1')           $query->whereNotNull('estimated_amount')->where('estimated_amount', '>', 0);
-        if ($hasAmount === '0')           $query->where(fn($q) => $q->whereNull('estimated_amount')->orWhere('estimated_amount', 0));
-        if (!empty($genders))             $query->whereIn('gender', $genders);
-        if (!empty($associationIds))      $query->whereIn('association_id', $associationIds);
-        if ($specialCases === '1')         $query->where('special_cases', true);
-        elseif ($specialCases === '0')    $query->where(function ($q) { $q->where('special_cases', false)->orWhereNull('special_cases'); });
-        if (!empty($specialDescriptions)) $query->whereIn('special_cases_description', $specialDescriptions);
-        if (!empty($delegates))           $query->whereIn('delegate', $delegates);
+        if ($hasAmount === '1') $query->whereNotNull('estimated_amount')->where('estimated_amount', '>', 0);
+        if ($hasAmount === '0') $query->where(fn($q) => $q->whereNull('estimated_amount')->orWhere('estimated_amount', 0));
 
         return $query;
     }
@@ -345,28 +319,80 @@ class MemberController extends Controller
         $withFinalAmount  = (clone $base)->whereNotNull('final_amount')->where('final_amount', '>', 0)->count();
         $totalFinalAmount = (clone $base)->sum('final_amount');
 
+        $search              = trim($request->get('search', ''));
+        $dossierFrom         = trim($request->get('dossier_from', ''));
+        $dossierTo           = trim($request->get('dossier_to', ''));
+        $verificationIds     = array_filter((array) $request->get('verification_status_id', []));
+        $finalStatusIds      = array_filter((array) $request->get('final_status_id', []));
+        $maritalStatuses     = array_filter((array) $request->get('marital_status', []));
+        $genders             = array_filter((array) $request->get('gender', []));
+        $delegates           = array_filter((array) $request->get('delegate', []));
+        $secondPersons       = array_filter((array) $request->get('second_person', []));
+        $specialCases        = $request->get('special_cases', '');
+        $specialDescriptions = array_filter((array) $request->get('special_cases_description', []));
+        $addresses           = array_filter((array) $request->get('current_address', []));
+        $associationIds      = array_filter((array) $request->get('association_id', []));
+        $networks            = array_filter((array) $request->get('network', []));
+        $housingStatusIds    = array_filter((array) $request->get('housing_status_id', []));
+        $regionIds           = array_filter((array) $request->get('region_id', []));
+        $estimatedFrom       = trim($request->get('estimated_from', ''));
+        $estimatedTo         = trim($request->get('estimated_to', ''));
+        $finalFrom           = trim($request->get('final_from', ''));
+        $finalTo             = trim($request->get('final_to', ''));
+        $shamCash            = array_filter((array) $request->get('sham_cash', []));
+
         $verificationStatuses   = VerificationStatus::active()->orderBy('name')->get();
         $finalStatusList        = FinalStatus::active()->orderBy('name')->get();
-        $addressList            = Member::whereNotNull('current_address')
-                                        ->where('current_address', '!=', '')
-                                        ->distinct()->orderBy('current_address')->pluck('current_address');
+        $maritalStatusList      = \App\Models\MaritalStatus::active()->orderBy('name')->get();
+        $housingStatusList      = \App\Models\HousingStatus::active()->orderBy('name')->get();
+        $regionList             = \App\Models\Region::orderBy('name')->get();
         $associationList        = Association::active()->orderBy('name')->get();
-        $delegateList           = Member::whereNotNull('delegate')
-                                        ->where('delegate', '!=', '')
-                                        ->distinct()->orderBy('delegate')->pluck('delegate');
-        $specialDescriptionList = Member::whereNotNull('special_cases_description')
-                                        ->where('special_cases_description', '!=', '')
-                                        ->distinct()->orderBy('special_cases_description')->pluck('special_cases_description');
+        $fieldVisitStatuses     = \App\Models\FieldVisitStatus::active()->orderBy('id')->get();
+        $houseTypes             = \App\Models\HouseType::active()->orderBy('id')->get();
+        $houseConditions        = \App\Models\HouseCondition::active()->orderBy('name')->get();
 
-        $dossierFrom = trim($request->get('dossier_from', ''));
-        $dossierTo   = trim($request->get('dossier_to', ''));
+        $addressList            = Member::whereNotNull('current_address')->where('current_address', '!=', '')->distinct()->orderBy('current_address')->pluck('current_address');
+        $delegateList           = Member::whereNotNull('delegate')->where('delegate', '!=', '')->distinct()->orderBy('delegate')->pluck('delegate');
+        $secondPersonList       = Member::whereNotNull('second_person')->where('second_person', '!=', '')->distinct()->orderBy('second_person')->pluck('second_person');
+        $specialDescriptionList = Member::whereNotNull('special_cases_description')->where('special_cases_description', '!=', '')->distinct()->orderBy('special_cases_description')->pluck('special_cases_description');
+
+        $hasAmount          = $request->get('has_amount', '');
+        $fvHouseTypeIds     = array_filter((array) $request->get('fv_house_type_id', []));
+        $fvHouseConditionIds= array_filter((array) $request->get('fv_house_condition_id', []));
+        $fvVisitors         = array_filter((array) $request->get('fv_visitors', []));
+        $fvCreatedByIds     = array_filter((array) $request->get('fv_created_by', []));
+        $fvDateFrom         = trim($request->get('fv_date_from', ''));
+        $fvDateTo           = trim($request->get('fv_date_to', ''));
+        $fvAmountFrom       = trim($request->get('fv_amount_from', ''));
+        $fvAmountTo         = trim($request->get('fv_amount_to', ''));
+        $fvNotes            = trim($request->get('fv_notes', ''));
+        $fvHasVideo         = $request->get('fv_has_video', '');
+        $fvHasSpecialCase   = $request->get('fv_has_special_case', '');
+        $fvCount            = $request->get('fv_count', '');
+        $fieldVisitStatusIds= array_filter((array) $request->get('field_visit_status_id', []));
+        $fvVisitorList      = \App\Models\FieldVisit::whereNotNull('visitor')->where('visitor', '!=', '')->distinct()->orderBy('visitor')->pluck('visitor');
+        $fvCreatedByList    = \App\Models\User::whereIn('id',
+                                \App\Models\FieldVisit::whereNotNull('created_by')->distinct()->pluck('created_by')
+                             )->orderBy('name')->get(['id', 'name']);
+
+        $hasFvFilters = !empty($fieldVisitStatusIds) || !empty($fvHouseTypeIds) || !empty($fvHouseConditionIds) || !empty($fvVisitors)
+            || !empty($fvCreatedByIds)
+            || $fvDateFrom !== '' || $fvDateTo !== '' || $fvAmountFrom !== '' || $fvAmountTo !== ''
+            || $fvNotes !== '' || $fvHasVideo !== '' || $fvHasSpecialCase !== '';
 
         return view('members.bulk-amount', compact(
-            'members', 'verificationStatuses', 'finalStatusList', 'addressList',
-            'associationList', 'delegateList', 'specialDescriptionList',
-            'totalCount', 'withAmount', 'totalAmount',
-            'withFinalAmount', 'totalFinalAmount',
-            'dossierFrom', 'dossierTo'
+            'members', 'totalCount', 'withAmount', 'totalAmount', 'withFinalAmount', 'totalFinalAmount',
+            'search', 'dossierFrom', 'dossierTo', 'hasAmount',
+            'verificationIds', 'finalStatusIds', 'maritalStatuses', 'genders', 'delegates', 'secondPersons',
+            'specialCases', 'specialDescriptions', 'addresses', 'associationIds', 'networks',
+            'housingStatusIds', 'regionIds', 'estimatedFrom', 'estimatedTo', 'finalFrom', 'finalTo', 'shamCash',
+            'verificationStatuses', 'finalStatusList', 'maritalStatusList', 'housingStatusList', 'regionList',
+            'associationList', 'delegateList', 'secondPersonList', 'specialDescriptionList', 'addressList',
+            'fieldVisitStatuses', 'houseTypes', 'houseConditions',
+            'fieldVisitStatusIds', 'fvHouseTypeIds', 'fvHouseConditionIds', 'fvVisitors', 'fvVisitorList',
+            'fvCreatedByIds', 'fvCreatedByList',
+            'fvDateFrom', 'fvDateTo', 'fvAmountFrom', 'fvAmountTo', 'fvNotes',
+            'fvHasVideo', 'fvHasSpecialCase', 'fvCount', 'hasFvFilters'
         ));
     }
 

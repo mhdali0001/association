@@ -286,7 +286,7 @@ class PendingChange extends Model
             'phone', 'phone2', 'network', 'provider_status', 'job', 'housing_status_id',
             'dependents_count', 'illness_details', 'special_cases',
             'special_cases_description', 'sham_cash_account', 'other_association',
-            'representative_id', 'delegate', 'association_id', 'estimated_amount', 'final_amount',
+            'representative_id', 'delegate', 'second_person', 'association_id', 'estimated_amount', 'final_amount',
         ]));
         if (!empty($restorable)) {
             $member->update($restorable);
@@ -394,6 +394,7 @@ class PendingChange extends Model
             'phone2'                    => $p['phone2']                    ?? null,
             'representative_id'         => $p['representative_id']         ?? null,
             'delegate'                  => $p['delegate']                  ?? null,
+            'second_person'             => $p['second_person']             ?? null,
             'association_id'            => $p['association_id']            ?? null,
             'network'                   => $p['network']                   ?? null,
             'provider_status'           => $p['provider_status']           ?? null,
@@ -563,6 +564,7 @@ class PendingChange extends Model
             'other_association'         => 'جمعية أخرى',
             'representative_id'         => 'الممثل المسؤول',
             'delegate'                  => 'المندوب الخارجي',
+            'second_person'             => 'الشخص الثاني',
             'association_id'            => 'الجمعية',
             'score'                     => 'مجموع النقاط',
             'estimated_amount'          => 'المبلغ المقدر',
@@ -735,6 +737,7 @@ class PendingChange extends Model
 
         if ($this->action === 'create') {
             if ($member) {
+                $data['created_by'] = $this->requested_by;
                 $visit = $member->fieldVisits()->create($data);
                 $this->updateQuietly(['model_id' => $visit->id]);
                 $visitAmount = $member->fieldVisits()->latest()->value('estimated_amount') ?? 0;

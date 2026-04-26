@@ -55,6 +55,7 @@ class FieldVisitController extends Controller
                              ->with('pending', 'تم إرسال طلب إضافة الجولة الميدانية — بانتظار موافقة المسؤول.');
         }
 
+        $data['created_by'] = Auth::id();
         $member->fieldVisits()->create($data);
         $this->recomputeFinalAmount($member);
         ActivityLogger::log('created', "إضافة جولة ميدانية للمستفيد: {$member->full_name}", $member);

@@ -191,7 +191,14 @@
                         </td>
                         <td class="px-5 py-3.5">
                             @if($log->subject_label)
-                                <p class="text-xs font-semibold text-gray-700">{{ $log->subject_label }}</p>
+                                @if($log->subject_type === 'Member' && $log->subject_id)
+                                    <a href="{{ route('members.show', $log->subject_id) }}"
+                                       class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline transition-colors">
+                                        {{ $log->subject_label }}
+                                    </a>
+                                @else
+                                    <p class="text-xs font-semibold text-gray-700">{{ $log->subject_label }}</p>
+                                @endif
                                 @if($log->subject_type)
                                     <p class="text-xs text-gray-400">
                                         {{ $log->subject_type }}

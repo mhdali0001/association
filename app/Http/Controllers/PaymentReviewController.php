@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\MatchedAndReviewedExport;
 use App\Exports\MatchedPaymentExport;
 use App\Imports\PaymentInfoImport;
 use App\Models\Member;
@@ -22,19 +23,12 @@ class PaymentReviewController extends Controller
         $dateFrom = trim($request->get('date_from', ''));
         $dateTo   = trim($request->get('date_to', ''));
 
-        // Load all members that have IBAN/barcode info OR a sham_cash_account status
+        // Only show members who have an IBAN (in manual or AI table) — IBAN is mandatory
         $query = Member::query()
             ->with(['paymentInfo', 'paymentInfoAI'])
             ->where(function ($q) {
-                $q->whereHas('paymentInfo', fn($s) => $s->where(function ($x) {
-                    $x->whereNotNull('iban')->orWhereNotNull('barcode');
-                }))
-                ->orWhereHas('paymentInfoAI', fn($s) => $s->where(function ($x) {
-                    $x->whereNotNull('iban')->orWhereNotNull('barcode');
-                }))
-                ->orWhere(function ($x) {
-                    $x->whereNotNull('sham_cash_account')->where('sham_cash_account', '!=', '');
-                });
+                $q->whereHas('paymentInfo', fn($s) => $s->whereNotNull('iban')->where('iban', '!=', ''))
+                  ->orWhereHas('paymentInfoAI', fn($s) => $s->whereNotNull('iban')->where('iban', '!=', ''));
             })
             ->orderBy('full_name');
 
@@ -123,6 +117,13 @@ class PaymentReviewController extends Controller
         $filename = 'المتطابقون-' . now()->format('Y-m-d') . '.xlsx';
         \App\Services\ActivityLogger::log('exported', 'تصدير الآيبانات المتطابقة');
         return Excel::download(new MatchedPaymentExport(), $filename);
+    }
+
+    public function exportMatchedReviewed()
+    {
+        $filename = 'متطابقون-ومراجَعون-' . now()->format('Y-m-d') . '.xlsx';
+        \App\Services\ActivityLogger::log('exported', 'تصدير المتطابقين تلقائياً والمراجَعين بحالة تم');
+        return Excel::download(new MatchedAndReviewedExport(), $filename);
     }
 
     public function importShow()

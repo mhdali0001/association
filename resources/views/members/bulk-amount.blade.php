@@ -76,83 +76,120 @@
 
 {{-- ===== FILTER FORM (GET) ===== --}}
 <div class="bg-white border border-gray-100 rounded-2xl shadow-sm mb-5">
-    <div class="flex items-center gap-2 px-5 py-3.5 border-b border-gray-100">
-        <div class="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center">
-            <svg class="w-4 h-4 text-violet-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
-            </svg>
-        </div>
-        <span class="text-sm font-bold text-gray-700">الفلاتر</span>
-        <span class="text-xs text-gray-400 ms-auto">الفلاتر تؤثر على "تطبيق على الكل"</span>
-    </div>
-    <form method="GET" action="{{ route('members.bulk-amount') }}" class="p-5">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+    <form method="GET" action="{{ route('members.bulk-amount') }}" id="ba-filter-form"
+          onsubmit="removeEmptyBaFilters(this)">
 
-            {{-- Search --}}
-            <div class="lg:col-span-2">
-                <label class="block text-xs font-semibold text-gray-500 mb-1.5">بحث</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
-                        </svg>
-                    </span>
-                    <input type="text" name="search" value="{{ request('search') }}"
-                           placeholder="الاسم أو رقم الهوية أو رقم الملف..."
-                           class="w-full pr-9 pl-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition placeholder-gray-300">
-                </div>
+        {{-- Always visible: search + filter toggle --}}
+        <div class="flex items-center gap-3 px-5 py-3.5 border-b border-gray-100">
+            <div class="relative flex-1">
+                <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+                    </svg>
+                </span>
+                <input type="text" name="search" value="{{ $search ?? '' }}"
+                       placeholder="بحث بالاسم، رقم الهوية، الهاتف، أو رقم الملف..."
+                       class="w-full pr-10 pl-4 py-3 text-base border border-gray-200 rounded-xl bg-gray-50
+                              focus:outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition placeholder-gray-300">
             </div>
-
-            {{-- Dossier range --}}
-            <div>
-                <label class="block text-xs font-semibold text-gray-500 mb-1.5">رقم الاضبارة (من — إلى)</label>
-                <div class="flex items-center gap-2">
-                    <input type="text" name="dossier_from" value="{{ $dossierFrom }}"
-                           placeholder="من"
-                           class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition placeholder-gray-300 font-mono">
-                    <span class="text-gray-400 shrink-0">—</span>
-                    <input type="text" name="dossier_to" value="{{ $dossierTo }}"
-                           placeholder="إلى"
-                           class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition placeholder-gray-300 font-mono">
-                </div>
-            </div>
-
-            {{-- Has amount --}}
-            <div>
-                <label class="block text-xs font-semibold text-gray-500 mb-1.5">المبلغ المقدر</label>
-                <select name="has_amount"
-                        class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition">
-                    <option value="">— الكل —</option>
-                    <option value="1" {{ request('has_amount') === '1' ? 'selected' : '' }}>لديهم مبلغ</option>
-                    <option value="0" {{ request('has_amount') === '0' ? 'selected' : '' }}>بدون مبلغ</option>
-                </select>
-            </div>
-
-            {{-- Network --}}
-            <div>
-                <label class="block text-xs font-semibold text-gray-500 mb-1.5">نوع الشبكة</label>
-                <select name="network[]" multiple
-                        class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition h-[42px]">
-                    @foreach(['MTN', 'SYRIATEL'] as $net)
-                        <option value="{{ $net }}" {{ in_array($net, (array)request('network', [])) ? 'selected' : '' }}>{{ $net }}</option>
-                    @endforeach
-                </select>
-            </div>
-
+            <button type="button" onclick="toggleBaFilters()"
+                    class="flex items-center gap-2 px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 hover:bg-white hover:border-violet-300 transition-colors text-sm font-bold text-gray-600 shrink-0">
+                <svg class="w-4 h-4 text-violet-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
+                </svg>
+                الفلاتر
+                <svg id="ba-filter-toggle-arrow" class="w-4 h-4 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
+            <span class="text-sm text-gray-500 shrink-0 hidden sm:block">
+                <span class="text-xs text-gray-400">الفلاتر تؤثر على "تطبيق على الكل"</span>
+            </span>
         </div>
 
+        {{-- Collapsible filter body --}}
+        <div id="ba-filter-body">
+        <div class="p-5">
+
+        {{-- Dossier + amount ranges --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
 
+            {{-- Dossier range --}}
+            <div class="flex items-end gap-3">
+                <div class="flex-1">
+                    <label class="block text-sm font-semibold text-gray-600 mb-1.5">رقم الاضبارة من</label>
+                    <input type="text" name="dossier_from" value="{{ $dossierFrom }}"
+                           placeholder="مثال: 100"
+                           class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition placeholder-gray-300 font-mono">
+                </div>
+                <span class="text-gray-400 pb-2.5">—</span>
+                <div class="flex-1">
+                    <label class="block text-sm font-semibold text-gray-600 mb-1.5">إلى</label>
+                    <input type="text" name="dossier_to" value="{{ $dossierTo }}"
+                           placeholder="مثال: 200"
+                           class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition placeholder-gray-300 font-mono">
+                </div>
+            </div>
+
+            {{-- Estimated amount range --}}
+            <div class="flex items-end gap-3">
+                <div class="flex-1">
+                    <label class="block text-sm font-semibold text-gray-600 mb-1.5">المبلغ المقدر من</label>
+                    <input type="number" name="estimated_from" value="{{ $estimatedFrom }}" min="0" step="any"
+                           placeholder="0"
+                           class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition placeholder-gray-300 font-mono">
+                </div>
+                <span class="text-gray-400 pb-2.5">—</span>
+                <div class="flex-1">
+                    <label class="block text-sm font-semibold text-gray-600 mb-1.5">إلى</label>
+                    <input type="number" name="estimated_to" value="{{ $estimatedTo }}" min="0" step="any"
+                           placeholder="∞"
+                           class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition placeholder-gray-300 font-mono">
+                </div>
+                <span class="text-xs text-gray-400 pb-2.5 shrink-0">ل.س مقدر</span>
+            </div>
+
+            {{-- Final amount range --}}
+            <div class="flex items-end gap-3">
+                <div class="flex-1">
+                    <label class="block text-sm font-semibold text-gray-600 mb-1.5">المبلغ النهائي من</label>
+                    <input type="number" name="final_from" value="{{ $finalFrom }}" min="0" step="any"
+                           placeholder="0"
+                           class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition placeholder-gray-300 font-mono">
+                </div>
+                <span class="text-gray-400 pb-2.5">—</span>
+                <div class="flex-1">
+                    <label class="block text-sm font-semibold text-gray-600 mb-1.5">إلى</label>
+                    <input type="number" name="final_to" value="{{ $finalTo }}" min="0" step="any"
+                           placeholder="∞"
+                           class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition placeholder-gray-300 font-mono">
+                </div>
+                <span class="text-xs text-gray-400 pb-2.5 shrink-0">ل.س نهائي</span>
+            </div>
+
+        </div>
+
+        {{-- Filter row 1 --}}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-3">
+
             {{-- Verification status --}}
-            <div>
-                <label class="block text-xs font-semibold text-gray-500 mb-1.5">حالة التحقق</label>
-                <div class="border border-gray-200 rounded-xl bg-gray-50 px-3 py-2 max-h-32 overflow-y-auto space-y-1">
+            <div class="ms-dropdown relative">
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">حالة التحقق</label>
+                <button type="button"
+                        class="ms-btn w-full flex items-center justify-between text-base border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
+                               hover:bg-white focus:outline-none focus:ring-2 focus:ring-violet-400 transition text-right">
+                    <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                    <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
                     @foreach($verificationStatuses as $vs)
-                        <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700 hover:text-gray-900">
+                        <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
                             <input type="checkbox" name="verification_status_id[]" value="{{ $vs->id }}"
-                                   {{ in_array($vs->id, (array)request('verification_status_id', [])) ? 'checked' : '' }}
-                                   class="rounded border-gray-300 text-violet-600 focus:ring-violet-400">
-                            <span class="w-2 h-2 rounded-full inline-block flex-shrink-0" style="background:{{ $vs->color }}"></span>
+                                   {{ in_array($vs->id, $verificationIds) ? 'checked' : '' }}
+                                   class="ms-check rounded border-gray-300 text-violet-600 focus:ring-violet-400">
+                            <span class="inline-block w-2 h-2 rounded-full flex-shrink-0" style="background:{{ $vs->color }}"></span>
                             {{ $vs->name }}
                         </label>
                     @endforeach
@@ -160,68 +197,69 @@
             </div>
 
             {{-- Final status --}}
-            <div>
-                <label class="block text-xs font-semibold text-gray-500 mb-1.5">الحالة النهائية</label>
-                <div class="border border-gray-200 rounded-xl bg-gray-50 px-3 py-2 max-h-32 overflow-y-auto space-y-1">
-                    @forelse($finalStatusList as $fs)
-                        <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700 hover:text-gray-900">
+            <div class="ms-dropdown relative">
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">الحالة النهائية</label>
+                <button type="button"
+                        class="ms-btn w-full flex items-center justify-between text-base border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
+                               hover:bg-white focus:outline-none focus:ring-2 focus:ring-violet-400 transition text-right">
+                    <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                    <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                    @foreach($finalStatusList as $fs)
+                        <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
                             <input type="checkbox" name="final_status_id[]" value="{{ $fs->id }}"
-                                   {{ in_array($fs->id, (array)request('final_status_id', [])) ? 'checked' : '' }}
-                                   class="rounded border-gray-300 text-violet-600 focus:ring-violet-400">
-                            <span class="w-2 h-2 rounded-full inline-block flex-shrink-0" style="background:{{ $fs->color }}"></span>
+                                   {{ in_array($fs->id, $finalStatusIds) ? 'checked' : '' }}
+                                   class="ms-check rounded border-gray-300 text-violet-600 focus:ring-violet-400">
+                            <span class="inline-block w-2 h-2 rounded-full flex-shrink-0" style="background:{{ $fs->color }}"></span>
                             {{ $fs->name }}
-                        </label>
-                    @empty
-                        <p class="text-xs text-gray-400">لا توجد حالات نهائية</p>
-                    @endforelse
-                </div>
-            </div>
-
-            {{-- Address --}}
-            <div>
-                <label class="block text-xs font-semibold text-gray-500 mb-1.5">المنطقة / العنوان</label>
-                <div class="border border-gray-200 rounded-xl bg-gray-50 px-3 py-2 max-h-32 overflow-y-auto space-y-1">
-                    @forelse($addressList as $addr)
-                        <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700 hover:text-gray-900">
-                            <input type="checkbox" name="current_address[]" value="{{ $addr }}"
-                                   {{ in_array($addr, (array)request('current_address', [])) ? 'checked' : '' }}
-                                   class="rounded border-gray-300 text-violet-600 focus:ring-violet-400">
-                            <span class="truncate">{{ $addr }}</span>
-                        </label>
-                    @empty
-                        <p class="text-xs text-gray-400">لا توجد مناطق</p>
-                    @endforelse
-                </div>
-            </div>
-
-            {{-- Marital status --}}
-            <div>
-                <label class="block text-xs font-semibold text-gray-500 mb-1.5">الحالة الاجتماعية</label>
-                <div class="border border-gray-200 rounded-xl bg-gray-50 px-3 py-2 max-h-32 overflow-y-auto space-y-1">
-                    @foreach(['widow' => 'أرملة', 'divorced' => 'مطلقة'] as $val => $label)
-                        <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
-                            <input type="checkbox" name="marital_status[]" value="{{ $val }}"
-                                   {{ in_array($val, (array)request('marital_status', [])) ? 'checked' : '' }}
-                                   class="rounded border-gray-300 text-violet-600 focus:ring-violet-400">
-                            {{ $label }}
                         </label>
                     @endforeach
                 </div>
             </div>
 
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+            {{-- Marital status --}}
+            <div class="ms-dropdown relative">
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">الحالة الاجتماعية</label>
+                <button type="button"
+                        class="ms-btn w-full flex items-center justify-between text-base border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
+                               hover:bg-white focus:outline-none focus:ring-2 focus:ring-violet-400 transition text-right">
+                    <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                    <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                    @foreach($maritalStatusList as $ms)
+                        <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
+                            <input type="checkbox" name="marital_status[]" value="{{ $ms->name }}"
+                                   {{ in_array($ms->name, $maritalStatuses) ? 'checked' : '' }}
+                                   class="ms-check rounded border-gray-300 text-violet-600 focus:ring-violet-400">
+                            {{ $ms->name }}
+                        </label>
+                    @endforeach
+                </div>
+            </div>
 
             {{-- Gender --}}
-            <div>
-                <label class="block text-xs font-semibold text-gray-500 mb-1.5">الجنس</label>
-                <div class="border border-gray-200 rounded-xl bg-gray-50 px-3 py-2 space-y-1">
+            <div class="ms-dropdown relative">
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">الجنس</label>
+                <button type="button"
+                        class="ms-btn w-full flex items-center justify-between text-base border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
+                               hover:bg-white focus:outline-none focus:ring-2 focus:ring-violet-400 transition text-right">
+                    <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                    <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg py-1">
                     @foreach(['ذكر', 'أنثى'] as $g)
-                        <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                        <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
                             <input type="checkbox" name="gender[]" value="{{ $g }}"
-                                   {{ in_array($g, (array)request('gender', [])) ? 'checked' : '' }}
-                                   class="rounded border-gray-300 text-violet-600 focus:ring-violet-400">
+                                   {{ in_array($g, $genders) ? 'checked' : '' }}
+                                   class="ms-check rounded border-gray-300 text-violet-600 focus:ring-violet-400">
                             {{ $g }}
                         </label>
                     @endforeach
@@ -229,69 +267,516 @@
             </div>
 
             {{-- Association --}}
-            <div>
-                <label class="block text-xs font-semibold text-gray-500 mb-1.5">الجمعية</label>
-                <div class="border border-gray-200 rounded-xl bg-gray-50 px-3 py-2 max-h-32 overflow-y-auto space-y-1">
+            <div class="ms-dropdown relative">
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">الجمعية</label>
+                <button type="button"
+                        class="ms-btn w-full flex items-center justify-between text-base border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
+                               hover:bg-white focus:outline-none focus:ring-2 focus:ring-violet-400 transition text-right">
+                    <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                    <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
                     @forelse($associationList as $assoc)
-                        <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700 hover:text-gray-900">
+                        <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
                             <input type="checkbox" name="association_id[]" value="{{ $assoc->id }}"
-                                   {{ in_array($assoc->id, (array)request('association_id', [])) ? 'checked' : '' }}
-                                   class="rounded border-gray-300 text-violet-600 focus:ring-violet-400">
+                                   {{ in_array($assoc->id, $associationIds) ? 'checked' : '' }}
+                                   class="ms-check rounded border-gray-300 text-violet-600 focus:ring-violet-400">
                             {{ $assoc->name }}
                         </label>
                     @empty
-                        <p class="text-xs text-gray-400">لا توجد جمعيات</p>
+                        <p class="px-3 py-2 text-xs text-gray-400">لا توجد جمعيات</p>
                     @endforelse
                 </div>
             </div>
 
             {{-- Special cases --}}
             <div>
-                <label class="block text-xs font-semibold text-gray-500 mb-1.5">الحالات الخاصة</label>
-                <select name="special_cases"
-                        class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition">
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">الحالات الخاصة</label>
+                <select name="special_cases" onwheel="this.blur()"
+                        class="w-full text-base border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
+                               focus:outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition text-gray-500">
                     <option value="">— الكل —</option>
-                    <option value="1" {{ request('special_cases') === '1' ? 'selected' : '' }}>نعم</option>
-                    <option value="0" {{ request('special_cases') === '0' ? 'selected' : '' }}>لا</option>
+                    <option value="1" {{ $specialCases === '1' ? 'selected' : '' }}>نعم</option>
+                    <option value="0" {{ $specialCases === '0' ? 'selected' : '' }}>لا</option>
                 </select>
-
-                @if($specialDescriptionList->isNotEmpty())
-                <div class="mt-2">
-                    <label class="block text-xs font-semibold text-gray-500 mb-1.5">وصف الحالة الخاصة</label>
-                    <div class="border border-gray-200 rounded-xl bg-gray-50 px-3 py-2 max-h-28 overflow-y-auto space-y-1">
-                        @foreach($specialDescriptionList as $sd)
-                            <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700 hover:text-gray-900">
-                                <input type="checkbox" name="special_cases_description[]" value="{{ $sd }}"
-                                       {{ in_array($sd, (array)request('special_cases_description', [])) ? 'checked' : '' }}
-                                       class="rounded border-gray-300 text-violet-600 focus:ring-violet-400">
-                                <span class="truncate">{{ $sd }}</span>
-                            </label>
-                        @endforeach
-                    </div>
-                </div>
-                @endif
             </div>
 
-            {{-- Delegate --}}
-            @if($delegateList->isNotEmpty())
-            <div class="lg:col-span-3">
-                <label class="block text-xs font-semibold text-gray-500 mb-1.5">المندوب</label>
-                <div class="border border-gray-200 rounded-xl bg-gray-50 px-3 py-2 max-h-28 overflow-y-auto flex flex-wrap gap-x-4 gap-y-1">
-                    @foreach($delegateList as $d)
-                        <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700 hover:text-gray-900">
-                            <input type="checkbox" name="delegate[]" value="{{ $d }}"
-                                   {{ in_array($d, (array)request('delegate', [])) ? 'checked' : '' }}
-                                   class="rounded border-gray-300 text-violet-600 focus:ring-violet-400">
-                            {{ $d }}
+            {{-- Has amount --}}
+            <div>
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">المبلغ المقدر</label>
+                <select name="has_amount" onwheel="this.blur()"
+                        class="w-full text-base border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
+                               focus:outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition text-gray-500">
+                    <option value="">— الكل —</option>
+                    <option value="1" {{ ($hasAmount ?? '') === '1' ? 'selected' : '' }}>لديهم مبلغ</option>
+                    <option value="0" {{ ($hasAmount ?? '') === '0' ? 'selected' : '' }}>بدون مبلغ</option>
+                </select>
+            </div>
+
+            {{-- Network --}}
+            <div class="ms-dropdown relative">
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">نوع الشبكة</label>
+                <button type="button"
+                        class="ms-btn w-full flex items-center justify-between text-base border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
+                               hover:bg-white focus:outline-none focus:ring-2 focus:ring-violet-400 transition text-right">
+                    <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                    <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg py-1">
+                    @foreach(['MTN', 'SYRIATEL'] as $net)
+                        <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
+                            <input type="checkbox" name="network[]" value="{{ $net }}"
+                                   {{ in_array($net, $networks) ? 'checked' : '' }}
+                                   class="ms-check rounded border-gray-300 text-violet-600 focus:ring-violet-400">
+                            {{ $net }}
                         </label>
                     @endforeach
                 </div>
             </div>
-            @endif
+
+            {{-- Region --}}
+            <div class="ms-dropdown relative">
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">المنطقة</label>
+                <button type="button"
+                        class="ms-btn w-full flex items-center justify-between text-base border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
+                               hover:bg-white focus:outline-none focus:ring-2 focus:ring-violet-400 transition text-right">
+                    <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                    <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden" style="max-height:260px">
+                    <div class="p-2 border-b border-gray-100 sticky top-0 bg-white">
+                        <input type="text" class="ms-search w-full text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-400" placeholder="بحث في المناطق...">
+                    </div>
+                    <div class="overflow-y-auto" style="max-height:200px">
+                    @forelse($regionList as $reg)
+                        <label class="ms-option flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
+                            <input type="checkbox" name="region_id[]" value="{{ $reg->id }}"
+                                   {{ in_array($reg->id, $regionIds) ? 'checked' : '' }}
+                                   class="ms-check rounded border-gray-300 text-violet-600 focus:ring-violet-400">
+                            <svg class="w-3.5 h-3.5 text-violet-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            {{ $reg->name }}
+                        </label>
+                    @empty
+                        <p class="px-3 py-2 text-sm text-gray-400">لا توجد مناطق</p>
+                    @endforelse
+                    </div>
+                </div>
+            </div>
 
         </div>
 
-        <div class="flex items-center gap-2">
+        {{-- Filter row 2 --}}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+
+            {{-- Delegate --}}
+            <div class="ms-dropdown relative">
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">المندوب</label>
+                <button type="button"
+                        class="ms-btn w-full flex items-center justify-between text-base border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
+                               hover:bg-white focus:outline-none focus:ring-2 focus:ring-violet-400 transition text-right">
+                    <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                    <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                    @forelse($delegateList as $d)
+                        <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
+                            <input type="checkbox" name="delegate[]" value="{{ $d }}"
+                                   {{ in_array($d, $delegates) ? 'checked' : '' }}
+                                   class="ms-check rounded border-gray-300 text-violet-600 focus:ring-violet-400">
+                            {{ $d }}
+                        </label>
+                    @empty
+                        <p class="px-3 py-2 text-xs text-gray-400">لا يوجد مندوبون</p>
+                    @endforelse
+                </div>
+            </div>
+
+            {{-- Second person --}}
+            <div class="ms-dropdown relative">
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">الفرد الثاني</label>
+                <button type="button"
+                        class="ms-btn w-full flex items-center justify-between text-base border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
+                               hover:bg-white focus:outline-none focus:ring-2 focus:ring-violet-400 transition text-right">
+                    <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                    <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                    @forelse($secondPersonList as $sp)
+                        <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
+                            <input type="checkbox" name="second_person[]" value="{{ $sp }}"
+                                   {{ in_array($sp, $secondPersons) ? 'checked' : '' }}
+                                   class="ms-check rounded border-gray-300 text-violet-600 focus:ring-violet-400">
+                            {{ $sp }}
+                        </label>
+                    @empty
+                        <p class="px-3 py-2 text-xs text-gray-400">لا يوجد أفراد ثانيون</p>
+                    @endforelse
+                </div>
+            </div>
+
+            {{-- Special cases description --}}
+            <div class="ms-dropdown relative">
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">وصف الحالة الخاصة</label>
+                <button type="button"
+                        class="ms-btn w-full flex items-center justify-between text-base border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
+                               hover:bg-white focus:outline-none focus:ring-2 focus:ring-violet-400 transition text-right">
+                    <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                    <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden" style="max-height:260px">
+                    <div class="p-2 border-b border-gray-100 sticky top-0 bg-white">
+                        <input type="text" class="ms-search w-full text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-400" placeholder="بحث في الأوصاف...">
+                    </div>
+                    <div class="overflow-y-auto" style="max-height:200px">
+                    @forelse($specialDescriptionList as $sd)
+                        <label class="ms-option flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
+                            <input type="checkbox" name="special_cases_description[]" value="{{ $sd }}"
+                                   {{ in_array($sd, $specialDescriptions) ? 'checked' : '' }}
+                                   class="ms-check rounded border-gray-300 text-violet-600 focus:ring-violet-400">
+                            <span class="truncate">{{ $sd }}</span>
+                        </label>
+                    @empty
+                        <p class="px-3 py-2 text-xs text-gray-400">لا توجد حالات خاصة مسجلة</p>
+                    @endforelse
+                    </div>
+                </div>
+            </div>
+
+            {{-- Address --}}
+            <div class="ms-dropdown relative">
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">العنوان التفصيلي</label>
+                <button type="button"
+                        class="ms-btn w-full flex items-center justify-between text-base border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
+                               hover:bg-white focus:outline-none focus:ring-2 focus:ring-violet-400 transition text-right">
+                    <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                    <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden" style="max-height:260px">
+                    <div class="p-2 border-b border-gray-100 sticky top-0 bg-white">
+                        <input type="text" class="ms-search w-full text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-400" placeholder="بحث في العناوين...">
+                    </div>
+                    <div class="overflow-y-auto" style="max-height:200px">
+                    @forelse($addressList as $addr)
+                        <label class="ms-option flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
+                            <input type="checkbox" name="current_address[]" value="{{ $addr }}"
+                                   {{ in_array($addr, $addresses) ? 'checked' : '' }}
+                                   class="ms-check rounded border-gray-300 text-violet-600 focus:ring-violet-400">
+                            <span class="truncate">{{ $addr }}</span>
+                        </label>
+                    @empty
+                        <p class="px-3 py-2 text-xs text-gray-400">لا توجد مناطق مسجلة</p>
+                    @endforelse
+                    </div>
+                </div>
+            </div>
+
+            {{-- Housing Status --}}
+            <div class="ms-dropdown relative">
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">وضع السكن</label>
+                <button type="button"
+                        class="ms-btn w-full flex items-center justify-between text-base border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
+                               hover:bg-white focus:outline-none focus:ring-2 focus:ring-violet-400 transition text-right">
+                    <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                    <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                    @forelse($housingStatusList as $hs)
+                        <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
+                            <input type="checkbox" name="housing_status_id[]" value="{{ $hs->id }}"
+                                   {{ in_array($hs->id, $housingStatusIds) ? 'checked' : '' }}
+                                   class="ms-check rounded border-gray-300 text-violet-600 focus:ring-violet-400">
+                            <span class="inline-block w-2 h-2 rounded-full flex-shrink-0" style="background:{{ $hs->color }}"></span>
+                            {{ $hs->name }}
+                        </label>
+                    @empty
+                        <p class="px-3 py-2 text-xs text-gray-400">لا توجد أوضاع سكن</p>
+                    @endforelse
+                </div>
+            </div>
+
+            {{-- Sham Cash --}}
+            <div class="ms-dropdown relative">
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">شام كاش</label>
+                <button type="button"
+                        class="ms-btn w-full flex items-center justify-between text-base border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
+                               hover:bg-white focus:outline-none focus:ring-2 focus:ring-violet-400 transition text-right">
+                    <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                    <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg py-1">
+                    @foreach(['done' => 'تم', 'manual' => 'يدوي', 'none' => 'لا يوجد'] as $val => $lbl)
+                        <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
+                            <input type="checkbox" name="sham_cash[]" value="{{ $val }}"
+                                   {{ in_array($val, (array)($shamCash ?? [])) ? 'checked' : '' }}
+                                   class="ms-check rounded border-gray-300 text-violet-600 focus:ring-violet-400">
+                            {{ $lbl }}
+                        </label>
+                    @endforeach
+                </div>
+            </div>
+
+        </div>
+
+        {{-- Field Visit Filters --}}
+        @php
+            $hasFvFilters = !empty($fieldVisitStatusIds) || !empty($fvHouseTypeIds) || !empty($fvHouseConditionIds) || !empty($fvVisitors)
+                || !empty($fvCreatedByIds)
+                || $fvDateFrom !== '' || $fvDateTo !== ''
+                || $fvAmountFrom !== '' || $fvAmountTo !== ''
+                || $fvNotes !== '' || $fvHasVideo !== '' || $fvHasSpecialCase !== '';
+            $fvActiveCount = (int)!empty($fieldVisitStatusIds) + (int)!empty($fvHouseTypeIds) + (int)!empty($fvHouseConditionIds)
+                + (!empty($fvVisitors) ? 1 : 0) + (!empty($fvCreatedByIds) ? 1 : 0) + ($fvDateFrom !== '' || $fvDateTo !== '' ? 1 : 0)
+                + ($fvAmountFrom !== '' || $fvAmountTo !== '' ? 1 : 0)
+                + ($fvNotes !== '' ? 1 : 0)
+                + ($fvHasVideo !== '' ? 1 : 0) + ($fvHasSpecialCase !== '' ? 1 : 0);
+        @endphp
+        <div class="border border-indigo-100 rounded-2xl mb-4">
+            <button type="button" onclick="toggleBaFvFilters()"
+                    class="w-full flex items-center justify-between gap-3 px-5 py-3 bg-indigo-50/60 hover:bg-indigo-50 transition-colors text-right rounded-t-2xl">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-6 h-6 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
+                        <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </div>
+                    <span class="text-sm font-bold text-indigo-700">فلاتر الجولة الميدانية</span>
+                    @if($fvActiveCount > 0)
+                        <span class="text-xs bg-indigo-600 text-white rounded-full px-2 py-0.5 font-bold">{{ $fvActiveCount }} فعّال</span>
+                    @endif
+                </div>
+                <svg id="ba-fv-filter-arrow" class="w-4 h-4 text-indigo-400 transition-transform duration-200 {{ $hasFvFilters ? 'rotate-180' : '' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
+            <div id="ba-fv-filter-body" class="{{ $hasFvFilters ? '' : 'hidden' }} px-5 pb-5 pt-4 bg-indigo-50/20 rounded-b-2xl">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+
+                    {{-- حالة الجولة --}}
+                    <div class="ms-dropdown relative">
+                        <label class="block text-xs font-bold text-indigo-600 uppercase tracking-wide mb-1.5">حالة الجولة</label>
+                        <button type="button"
+                                class="ms-btn w-full flex items-center justify-between text-sm border border-indigo-200 rounded-xl px-3 py-2.5 bg-white
+                                       hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition text-right">
+                            <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                            <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-indigo-100 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                            @forelse($fieldVisitStatuses as $fvs)
+                                <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-indigo-50 cursor-pointer text-sm text-gray-700">
+                                    <input type="checkbox" name="field_visit_status_id[]" value="{{ $fvs->id }}"
+                                           {{ in_array($fvs->id, $fieldVisitStatusIds) ? 'checked' : '' }}
+                                           class="ms-check rounded border-gray-300 text-indigo-600 focus:ring-indigo-400">
+                                    <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:{{ $fvs->color }}"></span>
+                                    {{ $fvs->name }}
+                                </label>
+                            @empty
+                                <p class="px-3 py-2 text-sm text-gray-400">لا توجد حالات</p>
+                            @endforelse
+                        </div>
+                    </div>
+
+                    {{-- نوع البيت --}}
+                    <div class="ms-dropdown relative">
+                        <label class="block text-xs font-bold text-indigo-600 uppercase tracking-wide mb-1.5">نوع البيت</label>
+                        <button type="button"
+                                class="ms-btn w-full flex items-center justify-between text-sm border border-indigo-200 rounded-xl px-3 py-2.5 bg-white
+                                       hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition text-right">
+                            <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                            <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-indigo-100 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                            @forelse($houseTypes as $ht)
+                                <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-indigo-50 cursor-pointer text-sm text-gray-700">
+                                    <input type="checkbox" name="fv_house_type_id[]" value="{{ $ht->id }}"
+                                           {{ in_array($ht->id, $fvHouseTypeIds) ? 'checked' : '' }}
+                                           class="ms-check rounded border-gray-300 text-indigo-600 focus:ring-indigo-400">
+                                    <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:{{ $ht->color }}"></span>
+                                    {{ $ht->name }}
+                                </label>
+                            @empty
+                                <p class="px-3 py-2 text-sm text-gray-400">لا توجد أنواع</p>
+                            @endforelse
+                        </div>
+                    </div>
+
+                    {{-- الزائر --}}
+                    <div class="ms-dropdown relative">
+                        <label class="block text-xs font-bold text-indigo-600 uppercase tracking-wide mb-1.5">الزائر</label>
+                        <button type="button"
+                                class="ms-btn w-full flex items-center justify-between text-sm border border-indigo-200 rounded-xl px-3 py-2.5 bg-white
+                                       hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition text-right">
+                            <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                            <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-indigo-100 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                            @forelse($fvVisitorList as $vis)
+                                <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-indigo-50 cursor-pointer text-sm text-gray-700 ms-option">
+                                    <input type="checkbox" name="fv_visitors[]" value="{{ $vis }}"
+                                           {{ in_array($vis, $fvVisitors) ? 'checked' : '' }}
+                                           class="ms-check rounded border-gray-300 text-indigo-600 focus:ring-indigo-400">
+                                    {{ $vis }}
+                                </label>
+                            @empty
+                                <p class="px-3 py-2 text-sm text-gray-400">لا يوجد زوار مسجّلون</p>
+                            @endforelse
+                        </div>
+                    </div>
+
+                    {{-- من أضاف الجولة --}}
+                    <div class="ms-dropdown relative">
+                        <label class="block text-xs font-bold text-indigo-600 uppercase tracking-wide mb-1.5">من أضاف الجولة</label>
+                        <button type="button"
+                                class="ms-btn w-full flex items-center justify-between text-sm border border-indigo-200 rounded-xl px-3 py-2.5 bg-white
+                                       hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition text-right">
+                            <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                            <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-indigo-100 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                            @forelse($fvCreatedByList as $u)
+                                <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-indigo-50 cursor-pointer text-sm text-gray-700">
+                                    <input type="checkbox" name="fv_created_by[]" value="{{ $u->id }}"
+                                           {{ in_array($u->id, $fvCreatedByIds) ? 'checked' : '' }}
+                                           class="ms-check rounded border-gray-300 text-indigo-600 focus:ring-indigo-400">
+                                    {{ $u->name }}
+                                </label>
+                            @empty
+                                <p class="px-3 py-2 text-sm text-gray-400">لا يوجد بيانات بعد</p>
+                            @endforelse
+                        </div>
+                    </div>
+
+                    {{-- تاريخ الزيارة --}}
+                    <div>
+                        <label class="block text-xs font-bold text-indigo-600 uppercase tracking-wide mb-1.5">تاريخ الزيارة</label>
+                        <div class="flex items-center gap-1.5">
+                            <input type="date" name="fv_date_from" value="{{ $fvDateFrom }}"
+                                   class="flex-1 min-w-0 text-sm border border-indigo-200 rounded-xl px-2.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 transition">
+                            <span class="text-xs text-indigo-400 shrink-0">—</span>
+                            <input type="date" name="fv_date_to" value="{{ $fvDateTo }}"
+                                   class="flex-1 min-w-0 text-sm border border-indigo-200 rounded-xl px-2.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 transition">
+                        </div>
+                    </div>
+
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+
+                    {{-- مبلغ الجولة --}}
+                    <div>
+                        <label class="block text-xs font-bold text-indigo-600 uppercase tracking-wide mb-1.5">مبلغ الجولة (ل.س)</label>
+                        <div class="flex items-center gap-1.5">
+                            <input type="number" name="fv_amount_from" value="{{ $fvAmountFrom }}"
+                                   placeholder="من" min="0"
+                                   class="flex-1 min-w-0 text-sm border border-indigo-200 rounded-xl px-2.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 transition placeholder-gray-300">
+                            <span class="text-xs text-indigo-400 shrink-0">—</span>
+                            <input type="number" name="fv_amount_to" value="{{ $fvAmountTo }}"
+                                   placeholder="إلى" min="0"
+                                   class="flex-1 min-w-0 text-sm border border-indigo-200 rounded-xl px-2.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 transition placeholder-gray-300">
+                        </div>
+                    </div>
+
+                    {{-- حالة البيت --}}
+                    <div class="ms-dropdown relative">
+                        <label class="block text-xs font-bold text-indigo-600 uppercase tracking-wide mb-1.5">حالة البيت</label>
+                        <button type="button"
+                                class="ms-btn w-full flex items-center justify-between text-sm border border-indigo-200 rounded-xl px-3 py-2.5 bg-white
+                                       hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition text-right">
+                            <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                            <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-indigo-100 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                            @forelse($houseConditions as $hc)
+                                <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-indigo-50 cursor-pointer text-sm text-gray-700">
+                                    <input type="checkbox" name="fv_house_condition_id[]" value="{{ $hc->id }}"
+                                           {{ in_array($hc->id, $fvHouseConditionIds) ? 'checked' : '' }}
+                                           class="ms-check rounded border-gray-300 text-indigo-600 focus:ring-indigo-400">
+                                    <span class="inline-block w-2 h-2 rounded-full flex-shrink-0" style="background:{{ $hc->color }}"></span>
+                                    {{ $hc->name }}
+                                </label>
+                            @empty
+                                <p class="px-3 py-2 text-xs text-gray-400">لا توجد حالات</p>
+                            @endforelse
+                        </div>
+                    </div>
+
+                    {{-- الملاحظات --}}
+                    <div>
+                        <label class="block text-xs font-bold text-indigo-600 uppercase tracking-wide mb-1.5">الملاحظات</label>
+                        <input type="text" name="fv_notes" value="{{ $fvNotes }}"
+                               placeholder="بحث في الملاحظات..."
+                               class="w-full text-sm border border-indigo-200 rounded-xl px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 transition placeholder-gray-300">
+                    </div>
+
+                    {{-- يوجد فيديو --}}
+                    <div>
+                        <label class="block text-xs font-bold text-indigo-600 uppercase tracking-wide mb-1.5">يوجد فيديو</label>
+                        <select name="fv_has_video" onwheel="this.blur()"
+                                class="w-full text-sm border border-indigo-200 rounded-xl px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 transition text-gray-500">
+                            <option value="">— الكل —</option>
+                            <option value="1" {{ $fvHasVideo === '1' ? 'selected' : '' }}>نعم</option>
+                            <option value="0" {{ $fvHasVideo === '0' ? 'selected' : '' }}>لا</option>
+                        </select>
+                    </div>
+
+                    {{-- حالة خاصة --}}
+                    <div>
+                        <label class="block text-xs font-bold text-indigo-600 uppercase tracking-wide mb-1.5">حالة خاصة</label>
+                        <select name="fv_has_special_case" onwheel="this.blur()"
+                                class="w-full text-sm border border-indigo-200 rounded-xl px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 transition text-gray-500">
+                            <option value="">— الكل —</option>
+                            <option value="1" {{ $fvHasSpecialCase === '1' ? 'selected' : '' }}>نعم</option>
+                            <option value="0" {{ $fvHasSpecialCase === '0' ? 'selected' : '' }}>لا</option>
+                        </select>
+                    </div>
+
+                    {{-- عدد الجولات --}}
+                    <div>
+                        <label class="block text-xs font-bold text-indigo-600 uppercase tracking-wide mb-1.5">عدد الجولات</label>
+                        <select name="fv_count" onwheel="this.blur()"
+                                class="w-full text-sm border border-indigo-200 rounded-xl px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 transition text-gray-500">
+                            <option value="">— الكل —</option>
+                            <option value="0" {{ $fvCount === '0' ? 'selected' : '' }}>بدون جولات</option>
+                            <option value="1" {{ $fvCount === '1' ? 'selected' : '' }}>جولة واحدة فأكثر</option>
+                            <option value="2" {{ $fvCount === '2' ? 'selected' : '' }}>جولتان فأكثر</option>
+                            <option value="3" {{ $fvCount === '3' ? 'selected' : '' }}>3 جولات فأكثر</option>
+                        </select>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        {{-- Actions row --}}
+        <div class="flex items-center gap-2 flex-wrap">
             <button type="submit"
                     class="flex items-center gap-2 bg-gradient-to-l from-violet-600 to-indigo-500 hover:from-violet-700 hover:to-indigo-600 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -305,13 +790,16 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
-                    مسح
+                    مسح الفلاتر
                 </a>
             @endif
             <span class="text-sm text-gray-500 ms-auto">
                 <span class="font-bold text-violet-700">{{ $fmt($totalCount) }}</span> عضو في النتائج الحالية
             </span>
         </div>
+
+        </div>{{-- /p-5 --}}
+        </div>{{-- /ba-filter-body --}}
     </form>
 </div>
 
@@ -531,6 +1019,151 @@
 </form>
 
 <script>
+// ── Filter toggle ──────────────────────────────────────────────────────
+
+function removeEmptyBaFilters(form) {
+    Array.from(form.elements).forEach(function(el) {
+        if (!el.name) return;
+        if (el.type === 'checkbox' || el.type === 'radio') return;
+        if (el.value === '' || el.value === null) el.disabled = true;
+    });
+}
+
+function toggleBaFilters() {
+    var body  = document.getElementById('ba-filter-body');
+    var arrow = document.getElementById('ba-filter-toggle-arrow');
+    var hidden = body.style.display === 'none';
+    body.style.display    = hidden ? '' : 'none';
+    arrow.style.transform = hidden ? '' : 'rotate(-90deg)';
+    localStorage.setItem('baFiltersHidden', hidden ? '0' : '1');
+}
+
+function toggleBaFvFilters() {
+    var body  = document.getElementById('ba-fv-filter-body');
+    var arrow = document.getElementById('ba-fv-filter-arrow');
+    body.classList.toggle('hidden');
+    arrow.classList.toggle('rotate-180');
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Default closed unless user explicitly opened
+    var body  = document.getElementById('ba-filter-body');
+    var arrow = document.getElementById('ba-filter-toggle-arrow');
+    if (localStorage.getItem('baFiltersHidden') === '0') {
+        // keep open
+    } else {
+        if (body)  body.style.display    = 'none';
+        if (arrow) arrow.style.transform = 'rotate(-90deg)';
+    }
+
+    // ms-dropdown logic
+    document.querySelectorAll('.ms-dropdown').forEach(function (dropdown) {
+        var btn   = dropdown.querySelector('.ms-btn');
+        var panel = dropdown.querySelector('.ms-panel');
+        var label = dropdown.querySelector('.ms-label');
+        var arrow = dropdown.querySelector('.ms-arrow');
+
+        function updateLabel() {
+            var checked = dropdown.querySelectorAll('.ms-check:checked');
+            if (checked.length === 0) {
+                label.textContent = '— الكل —';
+                label.classList.remove('text-violet-700', 'font-semibold');
+                label.classList.add('text-gray-500');
+            } else {
+                label.textContent = checked.length + ' محدد';
+                label.classList.add('text-violet-700', 'font-semibold');
+                label.classList.remove('text-gray-500');
+            }
+        }
+        updateLabel();
+
+        panel.querySelectorAll('label').forEach(function (lbl) {
+            lbl.classList.add('ms-option');
+        });
+
+        var allOptions = panel.querySelectorAll('.ms-option');
+        var searchInput = null;
+        if (allOptions.length >= 4) {
+            var stickyHeader = document.createElement('div');
+            stickyHeader.className = 'sticky top-0 bg-white z-10 px-2 pt-2 pb-1 border-b border-gray-100';
+            searchInput = document.createElement('input');
+            searchInput.type = 'text';
+            searchInput.placeholder = 'ابحث...';
+            searchInput.className = 'ms-search w-full text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-gray-50';
+            searchInput.setAttribute('dir', 'rtl');
+            stickyHeader.appendChild(searchInput);
+            panel.insertBefore(stickyHeader, panel.firstChild);
+            searchInput.addEventListener('input', function () {
+                var q = searchInput.value.trim().toLowerCase();
+                panel.querySelectorAll('.ms-option').forEach(function (opt) {
+                    opt.style.display = (!q || opt.textContent.trim().toLowerCase().includes(q)) ? '' : 'none';
+                });
+            });
+            searchInput.addEventListener('click', function (e) { e.stopPropagation(); });
+        }
+
+        var checks = dropdown.querySelectorAll('.ms-check');
+        if (checks.length >= 2) {
+            var saBtn = document.createElement('button');
+            saBtn.type = 'button';
+            saBtn.className = 'w-full text-right text-xs text-violet-600 font-semibold px-3 py-1.5 hover:bg-violet-50 transition flex items-center gap-1';
+            saBtn.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg><span class="sa-text">تحديد الكل</span>';
+            function refreshSaBtn() {
+                saBtn.querySelector('.sa-text').textContent =
+                    dropdown.querySelectorAll('.ms-check:checked').length === checks.length ? 'إلغاء التحديد' : 'تحديد الكل';
+            }
+            saBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                var shouldCheck = dropdown.querySelectorAll('.ms-check:checked').length < checks.length;
+                checks.forEach(function (cb) { cb.checked = shouldCheck; });
+                updateLabel(); refreshSaBtn();
+            });
+            checks.forEach(function (cb) { cb.addEventListener('change', refreshSaBtn); });
+            refreshSaBtn();
+            var searchEl = panel.querySelector('.ms-search');
+            if (searchEl) {
+                saBtn.classList.add('mt-1', 'border-t', 'border-gray-100');
+                searchEl.parentElement.appendChild(saBtn);
+            } else {
+                saBtn.classList.add('border-b', 'border-gray-100', 'mb-1');
+                panel.insertBefore(saBtn, panel.firstChild);
+            }
+        }
+
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var isOpen = !panel.classList.contains('hidden');
+            document.querySelectorAll('.ms-panel').forEach(function (p) {
+                p.classList.add('hidden');
+                p.closest('.ms-dropdown').querySelector('.ms-arrow').classList.remove('rotate-180');
+            });
+            if (!isOpen) {
+                panel.classList.remove('hidden');
+                arrow.classList.add('rotate-180');
+                if (searchInput) {
+                    searchInput.value = '';
+                    panel.querySelectorAll('.ms-option').forEach(function (opt) { opt.style.display = ''; });
+                    setTimeout(function () { searchInput.focus(); }, 50);
+                }
+            }
+        });
+
+        dropdown.querySelectorAll('.ms-check').forEach(function (cb) {
+            cb.addEventListener('change', updateLabel);
+        });
+    });
+
+    document.addEventListener('click', function () {
+        document.querySelectorAll('.ms-panel').forEach(function (p) {
+            p.classList.add('hidden');
+            p.closest('.ms-dropdown').querySelector('.ms-arrow').classList.remove('rotate-180');
+        });
+    });
+    document.querySelectorAll('.ms-panel').forEach(function (p) {
+        p.addEventListener('click', function (e) { e.stopPropagation(); });
+    });
+});
+
 // ── Checkbox Logic ─────────────────────────────────────────────────────
 
 var selectedCount = 0;

@@ -81,38 +81,37 @@
 
 {{-- Filters --}}
 <div class="bg-white border border-gray-100 rounded-2xl shadow-sm mb-5">
-    {{-- Filter header --}}
-    <button type="button" onclick="toggleFilters()"
-            class="w-full flex items-center justify-between gap-2 px-5 py-3.5 border-b border-gray-100 hover:bg-gray-50 transition-colors text-right">
-        <div class="flex items-center gap-2">
-            <div class="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center">
+    <form method="GET" action="{{ route('members.index') }}" id="filter-form"
+          onsubmit="removeEmptyFilters(this)">
+
+        {{-- Always visible: search + filter toggle button --}}
+        <div class="flex items-center gap-3 px-5 py-3.5 border-b border-gray-100">
+            <div class="relative flex-1">
+                <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+                    </svg>
+                </span>
+                <input type="text" name="search" value="{{ $search ?? '' }}"
+                       placeholder="بحث بالاسم، رقم الهوية، الهاتف، أو رقم الملف..."
+                       class="w-full pr-10 pl-4 py-3 text-base border border-gray-200 rounded-xl bg-gray-50
+                              focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:bg-white transition placeholder-gray-300">
+            </div>
+            <button type="button" onclick="toggleFilters()"
+                    class="flex items-center gap-2 px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 hover:bg-white hover:border-emerald-300 transition-colors text-sm font-bold text-gray-600 shrink-0">
                 <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
                 </svg>
-            </div>
-            <span class="text-sm font-bold text-gray-700">الفلاتر والبحث</span>
-        </div>
-        <svg id="filter-toggle-arrow" class="w-4 h-4 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
-        </svg>
-    </button>
-
-    <div id="filter-body">
-    <form method="GET" action="{{ route('members.index') }}" id="filter-form" class="p-5"
-          onsubmit="removeEmptyFilters(this)">
-
-        {{-- Search bar --}}
-        <div class="relative mb-4">
-            <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none">
-                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+                الفلاتر
+                <svg id="filter-toggle-arrow" class="w-4 h-4 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
                 </svg>
-            </span>
-            <input type="text" name="search" value="{{ $search ?? '' }}"
-                   placeholder="بحث بالاسم، رقم الهوية، الهاتف، أو رقم الملف..."
-                   class="w-full pr-10 pl-4 py-3 text-base border border-gray-200 rounded-xl bg-gray-50
-                          focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:bg-white transition placeholder-gray-300">
+            </button>
         </div>
+
+        {{-- Collapsible filters --}}
+        <div id="filter-body">
+        <div class="p-5">
 
         {{-- Dossier range --}}
         <div class="flex items-end gap-3 mb-3">
@@ -531,11 +530,12 @@
         {{-- Field Visit Filters (dedicated section) --}}
         @php
             $hasFvFilters = !empty($fieldVisitStatusIds) || !empty($fvHouseTypeIds) || !empty($fvHouseConditionIds) || !empty($fvVisitors)
+                || !empty($fvCreatedByIds)
                 || $fvDateFrom !== '' || $fvDateTo !== ''
                 || $fvAmountFrom !== '' || $fvAmountTo !== ''
                 || $fvNotes !== '' || $fvHasVideo !== '' || $fvHasSpecialCase !== '';
             $fvActiveCount = (int)!empty($fieldVisitStatusIds) + (int)!empty($fvHouseTypeIds) + (int)!empty($fvHouseConditionIds)
-                + (!empty($fvVisitors) ? 1 : 0) + ($fvDateFrom !== '' || $fvDateTo !== '' ? 1 : 0)
+                + (!empty($fvVisitors) ? 1 : 0) + (!empty($fvCreatedByIds) ? 1 : 0) + ($fvDateFrom !== '' || $fvDateTo !== '' ? 1 : 0)
                 + ($fvAmountFrom !== '' || $fvAmountTo !== '' ? 1 : 0)
                 + ($fvNotes !== '' ? 1 : 0)
                 + ($fvHasVideo !== '' ? 1 : 0) + ($fvHasSpecialCase !== '' ? 1 : 0);
@@ -634,6 +634,31 @@
                                 </label>
                             @empty
                                 <p class="px-3 py-2 text-sm text-gray-400">لا يوجد زوار مسجّلون</p>
+                            @endforelse
+                        </div>
+                    </div>
+
+                    {{-- من أضاف الجولة (مستخدم النظام) --}}
+                    <div class="ms-dropdown relative">
+                        <label class="block text-xs font-bold text-indigo-600 uppercase tracking-wide mb-1.5">من أضاف الجولة</label>
+                        <button type="button"
+                                class="ms-btn w-full flex items-center justify-between text-sm border border-indigo-200 rounded-xl px-3 py-2.5 bg-white
+                                       hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition text-right">
+                            <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                            <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-indigo-100 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                            @forelse($fvCreatedByList as $u)
+                                <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-indigo-50 cursor-pointer text-sm text-gray-700">
+                                    <input type="checkbox" name="fv_created_by[]" value="{{ $u->id }}"
+                                           {{ in_array($u->id, $fvCreatedByIds) ? 'checked' : '' }}
+                                           class="ms-check rounded border-gray-300 text-indigo-600 focus:ring-indigo-400">
+                                    {{ $u->name }}
+                                </label>
+                            @empty
+                                <p class="px-3 py-2 text-sm text-gray-400">لا يوجد بيانات بعد</p>
                             @endforelse
                         </div>
                     </div>
@@ -939,8 +964,9 @@
             </div>
             @endif
         </div>
+        </div>{{-- /p-5 --}}
+        </div>{{-- /filter-body --}}
     </form>
-    </div>
 </div>
 
 {{-- Bulk Edit --}}
@@ -1489,9 +1515,12 @@ function toggleFilters() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    if (localStorage.getItem('filtersHidden') === '1') {
-        var body  = document.getElementById('filter-body');
-        var arrow = document.getElementById('filter-toggle-arrow');
+    var body  = document.getElementById('filter-body');
+    var arrow = document.getElementById('filter-toggle-arrow');
+    if (localStorage.getItem('filtersHidden') === '0') {
+        // user explicitly opened it before — keep open
+    } else {
+        // default: closed
         if (body)  body.style.display  = 'none';
         if (arrow) arrow.style.transform = 'rotate(-90deg)';
     }
