@@ -12,6 +12,8 @@ use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Cell\Cell;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
@@ -20,12 +22,12 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Color;
 
-class MembersExport extends DefaultValueBinder implements FromQuery, WithHeadings, WithMapping, WithStyles, WithTitle, ShouldAutoSize, WithCustomValueBinder
+class MembersExport extends DefaultValueBinder implements FromQuery, WithHeadings, WithMapping, WithStyles, WithTitle, ShouldAutoSize, WithCustomValueBinder, WithEvents
 {
     protected Builder $query;
 
     // Columns that must always be written as strings
-    private const STRING_COLUMNS = ['AE', 'AF'];
+    private const STRING_COLUMNS = ['AF', 'AG'];
 
     public function __construct(Builder $query)
     {
@@ -88,6 +90,7 @@ class MembersExport extends DefaultValueBinder implements FromQuery, WithHeading
             'المندوب',
             'المبلغ المقدر',
             'المبلغ النهائي',
+            'المبلغ الإجمالي',
             'الآيبان',
             'الباركود',
             'اسم المستلم',
@@ -149,6 +152,7 @@ class MembersExport extends DefaultValueBinder implements FromQuery, WithHeading
             $member->delegate                   ?? '',
             $member->estimated_amount           ?? '',
             $member->final_amount               ?? '',
+            $member->final_amount ?? (($member->estimated_amount ?? 0) + ($lastVisit?->estimated_amount ?? 0)),
             $member->paymentInfo?->iban         ?? '',
             $member->paymentInfo?->barcode      ?? '',
             $member->paymentInfo?->recipient_name ?? '',
@@ -165,6 +169,24 @@ class MembersExport extends DefaultValueBinder implements FromQuery, WithHeading
             $lastVisit?->has_video    ? 'نعم' : ($lastVisit ? 'لا' : ''),
             $lastVisit?->has_special_case ? 'نعم' : ($lastVisit ? 'لا' : ''),
             $member->created_at?->format('Y-m-d') ?? '',
+        ];
+    }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function (AfterSheet $event) {
+                $sheet    = $event->sheet->getDelegate();
+                $lastRow  = $sheet->getHighestRow();
+                if ($lastRow < 2) return;
+                foreach (self::STRING_COLUMNS as $col) {
+                    for ($row = 2; $row <= $lastRow; $row++) {
+                        $sheet->getCell("{$col}{$row}")
+                              ->getIgnoredErrors()
+                              ->setNumberStoredAsText(true);
+                    }
+                }
+            },
         ];
     }
 

@@ -72,7 +72,7 @@ class FieldVisitController extends Controller
             'house_type_id'         => 'nullable|exists:house_types,id',
             'visit_date'            => 'nullable|date',
             'visitor'               => 'nullable|string|max:255',
-            'estimated_amount'      => 'nullable|numeric|min:0',
+            'estimated_amount'      => 'nullable|numeric',
             'amount_operation'      => 'nullable|in:add,subtract',
             'amount_reason'         => 'nullable|string',
             'notes'                 => 'nullable|string',
