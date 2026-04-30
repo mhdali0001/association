@@ -27,7 +27,7 @@ class MembersExport extends DefaultValueBinder implements FromQuery, WithHeading
     protected Builder $query;
 
     // Columns that must always be written as strings
-    private const STRING_COLUMNS = ['AF', 'AG'];
+    private const STRING_COLUMNS = ['AE', 'AF'];
 
     public function __construct(Builder $query)
     {
@@ -48,7 +48,7 @@ class MembersExport extends DefaultValueBinder implements FromQuery, WithHeading
         return $this->query->with([
             'verificationStatus', 'finalStatus', 'association',
             'housingStatus', 'region', 'paymentInfo', 'paymentReview',
-            'fieldVisits.status', 'fieldVisits.houseType', 'fieldVisits.houseCondition',
+            'fieldVisits' => fn($q) => $q->latest()->with(['status', 'houseType', 'houseCondition']),
         ]);
     }
 
@@ -90,7 +90,6 @@ class MembersExport extends DefaultValueBinder implements FromQuery, WithHeading
             'المندوب',
             'المبلغ المقدر',
             'المبلغ النهائي',
-            'المبلغ الإجمالي',
             'الآيبان',
             'الباركود',
             'اسم المستلم',
@@ -119,7 +118,10 @@ class MembersExport extends DefaultValueBinder implements FromQuery, WithHeading
             default    => '',
         };
 
-        $lastVisit = $member->fieldVisits->first();
+        $lastVisit   = $member->fieldVisits->first();
+        $totalAmount = $member->final_amount !== null
+            ? $member->final_amount
+            : ((($member->estimated_amount ?? 0) + ($lastVisit?->estimated_amount ?? 0)) ?: '');
 
         return [
             $member->dossier_number             ?? '',
@@ -151,8 +153,7 @@ class MembersExport extends DefaultValueBinder implements FromQuery, WithHeading
             $member->association?->name         ?? '',
             $member->delegate                   ?? '',
             $member->estimated_amount           ?? '',
-            $member->final_amount               ?? '',
-            $member->final_amount ?? (($member->estimated_amount ?? 0) + ($lastVisit?->estimated_amount ?? 0)),
+            $totalAmount,
             $member->paymentInfo?->iban         ?? '',
             $member->paymentInfo?->barcode      ?? '',
             $member->paymentInfo?->recipient_name ?? '',
