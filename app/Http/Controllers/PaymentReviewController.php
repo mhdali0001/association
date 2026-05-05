@@ -151,7 +151,8 @@ class PaymentReviewController extends Controller
 
     public function duplicateIbans(Request $request)
     {
-        $search = trim($request->get('search', ''));
+        $search          = trim($request->get('search', ''));
+        $finalStatusId   = $request->get('final_status_id', '');
 
         // Find IBANs that appear more than once in payment_info
         $duplicateIbans = DB::table('payment_info')
@@ -185,11 +186,20 @@ class PaymentReviewController extends Controller
             $membersByIban[$iban] = $members;
         }
 
+        // Filter: keep only IBAN groups that contain at least one member with the selected final status
+        if ($finalStatusId !== '') {
+            $membersByIban = $membersByIban->filter(
+                fn($members) => $members->contains('final_status_id', (int) $finalStatusId)
+            );
+        }
+
         $totalDuplicateIbans   = $membersByIban->count();
         $totalAffectedMembers  = $membersByIban->flatten()->count();
+        $finalStatusList       = \App\Models\FinalStatus::active()->orderBy('name')->get();
 
         return view('payment-review.duplicate-ibans', compact(
-            'membersByIban', 'search', 'totalDuplicateIbans', 'totalAffectedMembers'
+            'membersByIban', 'search', 'finalStatusId', 'finalStatusList',
+            'totalDuplicateIbans', 'totalAffectedMembers'
         ));
     }
 

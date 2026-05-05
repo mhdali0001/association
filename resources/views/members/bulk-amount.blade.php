@@ -1,11 +1,11 @@
 @extends('layouts.app')
 
-@section('title', 'تعديل المبالغ — مسالك النور')
+@section('title', 'انقاص النقاط — مسالك النور')
 
 @section('breadcrumb')
     <a href="{{ route('members.index') }}" class="text-emerald-600 hover:underline">الأعضاء</a>
     <span class="mx-2 text-gray-400">/</span>
-    <span class="text-gray-700">تعديل المبالغ</span>
+    <span class="text-gray-700">انقاص النقاط</span>
 @endsection
 
 @section('content')
@@ -28,8 +28,8 @@
     </div>
     <div class="relative flex items-start justify-between gap-4 flex-wrap">
         <div>
-            <h1 class="text-2xl font-black text-white">تعديل المبالغ</h1>
-            <p class="text-purple-100 text-sm mt-0.5">تعديل جماعي للمبلغ المقدر أو النهائي دون تغيير الدرجات</p>
+            <h1 class="text-2xl font-black text-white">انقاص النقاط</h1>
+            <p class="text-purple-100 text-sm mt-0.5">انقاص جماعي لنقاط المستفيدين مع تحديث المبلغ المقدر تلقائياً</p>
         </div>
         <div class="flex gap-3 flex-wrap">
             <div class="bg-white/15 border border-white/25 rounded-xl px-4 py-2.5 text-center min-w-[90px]">
@@ -149,23 +149,6 @@
                 <span class="text-xs text-gray-400 pb-2.5 shrink-0">ل.س مقدر</span>
             </div>
 
-            {{-- Final amount range --}}
-            <div class="flex items-end gap-3">
-                <div class="flex-1">
-                    <label class="block text-sm font-semibold text-gray-600 mb-1.5">المبلغ النهائي من</label>
-                    <input type="number" name="final_from" value="{{ $finalFrom }}" min="0" step="any"
-                           placeholder="0"
-                           class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition placeholder-gray-300 font-mono">
-                </div>
-                <span class="text-gray-400 pb-2.5">—</span>
-                <div class="flex-1">
-                    <label class="block text-sm font-semibold text-gray-600 mb-1.5">إلى</label>
-                    <input type="number" name="final_to" value="{{ $finalTo }}" min="0" step="any"
-                           placeholder="∞"
-                           class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition placeholder-gray-300 font-mono">
-                </div>
-                <span class="text-xs text-gray-400 pb-2.5 shrink-0">ل.س نهائي</span>
-            </div>
 
         </div>
 
@@ -940,46 +923,24 @@
 
             <div class="h-8 w-px bg-gray-200 hidden sm:block shrink-0"></div>
 
-            {{-- Field --}}
-            <div class="flex items-center gap-1 bg-gray-100 rounded-xl p-1 shrink-0">
-                @foreach(['estimated_amount' => ['label' => 'المقدر', 'color' => 'emerald'], 'final_amount' => ['label' => 'النهائي', 'color' => 'purple']] as $fld => $fmeta)
-                <label class="field-label flex items-center cursor-pointer">
-                    <input type="radio" name="field" value="{{ $fld }}"
-                           class="sr-only peer" {{ $fld === 'estimated_amount' ? 'checked' : '' }}>
-                    <span class="px-3 py-1.5 rounded-lg text-sm font-semibold text-gray-500
-                                 peer-checked:bg-white peer-checked:text-{{ $fmeta['color'] }}-700 peer-checked:shadow-sm
-                                 hover:text-gray-700 transition-all select-none">
-                        {{ $fmeta['label'] }}
-                    </span>
-                </label>
-                @endforeach
+            {{-- Score deduction points --}}
+            <div class="flex items-center gap-2 shrink-0">
+                <label class="text-sm font-bold text-gray-600 shrink-0">انقاص نقاط</label>
+                <input type="number" name="score_deduction" id="deduction-input" min="0" step="1" placeholder="0"
+                       class="w-24 border-2 border-red-200 rounded-xl px-3 py-2.5 text-base font-bold text-red-700
+                              focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-red-400 transition text-center">
+                <span class="text-sm text-gray-400 font-medium shrink-0">نقطة</span>
             </div>
 
             <div class="h-8 w-px bg-gray-200 hidden sm:block shrink-0"></div>
 
-            {{-- Operation --}}
-            <div class="flex items-center gap-1 bg-gray-100 rounded-xl p-1 shrink-0">
-                @foreach(['add' => ['label' => '＋ إضافة', 'color' => 'emerald'], 'subtract' => ['label' => '− طرح', 'color' => 'red'], 'set' => ['label' => '= تعيين', 'color' => 'blue']] as $op => $meta)
-                <label class="operation-label flex items-center cursor-pointer">
-                    <input type="radio" name="operation" value="{{ $op }}"
-                           class="sr-only peer" {{ $op === 'add' ? 'checked' : '' }}>
-                    <span class="px-3 py-1.5 rounded-lg text-sm font-semibold text-gray-500
-                                 peer-checked:bg-white peer-checked:text-{{ $meta['color'] }}-700 peer-checked:shadow-sm
-                                 hover:text-gray-700 transition-all select-none">
-                        {{ $meta['label'] }}
-                    </span>
-                </label>
-                @endforeach
-            </div>
-
-            {{-- Amount --}}
-            <div class="flex items-center gap-2 flex-1 min-w-[180px] max-w-xs">
-                <div class="relative flex-1">
-                    <input type="number" name="amount" id="amount-input" min="0" step="1" placeholder="0"
-                           class="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-base font-bold text-gray-800
-                                  focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-violet-400 transition text-center">
-                </div>
-                <span class="text-sm text-gray-400 font-medium shrink-0">ل.س</span>
+            {{-- Reason --}}
+            <div class="flex items-center gap-2 flex-1 min-w-[200px] max-w-sm">
+                <label class="text-sm font-bold text-gray-600 shrink-0">السبب</label>
+                <input type="text" name="score_deduction_reason" id="reason-input"
+                       placeholder="سبب الانقاص (اختياري)"
+                       class="flex-1 border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-700
+                              focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-violet-400 transition">
             </div>
 
             <div class="h-8 w-px bg-gray-200 hidden sm:block shrink-0"></div>
@@ -990,25 +951,25 @@
                 <button type="submit" name="apply_to" value="selected"
                         id="apply-selected-btn"
                         onclick="return confirmApply('selected')"
-                        class="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed
+                        class="flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed
                                text-white font-bold px-5 py-2.5 rounded-xl transition-colors text-sm shadow-sm"
                         disabled>
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4"/>
                     </svg>
-                    تطبيق على المحدد
+                    انقاص المحدد
                     <span id="apply-selected-count" class="bg-white/20 rounded-full px-1.5 py-0.5 text-xs">0</span>
                 </button>
 
                 {{-- Apply to all filtered --}}
                 <button type="submit" name="apply_to" value="filtered"
                         onclick="return confirmApply('filtered')"
-                        class="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600
+                        class="flex items-center gap-2 bg-orange-500 hover:bg-orange-600
                                text-white font-bold px-5 py-2.5 rounded-xl transition-colors text-sm shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
                     </svg>
-                    تطبيق على الكل
+                    انقاص الكل
                     <span class="bg-white/20 rounded-full px-1.5 py-0.5 text-xs">{{ $fmt($totalCount) }}</span>
                 </button>
             </div>
@@ -1212,22 +1173,18 @@ document.querySelectorAll('.member-cb').forEach(function(cb) {
 // ── Confirm before apply ───────────────────────────────────────────────
 
 function confirmApply(type) {
-    var amount = document.getElementById('amount-input').value;
-    if (!amount || parseFloat(amount) < 0) {
-        alert('يرجى إدخال مبلغ صحيح.');
+    var deduction = document.getElementById('deduction-input').value;
+    if (deduction === '' || parseInt(deduction) < 0) {
+        alert('يرجى إدخال عدد النقاط المراد انقاصها.');
         return false;
     }
 
-    var fldEl  = document.querySelector('input[name="field"]:checked');
-    var fldMap = { estimated_amount: 'المبلغ المقدر', final_amount: 'المبلغ النهائي' };
-    var fld    = fldEl ? (fldMap[fldEl.value] || fldEl.value) : '?';
+    var reason = document.getElementById('reason-input').value.trim();
+    var cnt    = type === 'selected' ? selectedCount : {{ $totalCount }};
+    var msg    = 'هل أنت متأكد؟\n\nالانقاص: ' + parseInt(deduction) + ' نقطة\nعدد الأعضاء: ' + cnt;
+    if (reason) msg += '\nالسبب: ' + reason;
 
-    var opEl  = document.querySelector('input[name="operation"]:checked');
-    var opMap = { add: 'إضافة', subtract: 'طرح', set: 'تعيين' };
-    var op    = opEl ? opMap[opEl.value] : '?';
-    var cnt   = type === 'selected' ? selectedCount : {{ $totalCount }};
-
-    return confirm('هل أنت متأكد؟\n\nالحقل: ' + fld + '\nالعملية: ' + op + ' ' + parseFloat(amount).toLocaleString() + ' ل.س\nعدد الأعضاء: ' + cnt);
+    return confirm(msg);
 }
 
 // init

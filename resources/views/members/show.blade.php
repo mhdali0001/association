@@ -92,27 +92,20 @@
     @php
         $latestVisitAmt = $member->fieldVisits->first()?->estimated_amount ?? 0;
         $computedFinal  = ($member->estimated_amount ?? 0) + $latestVisitAmt;
-        $storedFinal    = $member->final_amount;
     @endphp
     <div class="relative bg-gradient-to-br from-purple-500 to-purple-700 rounded-2xl p-4 text-white shadow-md overflow-hidden">
         <div class="absolute -bottom-3 -left-3 w-16 h-16 bg-white/10 rounded-full"></div>
         <p class="text-purple-100 text-xs font-medium mb-1">المبلغ النهائي</p>
-        @if($storedFinal)
-            <p class="text-2xl font-black">{{ number_format($storedFinal, 0) }}</p>
-            <p class="text-purple-200 text-xs mt-0.5">ل.س</p>
-        @else
-            {{-- لا قيمة مخزنة — عرض المعادلة --}}
+        @if($latestVisitAmt > 0)
             <p class="text-purple-200 text-xs font-medium mt-1 leading-relaxed">
                 {{ number_format($member->estimated_amount ?? 0, 0) }}
-                @if($latestVisitAmt > 0)
-                    <span class="text-white/70">+</span>
-                    {{ number_format($latestVisitAmt, 0) }}
-                    <span class="text-white/50 text-[10px]">(زيارة)</span>
-                @endif
+                <span class="text-white/70">+</span>
+                {{ number_format($latestVisitAmt, 0) }}
+                <span class="text-white/50 text-[10px]">(زيارة)</span>
                 <span class="text-white/70">=</span>
             </p>
-            <p class="text-2xl font-black">{{ $computedFinal > 0 ? number_format($computedFinal, 0) : '—' }}</p>
         @endif
+        <p class="text-2xl font-black">{{ $computedFinal > 0 ? number_format($computedFinal, 0) : '—' }}</p>
     </div>
     <div class="relative bg-gradient-to-br from-violet-500 to-violet-700 rounded-2xl p-4 text-white shadow-md overflow-hidden">
         <div class="absolute -bottom-3 -left-3 w-16 h-16 bg-white/10 rounded-full"></div>
@@ -156,8 +149,11 @@
                         'الحالة الاجتماعية'  => $member->marital_status,
                         'الحالة النهائية'    => $member->finalStatus?->name,
                         'المدخل'             => $member->representative?->name,
+                        'اسم المدخل (يدوي)' => $member->data_entry_name,
                         'مندوب'              => $member->delegate,
                         'الفرد الثاني'       => $member->second_person,
+                        'عدد الدفعات'        => $member->payments_count,
+                        'ملاحظة'             => $member->notes,
                     ];
                 @endphp
                 @foreach($personal as $label => $value)
@@ -494,7 +490,7 @@
         @endif
 
         {{-- معلومات الدفع --}}
-        @if($member->paymentInfo && ($member->paymentInfo->iban || $member->paymentInfo->barcode || $member->paymentInfo->iban_image || $member->paymentInfo->barcode_image || $member->paymentInfo->recipient_name))
+        @if($member->paymentInfo && ($member->paymentInfo->iban || $member->paymentInfo->barcode || $member->paymentInfo->iban_image || $member->paymentInfo->barcode_image || $member->paymentInfo->recipient_name || $member->paymentInfo->data_entry_name))
         <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <div class="flex items-center gap-2.5 bg-gradient-to-l from-slate-50 to-gray-50 border-b border-gray-100 px-6 py-3.5">
                 <div class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center">
@@ -509,6 +505,12 @@
                     <div>
                         <p class="text-xs text-gray-400 mb-1 font-medium">اسم المستلم</p>
                         <p class="text-sm font-semibold text-gray-800 bg-slate-50 rounded-xl px-3 py-2 border border-slate-100">{{ $member->paymentInfo->recipient_name }}</p>
+                    </div>
+                @endif
+                @if($member->paymentInfo->data_entry_name)
+                    <div>
+                        <p class="text-xs text-gray-400 mb-1 font-medium">اسم مدخل البيانات</p>
+                        <p class="text-sm font-semibold text-gray-800 bg-slate-50 rounded-xl px-3 py-2 border border-slate-100">{{ $member->paymentInfo->data_entry_name }}</p>
                     </div>
                 @endif
                 @if($member->paymentInfo->iban)

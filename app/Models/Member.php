@@ -10,10 +10,10 @@ class Member extends Model
         'full_name', 'age', 'gender', 'mother_name', 'national_id',
         'verification_status_id', 'final_status_id', 'dossier_number', 'current_address', 'region_id',
         'marital_status', 'disease_type', 'other_association', 'phone', 'phone2',
-        'representative_id', 'delegate', 'second_person', 'network', 'provider_status', 'job',
+        'representative_id', 'data_entry_name', 'delegate', 'second_person', 'network', 'provider_status', 'job',
         'housing_status_id', 'dependents_count', 'illness_details',
         'special_cases', 'special_cases_description', 'score',
-        'estimated_amount', 'final_amount', 'sham_cash_account', 'association_id',
+        'estimated_amount', 'payments_count', 'notes', 'sham_cash_account', 'association_id',
     ];
 
     protected $casts = [
@@ -21,7 +21,6 @@ class Member extends Model
         'special_cases'     => 'boolean',
         // sham_cash_account is enum('done','manual') nullable — no cast needed
         'estimated_amount'  => 'decimal:2',
-        'final_amount'      => 'decimal:2',
     ];
 
     public function region()
@@ -87,5 +86,23 @@ class Member extends Model
     public function fieldVisits()
     {
         return $this->hasMany(\App\Models\FieldVisit::class)->latest();
+    }
+
+    public function latestFieldVisit()
+    {
+        return $this->hasOne(\App\Models\FieldVisit::class)->latest();
+    }
+
+    public function getFinalAmountAttribute(): float
+    {
+        $visitAmt = 0;
+        if ($this->relationLoaded('fieldVisits')) {
+            $visitAmt = $this->fieldVisits->first()?->estimated_amount ?? 0;
+        } elseif ($this->relationLoaded('latestFieldVisit')) {
+            $visitAmt = $this->latestFieldVisit?->estimated_amount ?? 0;
+        } else {
+            $visitAmt = \App\Models\FieldVisit::where('member_id', $this->id)->latest()->value('estimated_amount') ?? 0;
+        }
+        return (float)($this->estimated_amount ?? 0) + (float)$visitAmt;
     }
 }

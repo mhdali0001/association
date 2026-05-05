@@ -27,7 +27,7 @@ class MembersExport extends DefaultValueBinder implements FromQuery, WithHeading
     protected Builder $query;
 
     // Columns that must always be written as strings
-    private const STRING_COLUMNS = ['AE', 'AF'];
+    private const STRING_COLUMNS = ['AH', 'AI'];
 
     public function __construct(Builder $query)
     {
@@ -88,11 +88,15 @@ class MembersExport extends DefaultValueBinder implements FromQuery, WithHeading
             'الحالة النهائية',
             'الجمعية',
             'المندوب',
+            'اسم المدخل',
             'المبلغ المقدر',
             'المبلغ النهائي',
+            'عدد الدفعات',
+            'ملاحظة',
             'الآيبان',
             'الباركود',
             'اسم المستلم',
+            'اسم مدخل الدفع',
             'حالة مراجعة الدفع',
             'عدد الجولات الميدانية',
             'تاريخ آخر جولة',
@@ -119,9 +123,7 @@ class MembersExport extends DefaultValueBinder implements FromQuery, WithHeading
         };
 
         $lastVisit   = $member->fieldVisits->first();
-        $totalAmount = $member->final_amount !== null
-            ? $member->final_amount
-            : ((($member->estimated_amount ?? 0) + ($lastVisit?->estimated_amount ?? 0)) ?: '');
+        $totalAmount = (($member->estimated_amount ?? 0) + ($lastVisit?->estimated_amount ?? 0)) ?: '';
 
         return [
             $member->dossier_number             ?? '',
@@ -152,11 +154,15 @@ class MembersExport extends DefaultValueBinder implements FromQuery, WithHeading
             $member->finalStatus?->name         ?? '',
             $member->association?->name         ?? '',
             $member->delegate                   ?? '',
+            $member->data_entry_name            ?? '',
             $member->estimated_amount           ?? '',
             $totalAmount,
+            $member->payments_count             ?? '',
+            $member->notes                      ?? '',
             $member->paymentInfo?->iban         ?? '',
             $member->paymentInfo?->barcode      ?? '',
-            $member->paymentInfo?->recipient_name ?? '',
+            $member->paymentInfo?->recipient_name   ?? '',
+            $member->paymentInfo?->data_entry_name ?? '',
             $reviewStatus,
             $member->fieldVisits->count(),
             $lastVisit?->visit_date?->format('Y-m-d')      ?? '',

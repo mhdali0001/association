@@ -42,9 +42,9 @@
     </div>
 </div>
 
-{{-- Search --}}
-<form method="GET" action="{{ route('payment-review.duplicate-ibans') }}" class="mb-5 flex gap-3">
-    <div class="relative flex-1 max-w-sm">
+{{-- Search & Filters --}}
+<form method="GET" action="{{ route('payment-review.duplicate-ibans') }}" class="mb-5 flex flex-wrap gap-3">
+    <div class="relative flex-1 min-w-[180px] max-w-sm">
         <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none">
             <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
@@ -54,11 +54,27 @@
                placeholder="بحث بالآيبان أو الاسم..."
                class="w-full pr-10 pl-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-rose-400 focus:bg-white transition placeholder-gray-300">
     </div>
+
+    {{-- Final Status filter --}}
+    <div class="relative">
+        <select name="final_status_id" onwheel="this.blur()"
+                class="text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-rose-400 focus:bg-white transition text-gray-600 min-w-[160px]">
+            <option value="">— كل الحالات النهائية —</option>
+            @foreach($finalStatusList as $fs)
+                <option value="{{ $fs->id }}"
+                        {{ $finalStatusId == $fs->id ? 'selected' : '' }}
+                        style="color:{{ $fs->color }}">
+                    {{ $fs->name }}
+                </option>
+            @endforeach
+        </select>
+    </div>
+
     <button type="submit"
             class="flex items-center gap-2 bg-gradient-to-l from-red-600 to-rose-500 hover:from-red-700 hover:to-rose-600 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm">
         بحث
     </button>
-    @if($search)
+    @if($search || $finalStatusId)
         <a href="{{ route('payment-review.duplicate-ibans') }}"
            class="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">

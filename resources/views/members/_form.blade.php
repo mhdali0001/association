@@ -123,6 +123,13 @@
         </div>
 
         <div>
+            <label class="{{ $labelClass }}">اسم المدخل (يدوي)</label>
+            <input type="text" name="data_entry_name" value="{{ $v('data_entry_name') }}"
+                   placeholder="اسم مدخل البيانات"
+                   class="{{ $inputClass }}">
+        </div>
+
+        <div>
             <label class="{{ $labelClass }}">مندوب</label>
             <input type="text" name="delegate" value="{{ $v('delegate') }}"
                    placeholder="اسم المندوب"
@@ -162,15 +169,39 @@
 
         <div>
             <label class="{{ $labelClass }}">المنطقة</label>
-            <select name="region_id" class="{{ $selectClass }}">
-                <option value="">— غير محدد —</option>
-                @foreach($regionsList ?? [] as $region)
-                    <option value="{{ $region->id }}"
-                        {{ (int)old('region_id', $member->region_id ?? '') === $region->id ? 'selected' : '' }}>
-                        {{ $region->name }}
-                    </option>
-                @endforeach
-            </select>
+            <div class="flex gap-2 items-start">
+                <select id="region_id_select" name="region_id" class="{{ $selectClass }} flex-1">
+                    <option value="">— غير محدد —</option>
+                    @foreach($regionsList ?? [] as $region)
+                        <option value="{{ $region->id }}"
+                            {{ (int)old('region_id', $member->region_id ?? '') === $region->id ? 'selected' : '' }}>
+                            {{ $region->name }}
+                        </option>
+                    @endforeach
+                </select>
+                <button type="button" onclick="toggleAddRegion()"
+                        title="إضافة منطقة جديدة"
+                        class="shrink-0 w-10 h-10 flex items-center justify-center bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl text-emerald-600 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                    </svg>
+                </button>
+            </div>
+            {{-- Inline add region --}}
+            <div id="add-region-panel" class="hidden mt-2 flex gap-2 items-center">
+                <input type="text" id="new-region-input" placeholder="اسم المنطقة الجديدة..."
+                       class="flex-1 border border-emerald-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white"
+                       onkeydown="if(event.key==='Enter'){event.preventDefault();submitNewRegion();}">
+                <button type="button" onclick="submitNewRegion()"
+                        class="shrink-0 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl transition-colors">
+                    حفظ
+                </button>
+                <button type="button" onclick="toggleAddRegion()"
+                        class="shrink-0 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-bold rounded-xl transition-colors">
+                    إلغاء
+                </button>
+            </div>
+            <p id="add-region-error" class="hidden text-red-500 text-xs mt-1"></p>
         </div>
 
         <div>
@@ -293,17 +324,30 @@
 
         <div class="lg:col-span-2">
             <label class="{{ $labelClass }}">الحالة النهائية</label>
-            <select name="final_status_id"
-                    class="{{ $selectClass }} @error('final_status_id') {{ $errorInput }} @enderror">
-                <option value="">— غير محدد —</option>
-                @foreach($finalStatuses as $fs)
-                    <option value="{{ $fs->id }}"
-                            {{ old('final_status_id', $isEdit ? $member->final_status_id : '') == $fs->id ? 'selected' : '' }}>
-                        {{ $fs->name }}
-                    </option>
-                @endforeach
-            </select>
-            @error('final_status_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+            @if(auth()->user()?->role === 'admin')
+                <select name="final_status_id"
+                        class="{{ $selectClass }} @error('final_status_id') {{ $errorInput }} @enderror">
+                    <option value="">— غير محدد —</option>
+                    @foreach($finalStatuses as $fs)
+                        <option value="{{ $fs->id }}"
+                                {{ old('final_status_id', $isEdit ? $member->final_status_id : '') == $fs->id ? 'selected' : '' }}>
+                            {{ $fs->name }}
+                        </option>
+                    @endforeach
+                </select>
+                @error('final_status_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+            @else
+                @php $fs = $isEdit ? $member->finalStatus : null; @endphp
+                <div class="flex items-center gap-2 px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-sm text-gray-500">
+                    @if($fs)
+                        <span class="inline-block w-2 h-2 rounded-full flex-shrink-0" style="background:{{ $fs->color }}"></span>
+                        <span style="color:{{ $fs->color }}">{{ $fs->name }}</span>
+                    @else
+                        <span class="text-gray-400">— غير محدد —</span>
+                    @endif
+                    <span class="mr-auto text-xs text-gray-400">للمسؤولين فقط</span>
+                </div>
+            @endif
         </div>
 
         {{-- الانتساب لجمعية --}}
@@ -376,19 +420,18 @@
         </div>
 
         <div>
-            <label class="{{ $labelClass }}">
-                المبلغ النهائي
-                <span class="text-purple-400 normal-case font-normal">
-                    = مقدر
-                    @if(($visitAmount ?? 0) > 0)
-                        + {{ number_format($visitAmount, 0) }} ل.س (زيارة)
-                    @endif
-                    <span class="text-gray-400 text-xs">(تلقائي)</span>
-                </span>
-            </label>
-            <input type="number" step="0.01" id="field_final_amount" name="final_amount" readonly
-                   value="{{ old('final_amount', $isEdit ? ($member->final_amount ?? 0) : 0) }}"
-                   class="w-full border border-purple-200 bg-gradient-to-l from-purple-50 to-fuchsia-50 text-purple-700 font-black rounded-xl px-4 py-2.5 cursor-not-allowed text-center">
+            <label class="{{ $labelClass }}">عدد الدفعات</label>
+            <input type="number" name="payments_count" min="0" step="1"
+                   value="{{ old('payments_count', $isEdit ? $member->payments_count : '') }}"
+                   placeholder="0"
+                   class="{{ $inputClass }} @error('payments_count') {{ $errorInput }} @enderror">
+            @error('payments_count') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+        </div>
+
+        <div class="lg:col-span-4">
+            <label class="{{ $labelClass }}">ملاحظة</label>
+            <textarea name="notes" rows="3" placeholder="ملاحظات عن المستفيد..."
+                      class="{{ $inputClass }} resize-none">{{ old('notes', $isEdit ? $member->notes : '') }}</textarea>
         </div>
 
     </div>
@@ -512,10 +555,17 @@
                    dir="ltr" class="{{ $inputClass }} font-mono">
         </div>
 
-        <div class="md:col-span-2">
+        <div>
             <label class="{{ $labelClass }}">اسم المستلم</label>
             <input type="text" name="recipient_name" value="{{ old('recipient_name', $payment?->recipient_name) }}"
                    placeholder="الاسم الكامل للشخص المستلم"
+                   class="{{ $inputClass }}">
+        </div>
+
+        <div>
+            <label class="{{ $labelClass }}">اسم مدخل البيانات</label>
+            <input type="text" name="payment_data_entry_name" value="{{ old('payment_data_entry_name', $payment?->data_entry_name) }}"
+                   placeholder="اسم من أدخل البيانات"
                    class="{{ $inputClass }}">
         </div>
 
@@ -595,6 +645,70 @@ function toggleAssociations(val) {
     }
 }
 
+function toggleAddRegion() {
+    const panel = document.getElementById('add-region-panel');
+    const input = document.getElementById('new-region-input');
+    const err   = document.getElementById('add-region-error');
+    panel.classList.toggle('hidden');
+    err.classList.add('hidden');
+    if (!panel.classList.contains('hidden')) {
+        input.value = '';
+        input.focus();
+    }
+}
+
+async function submitNewRegion() {
+    const input = document.getElementById('new-region-input');
+    const err   = document.getElementById('add-region-error');
+    const name  = input.value.trim();
+    err.classList.add('hidden');
+
+    if (!name) {
+        err.textContent = 'يرجى إدخال اسم المنطقة.';
+        err.classList.remove('hidden');
+        input.focus();
+        return;
+    }
+
+    try {
+        const res = await fetch('{{ route("regions.quick-store") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                             || '{{ csrf_token() }}',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({ name }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            err.textContent = data.errors?.name?.[0] ?? data.message ?? 'حدث خطأ.';
+            err.classList.remove('hidden');
+            return;
+        }
+
+        document.getElementById('add-region-panel').classList.add('hidden');
+
+        if (data.pending) {
+            err.textContent = data.message;
+            err.classList.remove('hidden');
+            err.classList.replace('text-red-500', 'text-amber-600');
+            return;
+        }
+
+        const select = document.getElementById('region_id_select');
+        const option = new Option(data.name, data.id, true, true);
+        select.appendChild(option);
+        select.value = data.id;
+    } catch {
+        err.textContent = 'تعذّر الاتصال بالخادم.';
+        err.classList.remove('hidden');
+    }
+}
+
 function calcTotal() {
     const fields = ['work_score', 'housing_score', 'dependents_score', 'dependent_status_score', 'illness_score', 'special_cases_score'];
     let total = 0;
@@ -615,9 +729,6 @@ function calcTotal() {
     if (scoreEl) scoreEl.value = total;
     const amountEl = document.getElementById('field_estimated_amount');
     if (amountEl) amountEl.value = total * 500;
-    const visitAmt = {{ (int)($visitAmount ?? 0) }};
-    const finalEl = document.getElementById('field_final_amount');
-    if (finalEl) finalEl.value = total * 500 + visitAmt;
 }
 calcTotal();
 </script>

@@ -151,23 +151,6 @@
                 <span class="text-xs text-gray-400 pb-2.5 shrink-0">ل.س مقدر</span>
             </div>
 
-            {{-- Final amount range --}}
-            <div class="flex items-end gap-3">
-                <div class="flex-1">
-                    <label class="block text-sm font-semibold text-gray-600 mb-1.5">المبلغ النهائي من</label>
-                    <input type="number" name="final_from" value="{{ $finalFrom }}" min="0" step="any"
-                           placeholder="0"
-                           class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:bg-white transition placeholder-gray-300 font-mono">
-                </div>
-                <span class="text-gray-400 pb-2.5">—</span>
-                <div class="flex-1">
-                    <label class="block text-sm font-semibold text-gray-600 mb-1.5">إلى</label>
-                    <input type="number" name="final_to" value="{{ $finalTo }}" min="0" step="any"
-                           placeholder="∞"
-                           class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:bg-white transition placeholder-gray-300 font-mono">
-                </div>
-                <span class="text-xs text-gray-400 pb-2.5 shrink-0">ل.س نهائي</span>
-            </div>
 
         </div>
 
@@ -186,6 +169,13 @@
                     </svg>
                 </button>
                 <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                    <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-500 border-b border-gray-100">
+                        <input type="checkbox" name="verification_status_id[]" value="none"
+                               {{ in_array('none', $verificationIds) ? 'checked' : '' }}
+                               class="ms-check rounded border-gray-300 text-gray-500 focus:ring-gray-400">
+                        <span class="inline-block w-2 h-2 rounded-full flex-shrink-0 bg-gray-300"></span>
+                        بدون حالة
+                    </label>
                     @foreach($verificationStatuses as $vs)
                         <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
                             <input type="checkbox" name="verification_status_id[]" value="{{ $vs->id }}"
@@ -210,6 +200,13 @@
                     </svg>
                 </button>
                 <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                    <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-500 border-b border-gray-100">
+                        <input type="checkbox" name="final_status_id[]" value="none"
+                               {{ in_array('none', $finalStatusIds) ? 'checked' : '' }}
+                               class="ms-check rounded border-gray-300 text-gray-500 focus:ring-gray-400">
+                        <span class="inline-block w-2 h-2 rounded-full flex-shrink-0 bg-gray-300"></span>
+                        بدون
+                    </label>
                     @foreach($finalStatusList as $fs)
                         <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
                             <input type="checkbox" name="final_status_id[]" value="{{ $fs->id }}"
@@ -234,6 +231,13 @@
                     </svg>
                 </button>
                 <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                    <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-500 border-b border-gray-100">
+                        <input type="checkbox" name="marital_status[]" value="none"
+                               {{ in_array('none', $maritalStatuses) ? 'checked' : '' }}
+                               class="ms-check rounded border-gray-300 text-gray-500 focus:ring-gray-400">
+                        <span class="inline-block w-2 h-2 rounded-full flex-shrink-0 bg-gray-300"></span>
+                        بدون
+                    </label>
                     @foreach($maritalStatusList as $ms)
                         <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
                             <input type="checkbox" name="marital_status[]" value="{{ $ms->name }}"
@@ -280,6 +284,13 @@
                     </svg>
                 </button>
                 <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                    <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-500 border-b border-gray-100">
+                        <input type="checkbox" name="association_id[]" value="none"
+                               {{ in_array('none', $associationIds) ? 'checked' : '' }}
+                               class="ms-check rounded border-gray-300 text-gray-500 focus:ring-gray-400">
+                        <span class="inline-block w-2 h-2 rounded-full flex-shrink-0 bg-gray-300"></span>
+                        بدون
+                    </label>
                     @forelse($associationList as $assoc)
                         <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
                             <input type="checkbox" name="association_id[]" value="{{ $assoc->id }}"
@@ -344,6 +355,13 @@
                         <input type="text" class="ms-search w-full text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-400" placeholder="بحث في المناطق...">
                     </div>
                     <div class="overflow-y-auto" style="max-height:200px">
+                    <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-500 border-b border-gray-100">
+                        <input type="checkbox" name="region_id[]" value="none"
+                               {{ in_array('none', $regionIds) ? 'checked' : '' }}
+                               class="ms-check rounded border-gray-300 text-gray-500 focus:ring-gray-400">
+                        <span class="inline-block w-2 h-2 rounded-full flex-shrink-0 bg-gray-300"></span>
+                        بدون
+                    </label>
                     @forelse($regionList as $reg)
                         <label class="ms-option flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
                             <input type="checkbox" name="region_id[]" value="{{ $reg->id }}"
@@ -378,6 +396,13 @@
                     </svg>
                 </button>
                 <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                    <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-500 border-b border-gray-100">
+                        <input type="checkbox" name="delegate[]" value="none"
+                               {{ in_array('none', $delegates) ? 'checked' : '' }}
+                               class="ms-check rounded border-gray-300 text-gray-500 focus:ring-gray-400">
+                        <span class="inline-block w-2 h-2 rounded-full flex-shrink-0 bg-gray-300"></span>
+                        بدون
+                    </label>
                     @forelse($delegateList as $d)
                         <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
                             <input type="checkbox" name="delegate[]" value="{{ $d }}"
@@ -403,6 +428,13 @@
                     </svg>
                 </button>
                 <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                    <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-500 border-b border-gray-100">
+                        <input type="checkbox" name="second_person[]" value="none"
+                               {{ in_array('none', $secondPersons) ? 'checked' : '' }}
+                               class="ms-check rounded border-gray-300 text-gray-500 focus:ring-gray-400">
+                        <span class="inline-block w-2 h-2 rounded-full flex-shrink-0 bg-gray-300"></span>
+                        بدون
+                    </label>
                     @forelse($secondPersonList as $sp)
                         <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
                             <input type="checkbox" name="second_person[]" value="{{ $sp }}"
@@ -432,6 +464,13 @@
                         <input type="text" class="ms-search w-full text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-400" placeholder="بحث في الأوصاف...">
                     </div>
                     <div class="overflow-y-auto" style="max-height:200px">
+                    <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-500 border-b border-gray-100">
+                        <input type="checkbox" name="special_cases_description[]" value="none"
+                               {{ in_array('none', $specialDescriptions) ? 'checked' : '' }}
+                               class="ms-check rounded border-gray-300 text-gray-500 focus:ring-gray-400">
+                        <span class="inline-block w-2 h-2 rounded-full flex-shrink-0 bg-gray-300"></span>
+                        بدون
+                    </label>
                     @forelse($specialDescriptionList as $sd)
                         <label class="ms-option flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
                             <input type="checkbox" name="special_cases_description[]" value="{{ $sd }}"
@@ -458,6 +497,13 @@
                     </svg>
                 </button>
                 <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg py-1">
+                    <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-500 border-b border-gray-100">
+                        <input type="checkbox" name="network[]" value="none"
+                               {{ in_array('none', $networks) ? 'checked' : '' }}
+                               class="ms-check rounded border-gray-300 text-gray-500 focus:ring-gray-400">
+                        <span class="inline-block w-2 h-2 rounded-full flex-shrink-0 bg-gray-300"></span>
+                        بدون
+                    </label>
                     @foreach(['MTN', 'SYRIATEL'] as $net)
                         <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
                             <input type="checkbox" name="network[]" value="{{ $net }}"
@@ -466,6 +512,38 @@
                             {{ $net }}
                         </label>
                     @endforeach
+                </div>
+            </div>
+
+            {{-- Payment data entry name multi-select --}}
+            <div class="ms-dropdown relative">
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">اسم مدخل الدفع</label>
+                <button type="button"
+                        class="ms-btn w-full flex items-center justify-between text-base border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
+                               hover:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 transition text-right">
+                    <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                    <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                    <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-500 border-b border-gray-100">
+                        <input type="checkbox" name="payment_data_entry[]" value="none"
+                               {{ in_array('none', $paymentDataEntries) ? 'checked' : '' }}
+                               class="ms-check rounded border-gray-300 text-gray-500 focus:ring-gray-400">
+                        <span class="inline-block w-2 h-2 rounded-full flex-shrink-0 bg-gray-300"></span>
+                        بدون
+                    </label>
+                    @forelse($paymentDataEntryList as $pde)
+                        <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
+                            <input type="checkbox" name="payment_data_entry[]" value="{{ $pde }}"
+                                   {{ in_array($pde, $paymentDataEntries) ? 'checked' : '' }}
+                                   class="ms-check rounded border-gray-300 text-emerald-600 focus:ring-emerald-400">
+                            {{ $pde }}
+                        </label>
+                    @empty
+                        <p class="px-3 py-2 text-xs text-gray-400">لا توجد بيانات</p>
+                    @endforelse
                 </div>
             </div>
 
@@ -485,6 +563,13 @@
                         <input type="text" class="ms-search w-full text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-400" placeholder="بحث في العناوين...">
                     </div>
                     <div class="overflow-y-auto" style="max-height:200px">
+                    <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-500 border-b border-gray-100">
+                        <input type="checkbox" name="current_address[]" value="none"
+                               {{ in_array('none', $addresses) ? 'checked' : '' }}
+                               class="ms-check rounded border-gray-300 text-gray-500 focus:ring-gray-400">
+                        <span class="inline-block w-2 h-2 rounded-full flex-shrink-0 bg-gray-300"></span>
+                        بدون
+                    </label>
                     @forelse($addressList as $addr)
                         <label class="ms-option flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
                             <input type="checkbox" name="current_address[]" value="{{ $addr }}"
@@ -776,7 +861,7 @@
             </button>
 
             @php
-                $hasFilters = $search || $dossierFrom !== '' || $dossierTo !== '' || !empty($verificationIds) || !empty($finalStatusIds) || !empty($maritalStatuses) || !empty($genders) || !empty($delegates) || !empty($secondPersons) || $specialCases !== '' || !empty($specialDescriptions) || !empty($addresses) || !empty($associationIds) || !empty($networks) || !empty($housingStatusIds) || $hasFvFilters;
+                $hasFilters = $search || $dossierFrom !== '' || $dossierTo !== '' || !empty($verificationIds) || !empty($finalStatusIds) || !empty($maritalStatuses) || !empty($genders) || !empty($delegates) || !empty($secondPersons) || $specialCases !== '' || !empty($specialDescriptions) || !empty($addresses) || !empty($associationIds) || !empty($networks) || !empty($housingStatusIds) || !empty($paymentDataEntries) || $hasFvFilters;
             @endphp
 
             @if($hasFilters)
@@ -894,6 +979,12 @@
                 @foreach($housingStatusIds as $hsId)
                     <a href="{{ badgeRemoveUrl('housing_status_id', $hsId) }}" class="inline-flex items-center gap-1 text-sm bg-lime-50 text-lime-700 border border-lime-200 rounded-full px-3 py-1 font-medium hover:bg-lime-100 transition-colors">
                         وضع السكن: {{ $housingStatusList->firstWhere('id', $hsId)?->name }}
+                        <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </a>
+                @endforeach
+                @foreach($paymentDataEntries as $pde)
+                    <a href="{{ badgeRemoveUrl('payment_data_entry', $pde) }}" class="inline-flex items-center gap-1 text-sm bg-sky-50 text-sky-700 border border-sky-200 rounded-full px-3 py-1 font-medium hover:bg-sky-100 transition-colors">
+                        مدخل الدفع: {{ $pde === 'none' ? 'بدون' : $pde }}
                         <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                     </a>
                 @endforeach
@@ -1110,7 +1201,8 @@
                     </select>
                 </div>
 
-                {{-- Final Status --}}
+                {{-- Final Status (admin only) --}}
+                @if(auth()->user()?->role === 'admin')
                 <div class="be-field" data-field="final_status_id">
                     <div class="flex items-center gap-2 mb-1.5">
                         <input type="checkbox" name="apply_fields[]" value="final_status_id" class="be-toggle rounded border-gray-300 text-blue-600 focus:ring-blue-400 cursor-pointer" onchange="toggleBulkField(this)">
@@ -1124,6 +1216,7 @@
                         @endforeach
                     </select>
                 </div>
+                @endif
 
                 {{-- Field Visit Status --}}
                 <div class="be-field" data-field="field_visit_status_id">
@@ -1140,6 +1233,38 @@
                     </select>
                 </div>
 
+                {{-- Field Visit Visitor --}}
+                <div class="be-field" data-field="fv_visitor">
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <input type="checkbox" name="apply_fields[]" value="fv_visitor" class="be-toggle rounded border-gray-300 text-blue-600 focus:ring-blue-400 cursor-pointer" onchange="toggleBulkField(this)">
+                        <label class="text-sm font-semibold text-gray-600 cursor-pointer select-none">الزائر</label>
+                    </div>
+                    <input type="text" name="fields[fv_visitor]" disabled placeholder="اسم الزائر..."
+                           list="fv-visitor-list-be"
+                           class="be-input w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-100 text-gray-400 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
+                    <datalist id="fv-visitor-list-be">
+                        @foreach($fvVisitorList as $v)
+                            <option value="{{ $v }}">
+                        @endforeach
+                    </datalist>
+                </div>
+
+                {{-- Payment Data Entry Name --}}
+                <div class="be-field" data-field="payment_data_entry_name">
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <input type="checkbox" name="apply_fields[]" value="payment_data_entry_name" class="be-toggle rounded border-gray-300 text-blue-600 focus:ring-blue-400 cursor-pointer" onchange="toggleBulkField(this)">
+                        <label class="text-sm font-semibold text-gray-600 cursor-pointer select-none">اسم مدخل الدفع</label>
+                    </div>
+                    <input type="text" name="fields[payment_data_entry_name]" disabled placeholder="اسم مدخل الدفع..."
+                           list="payment-data-entry-list-be"
+                           class="be-input w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-100 text-gray-400 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
+                    <datalist id="payment-data-entry-list-be">
+                        @foreach($paymentDataEntryList as $pde)
+                            <option value="{{ $pde }}">
+                        @endforeach
+                    </datalist>
+                </div>
+
                 {{-- Estimated Amount --}}
                 <div class="be-field" data-field="estimated_amount">
                     <div class="flex items-center gap-2 mb-1.5">
@@ -1150,15 +1275,16 @@
                            class="be-input w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-100 text-gray-400 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
                 </div>
 
-                {{-- Final Amount --}}
-                <div class="be-field" data-field="final_amount">
+                {{-- Payments Count --}}
+                <div class="be-field" data-field="payments_count">
                     <div class="flex items-center gap-2 mb-1.5">
-                        <input type="checkbox" name="apply_fields[]" value="final_amount" class="be-toggle rounded border-gray-300 text-purple-600 focus:ring-purple-400 cursor-pointer" onchange="toggleBulkField(this)">
-                        <label class="text-sm font-semibold text-gray-600 cursor-pointer select-none">المبلغ النهائي (ل.س)</label>
+                        <input type="checkbox" name="apply_fields[]" value="payments_count" class="be-toggle rounded border-gray-300 text-blue-600 focus:ring-blue-400 cursor-pointer" onchange="toggleBulkField(this)">
+                        <label class="text-sm font-semibold text-gray-600 cursor-pointer select-none">عدد الدفعات</label>
                     </div>
-                    <input type="number" name="fields[final_amount]" min="0" step="0.01" disabled placeholder="أدخل المبلغ..."
-                           class="be-input w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-100 text-gray-400 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-400 transition">
+                    <input type="number" name="fields[payments_count]" min="0" step="1" disabled placeholder="أدخل عدد الدفعات..."
+                           class="be-input w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-100 text-gray-400 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
                 </div>
+
 
             </div>
 
@@ -1679,6 +1805,7 @@ function toggleDuplicates() {
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">الجولة الميدانية</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">المبلغ المقدر</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">المبلغ النهائي</th>
+                        <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">الدفعات</th>
                         <th class="px-4 py-3.5"></th>
                     </tr>
                 </thead>
@@ -1788,17 +1915,28 @@ function toggleDuplicates() {
                                 @endif
                             </td>
                             <td class="px-4 py-4">
-                                <form method="POST" action="{{ route('members.final-status.update', $member) }}" class="inline-block">
-                                    @csrf @method('PATCH')
-                                    <select name="final_status_id" onchange="this.form.submit()"
-                                            class="text-sm font-semibold rounded-full px-2.5 py-1 border cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-all"
-                                            style="@if($member->finalStatus) background:{{ $member->finalStatus->color }}18; color:{{ $member->finalStatus->color }}; border-color:{{ $member->finalStatus->color }}40 @else background:#f9fafb; color:#9ca3af; border-color:#e5e7eb @endif">
-                                        <option value="">— بدون —</option>
-                                        @foreach($finalStatusList as $fs)
-                                            <option value="{{ $fs->id }}" {{ $member->final_status_id == $fs->id ? 'selected' : '' }}>{{ $fs->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </form>
+                                @if(auth()->user()?->role === 'admin')
+                                    <form method="POST" action="{{ route('members.final-status.update', $member) }}" class="inline-block">
+                                        @csrf @method('PATCH')
+                                        <select name="final_status_id" onchange="this.form.submit()"
+                                                class="text-sm font-semibold rounded-full px-2.5 py-1 border cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-all"
+                                                style="@if($member->finalStatus) background:{{ $member->finalStatus->color }}18; color:{{ $member->finalStatus->color }}; border-color:{{ $member->finalStatus->color }}40 @else background:#f9fafb; color:#9ca3af; border-color:#e5e7eb @endif">
+                                            <option value="">— بدون —</option>
+                                            @foreach($finalStatusList as $fs)
+                                                <option value="{{ $fs->id }}" {{ $member->final_status_id == $fs->id ? 'selected' : '' }}>{{ $fs->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </form>
+                                @else
+                                    @if($member->finalStatus)
+                                        <span class="text-sm font-semibold rounded-full px-2.5 py-1 border"
+                                              style="background:{{ $member->finalStatus->color }}18; color:{{ $member->finalStatus->color }}; border-color:{{ $member->finalStatus->color }}40">
+                                            {{ $member->finalStatus->name }}
+                                        </span>
+                                    @else
+                                        <span class="text-gray-300 text-sm">—</span>
+                                    @endif
+                                @endif
                             </td>
                             <td class="px-4 py-4">
                                 @php $latestVisit = $member->fieldVisits->first(); @endphp
@@ -1827,6 +1965,15 @@ function toggleDuplicates() {
                                 @if($memberFinal > 0)
                                     <span class="inline-flex items-center gap-1 text-sm font-bold text-purple-700 bg-purple-50 border border-purple-100 rounded-lg px-2.5 py-1">
                                         {{ number_format($memberFinal, 0) }}
+                                    </span>
+                                @else
+                                    <span class="text-gray-300 text-sm">—</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-4">
+                                @if($member->payments_count !== null)
+                                    <span class="inline-flex items-center gap-1 text-sm font-bold text-sky-700 bg-sky-50 border border-sky-100 rounded-lg px-2.5 py-1">
+                                        {{ $member->payments_count }}
                                     </span>
                                 @else
                                     <span class="text-gray-300 text-sm">—</span>

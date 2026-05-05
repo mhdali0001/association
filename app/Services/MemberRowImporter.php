@@ -105,7 +105,10 @@ class MemberRowImporter
             $dependentStatusScore = min(2,  $this->toInt($row['درجة_حالة_المعيل']    ?? $row['dependent_status_score'] ?? null) ?? 0);
             $illnessScore         = min(5,  $this->toInt($row['درجة_المرض']           ?? $row['illness_score']          ?? null) ?? 0);
             $specialScore         = min(10, $this->toInt($row['درجة_الحالات_الخاصة'] ?? $row['special_cases_score']    ?? null) ?? 0);
-            $totalScore           = $workScore + $housingScore + $dependentsScore + $dependentStatusScore + $illnessScore + $specialScore;
+            $scoreDeduction       = max(0,  $this->toInt($row['انقاص_النقاط']        ?? $row['score_deduction']        ?? null) ?? 0);
+            $deductionReason      = trim($row['سبب_الانقاص'] ?? $row['score_deduction_reason'] ?? '') ?: null;
+            $rawScore             = $workScore + $housingScore + $dependentsScore + $dependentStatusScore + $illnessScore + $specialScore;
+            $totalScore           = max(0, $rawScore - $scoreDeduction);
 
             $member->update([
                 'score'            => $totalScore,
@@ -120,6 +123,8 @@ class MemberRowImporter
                 'dependent_status_score' => $dependentStatusScore,
                 'illness_score'          => $illnessScore,
                 'special_cases_score'    => $specialScore,
+                'score_deduction'        => $scoreDeduction,
+                'score_deduction_reason' => $deductionReason,
                 'total_score'            => $totalScore,
             ]);
 

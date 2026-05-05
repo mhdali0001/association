@@ -80,8 +80,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('/members/bulk-destroy',          [MemberController::class, 'bulkDestroy'])        ->name('members.bulk-destroy');
     Route::patch('/members/bulk-update',            [MemberController::class, 'bulkUpdate'])          ->name('members.bulk-update');
     Route::patch('/members/{member}/final-status', [MemberController::class, 'updateFinalStatus'])->name('members.final-status.update');
-    Route::get('/members/bulk-amount',  [MemberController::class, 'bulkAmountShow']) ->name('members.bulk-amount');
-    Route::post('/members/bulk-amount', [MemberController::class, 'bulkAmountApply'])->name('members.bulk-amount.apply');
+    Route::get('/members/bulk-amount',      [MemberController::class, 'bulkAmountShow'])      ->name('members.bulk-amount');
+    Route::post('/members/bulk-amount',     [MemberController::class, 'bulkAmountApply'])     ->name('members.bulk-amount.apply');
+    Route::get('/members/bulk-payments',    [MemberController::class, 'bulkPaymentsShow'])    ->name('members.bulk-payments');
+    Route::post('/members/bulk-payments',   [MemberController::class, 'bulkPaymentsApply'])   ->name('members.bulk-payments.apply');
+    Route::get('/members/score-deductions', [MemberController::class, 'scoreDeductionsIndex'])->name('members.score-deductions');
     Route::get('/members/import',                 [MemberImportController::class, 'show'])    ->name('members.import.show');
     Route::post('/members/import',                [MemberImportController::class, 'store'])   ->name('members.import.store');
     Route::get('/members/import-gender',          [\App\Http\Controllers\GenderImportController::class, 'show'])  ->name('members.import-gender.show');
@@ -109,6 +112,8 @@ Route::middleware('auth')->group(function () {
     Route::resource('house-conditions', \App\Http\Controllers\HouseConditionController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('housing-statuses', \App\Http\Controllers\HousingStatusController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('regions', \App\Http\Controllers\RegionController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::post('/regions/quick-store', [\App\Http\Controllers\RegionController::class, 'quickStore'])->name('regions.quick-store');
+    Route::get('/field-visits/with-amounts',                               [\App\Http\Controllers\FieldVisitController::class, 'withAmounts'])->name('field-visits.with-amounts');
     Route::post('/members/{member}/field-visits',                          [\App\Http\Controllers\FieldVisitController::class, 'store'])  ->name('field-visits.store');
     Route::put('/members/{member}/field-visits/{fieldVisit}',             [\App\Http\Controllers\FieldVisitController::class, 'update'])        ->name('field-visits.update');
     Route::patch('/members/{member}/field-visits/{fieldVisit}/adjust',   [\App\Http\Controllers\FieldVisitController::class, 'adjustAmount'])  ->name('field-visits.adjust');

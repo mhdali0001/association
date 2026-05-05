@@ -45,13 +45,7 @@ class MatchedAndReviewedExport extends DefaultValueBinder implements FromQuery, 
                 'pi.recipient_name',
                 DB::raw("REPLACE(pi.iban, ' ', '') as iban"),
                 DB::raw("COALESCE(REPLACE(pi.barcode, ' ', ''), '') as barcode"),
-                DB::raw("COALESCE(
-                    members.final_amount,
-                    COALESCE(members.estimated_amount, 0) + COALESCE(
-                        (SELECT estimated_amount FROM field_visits WHERE member_id = members.id ORDER BY created_at DESC LIMIT 1),
-                        0
-                    )
-                ) as total_amount"),
+                DB::raw("COALESCE(members.estimated_amount, 0) + COALESCE((SELECT estimated_amount FROM field_visits WHERE member_id = members.id ORDER BY created_at DESC LIMIT 1), 0) as total_amount"),
             )
             ->orderByRaw('CAST(members.dossier_number AS UNSIGNED) ASC');
     }

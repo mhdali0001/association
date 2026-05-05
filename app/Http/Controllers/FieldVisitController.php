@@ -57,7 +57,6 @@ class FieldVisitController extends Controller
 
         $data['created_by'] = Auth::id();
         $member->fieldVisits()->create($data);
-        $this->recomputeFinalAmount($member);
         ActivityLogger::log('created', "إضافة جولة ميدانية للمستفيد: {$member->full_name}", $member);
 
         return redirect()->route('members.show', $member)->with('success', 'تمت إضافة الجولة الميدانية بنجاح.');
@@ -118,7 +117,6 @@ class FieldVisitController extends Controller
         }
 
         $fieldVisit->update($data);
-        $this->recomputeFinalAmount($member);
         ActivityLogger::log('updated', "تعديل جولة ميدانية للمستفيد: {$member->full_name}", $member);
 
         return redirect()->route('members.show', $member)->with('success', 'تم تحديث الجولة الميدانية بنجاح.');
@@ -158,10 +156,107 @@ class FieldVisitController extends Controller
         }
 
         $fieldVisit->update(['estimated_amount' => $newAmount, 'amount_reason' => $reason]);
-        $this->recomputeFinalAmount($member);
         ActivityLogger::log('updated', "تعديل مبلغ جولة ({$sign}{$adjustment} ل.س) للمستفيد: {$member->full_name}", $member);
 
         return back()->with('success', "تم تعديل المبلغ: {$sign}" . number_format($adjustment) . " ل.س → المبلغ الجديد: " . number_format($newAmount) . " ل.س");
+    }
+
+    public function withAmounts(Request $request)
+    {
+        $search           = trim($request->get('search', ''));
+        $reasonFilter     = trim($request->get('reason', ''));
+        $visitorFilter    = trim($request->get('visitor', ''));
+        $createdByFilter  = array_filter((array) $request->get('created_by', []));
+        $dateFrom         = trim($request->get('date_from', ''));
+        $dateTo           = trim($request->get('date_to', ''));
+        $amountFrom       = trim($request->get('amount_from', ''));
+        $amountTo         = trim($request->get('amount_to', ''));
+        $typeFilter       = $request->get('type', 'all'); // all | positive | negative
+        $sortBy           = $request->get('sort', 'amount_desc');
+
+        $query = FieldVisit::query()
+            ->join('members', 'members.id', '=', 'field_visits.member_id')
+            ->whereNotNull('field_visits.estimated_amount')
+            ->where('field_visits.estimated_amount', '!=', 0)
+            ->with(['member.verificationStatus', 'status', 'createdBy'])
+            ->select('field_visits.*');
+
+        if ($typeFilter === 'positive') {
+            $query->where('field_visits.estimated_amount', '>', 0);
+        } elseif ($typeFilter === 'negative') {
+            $query->where('field_visits.estimated_amount', '<', 0);
+        }
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('members.full_name', 'like', "%{$search}%")
+                  ->orWhere('members.dossier_number', 'like', "%{$search}%")
+                  ->orWhere('members.national_id', 'like', "%{$search}%");
+            });
+        }
+
+        if ($reasonFilter !== '') {
+            $query->where('field_visits.amount_reason', 'like', "%{$reasonFilter}%");
+        }
+
+        if ($visitorFilter !== '') {
+            $query->where('field_visits.visitor', 'like', "%{$visitorFilter}%");
+        }
+
+        if (!empty($createdByFilter)) {
+            $query->whereIn('field_visits.created_by', $createdByFilter);
+        }
+
+        if ($dateFrom !== '') {
+            $query->where('field_visits.visit_date', '>=', $dateFrom);
+        }
+
+        if ($dateTo !== '') {
+            $query->where('field_visits.visit_date', '<=', $dateTo);
+        }
+
+        if ($amountFrom !== '') {
+            $query->where('field_visits.estimated_amount', '>=', (float)$amountFrom);
+        }
+
+        if ($amountTo !== '') {
+            $query->where('field_visits.estimated_amount', '<=', (float)$amountTo);
+        }
+
+        $query->when($sortBy === 'amount_desc', fn($q) => $q->orderByDesc('field_visits.estimated_amount'))
+              ->when($sortBy === 'amount_asc',  fn($q) => $q->orderBy('field_visits.estimated_amount'))
+              ->when($sortBy === 'date_desc',   fn($q) => $q->orderByDesc('field_visits.visit_date'))
+              ->when($sortBy === 'date_asc',    fn($q) => $q->orderBy('field_visits.visit_date'))
+              ->when($sortBy === 'name',        fn($q) => $q->orderBy('members.full_name'))
+              ->when($sortBy === 'dossier',     fn($q) => $q->orderBy('members.dossier_number'));
+
+        $visits = $query->paginate(50)->withQueryString();
+
+        $statsBase     = FieldVisit::whereNotNull('estimated_amount')->where('estimated_amount', '!=', 0);
+        $totalCount    = (clone $statsBase)->count();
+        $totalMembers  = (clone $statsBase)->distinct('member_id')->count('member_id');
+        $positiveCount = (clone $statsBase)->where('estimated_amount', '>', 0)->count();
+        $positiveTotal = (clone $statsBase)->where('estimated_amount', '>', 0)->sum('estimated_amount');
+        $negativeCount = (clone $statsBase)->where('estimated_amount', '<', 0)->count();
+        $negativeTotal = (clone $statsBase)->where('estimated_amount', '<', 0)->sum('estimated_amount');
+
+        $visitorList    = FieldVisit::whereNotNull('estimated_amount')->where('estimated_amount', '!=', 0)
+                              ->whereNotNull('visitor')->where('visitor', '!=', '')
+                              ->distinct()->orderBy('visitor')->pluck('visitor');
+        $reasonList     = FieldVisit::whereNotNull('estimated_amount')->where('estimated_amount', '!=', 0)
+                              ->whereNotNull('amount_reason')->where('amount_reason', '!=', '')
+                              ->distinct()->orderBy('amount_reason')->pluck('amount_reason');
+        $createdByList  = \App\Models\User::whereIn('id',
+                              FieldVisit::whereNotNull('estimated_amount')->where('estimated_amount', '!=', 0)
+                                  ->whereNotNull('created_by')->distinct()->pluck('created_by')
+                          )->orderBy('name')->get(['id', 'name']);
+
+        return view('field-visits.with-amounts', compact(
+            'visits', 'totalCount', 'totalMembers',
+            'positiveCount', 'positiveTotal', 'negativeCount', 'negativeTotal',
+            'search', 'reasonFilter', 'visitorFilter', 'createdByFilter', 'dateFrom', 'dateTo',
+            'amountFrom', 'amountTo', 'typeFilter', 'sortBy', 'visitorList', 'reasonList', 'createdByList'
+        ));
     }
 
     public function destroy(Member $member, FieldVisit $fieldVisit)
@@ -196,15 +291,10 @@ class FieldVisitController extends Controller
         }
 
         $fieldVisit->delete();
-        $this->recomputeFinalAmount($member);
         ActivityLogger::log('deleted', "حذف جولة ميدانية للمستفيد: {$member->full_name}", $member);
 
         return redirect()->route('members.show', $member)->with('success', 'تم حذف الجولة الميدانية.');
     }
 
-    private function recomputeFinalAmount(Member $member): void
-    {
-        $visitAmount = $member->fieldVisits()->latest()->value('estimated_amount') ?? 0;
-        $member->update(['final_amount' => ($member->estimated_amount ?? 0) + $visitAmount]);
-    }
 }
+

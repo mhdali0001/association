@@ -6,6 +6,7 @@ use App\Models\Association;
 use App\Models\Donation;
 use App\Models\MaritalStatus;
 use App\Models\MemberImage;
+use App\Models\MemberScore;
 use App\Models\PaymentInfoAI;
 use App\Models\VerificationStatus;
 use Illuminate\Database\Eloquent\Model;
@@ -46,9 +47,10 @@ class PendingChange extends Model
             'create'       => 'إضافة',
             'update'       => 'تعديل',
             'delete'       => 'حذف',
-            'bulk_amount'  => 'تعديل جماعي للمبلغ',
-            'bulk_delete'  => 'حذف جماعي',
-            'bulk_update'  => 'تعديل جماعي',
+            'bulk_amount'           => 'تعديل جماعي للمبلغ',
+            'bulk_score_deduction'  => 'انقاص جماعي للنقاط',
+            'bulk_delete'           => 'حذف جماعي',
+            'bulk_update'           => 'تعديل جماعي',
             default        => $this->action,
         };
     }
@@ -64,6 +66,7 @@ class PendingChange extends Model
             'association'         => 'جمعية',
             'verification_status' => 'حالة تحقق',
             'field_visit'         => 'جولة ميدانية',
+            'region'              => 'منطقة',
             default               => $this->model_type,
         };
     }
@@ -71,7 +74,7 @@ class PendingChange extends Model
     /** A short description for list views */
     public function summary(): string
     {
-        if ($this->action === 'bulk_amount') {
+        if (in_array($this->action, ['bulk_amount', 'bulk_score_deduction'])) {
             return "{$this->actionLabel()}: " . ($this->payload['label'] ?? '');
         }
 
@@ -97,7 +100,8 @@ class PendingChange extends Model
             'field_visit'         => $this->payload['member_name'] ?? $this->getAttribute('original')['member_name'] ?? "#{$this->model_id}",
             'marital_status',
             'association',
-            'verification_status' => $this->payload['name'] ?? $this->getAttribute('original')['name'] ?? "#{$this->model_id}",
+            'verification_status',
+            'region'              => $this->payload['name'] ?? $this->getAttribute('original')['name'] ?? "#{$this->model_id}",
             default               => "#{$this->model_id}",
         };
         return "{$this->actionLabel()} {$this->modelLabel()}: {$name}";
@@ -111,6 +115,8 @@ class PendingChange extends Model
     {
         if ($this->action === 'bulk_amount') {
             $this->applyBulkAmount();
+        } elseif ($this->action === 'bulk_score_deduction') {
+            $this->applyBulkScoreDeduction();
         } elseif ($this->action === 'bulk_delete') {
             $this->applyBulkDelete();
         } elseif ($this->action === 'bulk_update') {
@@ -124,6 +130,7 @@ class PendingChange extends Model
                 'association'         => $this->applyAssociation(),
                 'verification_status' => $this->applyVerificationStatus(),
                 'field_visit'         => $this->applyFieldVisit(),
+                'region'              => $this->applyRegion(),
                 default               => throw new \RuntimeException("Unknown model type: {$this->model_type}"),
             };
         }
@@ -161,6 +168,26 @@ class PendingChange extends Model
             }
         }
 
+        if (array_key_exists('fv_visitor', $fields)) {
+            $visitor = $fields['fv_visitor'];
+            unset($fields['fv_visitor']);
+            foreach ($ids as $memberId) {
+                $visit = \App\Models\FieldVisit::where('member_id', $memberId)->latest()->first();
+                if ($visit) {
+                    $visit->update(['visitor' => $visitor]);
+                }
+            }
+        }
+
+        if (array_key_exists('payment_data_entry_name', $fields)) {
+            $payDeName = $fields['payment_data_entry_name'];
+            unset($fields['payment_data_entry_name']);
+            foreach ($ids as $memberId) {
+                \App\Models\PaymentInfo::where('member_id', $memberId)
+                    ->update(['data_entry_name' => $payDeName ?: null]);
+            }
+        }
+
         if (!empty($fields)) {
             Member::whereIn('id', $ids)->update($fields);
         }
@@ -172,9 +199,7 @@ class PendingChange extends Model
         $operation = $p['operation'];
         $amount    = (float) $p['amount'];
         $ids       = $p['member_ids'] ?? [];
-        $field     = in_array($p['field'] ?? '', ['estimated_amount', 'final_amount'])
-                        ? $p['field']
-                        : 'estimated_amount';
+        $field = 'estimated_amount';
 
         if (empty($ids)) {
             return;
@@ -194,13 +219,51 @@ class PendingChange extends Model
         }
     }
 
+    private function applyBulkScoreDeduction(): void
+    {
+        $p         = $this->payload ?? [];
+        $deduction = (int) ($p['score_deduction'] ?? 0);
+        $reason    = $p['score_deduction_reason'] ?? null;
+        $ids       = $p['member_ids'] ?? [];
+
+        if (empty($ids)) return;
+
+        foreach ($ids as $memberId) {
+            $member = Member::find($memberId);
+            if (!$member) continue;
+
+            $scores = $member->scores ?? new MemberScore(['member_id' => $memberId]);
+
+            $rawScore = ($scores->work_score            ?? 0)
+                      + ($scores->housing_score          ?? 0)
+                      + ($scores->dependents_score       ?? 0)
+                      + ($scores->dependent_status_score ?? 0)
+                      + ($scores->illness_score          ?? 0)
+                      + ($scores->special_cases_score    ?? 0);
+
+            $totalScore = max(0, $rawScore - $deduction);
+
+            $scores->fill([
+                'member_id'              => $memberId,
+                'score_deduction'        => $deduction,
+                'score_deduction_reason' => $reason,
+                'total_score'            => $totalScore,
+            ])->save();
+
+            $member->update([
+                'score'            => $totalScore,
+                'estimated_amount' => $totalScore * 500,
+            ]);
+        }
+    }
+
     /**
      * Reverse a previously-applied change (called from revoke).
      * Best-effort: bulk and delete-type actions may not be fully reversible.
      */
     public function undo(): void
     {
-        if (in_array($this->action, ['bulk_amount', 'bulk_delete', 'bulk_update'])) {
+        if (in_array($this->action, ['bulk_amount', 'bulk_score_deduction', 'bulk_delete', 'bulk_update'])) {
             return; // bulk operations are not automatically reversible
         }
 
@@ -255,11 +318,6 @@ class PendingChange extends Model
             }
         }
 
-        if ($member) {
-            $member->refresh();
-            $visitAmount = $member->fieldVisits()->latest()->value('estimated_amount') ?? 0;
-            $member->update(['final_amount' => ($member->estimated_amount ?? 0) + $visitAmount]);
-        }
     }
 
     private function undoMember(): void
@@ -284,9 +342,9 @@ class PendingChange extends Model
             'verification_status_id', 'final_status_id', 'dossier_number',
             'current_address', 'region_id', 'marital_status', 'disease_type',
             'phone', 'phone2', 'network', 'provider_status', 'job', 'housing_status_id',
-            'dependents_count', 'illness_details', 'special_cases',
+            'dependents_count', 'payments_count', 'notes', 'illness_details', 'special_cases',
             'special_cases_description', 'sham_cash_account', 'other_association',
-            'representative_id', 'delegate', 'second_person', 'association_id', 'estimated_amount', 'final_amount',
+            'representative_id', 'data_entry_name', 'delegate', 'second_person', 'association_id', 'estimated_amount',
         ]));
         if (!empty($restorable)) {
             $member->update($restorable);
@@ -393,6 +451,7 @@ class PendingChange extends Model
             'phone'                     => $p['phone']                     ?? null,
             'phone2'                    => $p['phone2']                    ?? null,
             'representative_id'         => $p['representative_id']         ?? null,
+            'data_entry_name'           => $p['data_entry_name']           ?? null,
             'delegate'                  => $p['delegate']                  ?? null,
             'second_person'             => $p['second_person']             ?? null,
             'association_id'            => $p['association_id']            ?? null,
@@ -401,6 +460,8 @@ class PendingChange extends Model
             'job'                       => $p['job']                       ?? null,
             'housing_status_id'         => $p['housing_status_id']         ?? null,
             'dependents_count'          => $p['dependents_count']          ?? null,
+            'payments_count'            => $p['payments_count']            ?? null,
+            'notes'                     => $p['notes']                     ?? null,
             'illness_details'           => $p['illness_details']           ?? null,
             'special_cases'             => $p['special_cases']             ?? false,
             'special_cases_description' => $p['special_cases_description'] ?? null,
@@ -425,17 +486,17 @@ class PendingChange extends Model
         $paymentAI = $p['payment_ai'] ?? [];
 
         if ($this->action === 'create') {
-            $memberData['final_amount'] = $totalScore * 500;
             $member = Member::create($memberData);
             $this->updateQuietly(['model_id' => $member->id]);
             MemberScore::create(array_merge($scoresData, ['member_id' => $member->id]));
             PaymentInfo::create(array_merge([
-                'member_id'      => $member->id,
-                'iban'           => $payment['iban']           ?? null,
-                'barcode'        => $payment['barcode']        ?? null,
-                'iban_image'     => $payment['iban_image']     ?? null,
-                'barcode_image'  => $payment['barcode_image']  ?? null,
-                'recipient_name' => $payment['recipient_name'] ?? null,
+                'member_id'       => $member->id,
+                'iban'            => $payment['iban']            ?? null,
+                'barcode'         => $payment['barcode']         ?? null,
+                'iban_image'      => $payment['iban_image']      ?? null,
+                'barcode_image'   => $payment['barcode_image']   ?? null,
+                'recipient_name'  => $payment['recipient_name']  ?? null,
+                'data_entry_name' => $payment['data_entry_name'] ?? null,
             ]));
             PaymentInfoAI::create([
                 'member_id'      => $member->id,
@@ -448,8 +509,6 @@ class PendingChange extends Model
             }
         } elseif ($this->action === 'update') {
             $member = Member::findOrFail($this->model_id);
-            $visitAmount = \App\Models\FieldVisit::where('member_id', $this->model_id)->latest()->value('estimated_amount') ?? 0;
-            $memberData['final_amount'] = $totalScore * 500 + $visitAmount;
             $member->update($memberData);
 
             $s = $member->scores ?? new MemberScore(['member_id' => $member->id]);
@@ -457,12 +516,13 @@ class PendingChange extends Model
 
             $pay = $member->paymentInfo ?? new PaymentInfo(['member_id' => $member->id]);
             $pay->fill([
-                'member_id'      => $member->id,
-                'iban'           => $payment['iban']           ?? $pay->iban,
-                'barcode'        => $payment['barcode']        ?? $pay->barcode,
-                'iban_image'     => $payment['iban_image']     ?? $pay->iban_image,
-                'barcode_image'  => $payment['barcode_image']  ?? $pay->barcode_image,
-                'recipient_name' => $payment['recipient_name'] ?? $pay->recipient_name,
+                'member_id'       => $member->id,
+                'iban'            => $payment['iban']            ?? $pay->iban,
+                'barcode'         => $payment['barcode']         ?? $pay->barcode,
+                'iban_image'      => $payment['iban_image']      ?? $pay->iban_image,
+                'barcode_image'   => $payment['barcode_image']   ?? $pay->barcode_image,
+                'recipient_name'  => $payment['recipient_name']  ?? $pay->recipient_name,
+                'data_entry_name' => $payment['data_entry_name'] ?? $pay->data_entry_name,
             ])->save();
 
             $payAI = $member->paymentInfoAI ?? new PaymentInfoAI(['member_id' => $member->id]);
@@ -557,12 +617,15 @@ class PendingChange extends Model
             'job'                       => 'العمل',
             'housing_status'            => 'حالة السكن',
             'dependents_count'          => 'عدد المعالين',
+            'payments_count'            => 'عدد الدفعات',
+            'notes'                     => 'ملاحظة',
             'illness_details'           => 'تفاصيل المرض',
             'special_cases'             => 'حالة خاصة',
             'special_cases_description' => 'وصف الحالة الخاصة',
             'sham_cash_account'         => 'حساب شام كاش',
             'other_association'         => 'جمعية أخرى',
             'representative_id'         => 'الممثل المسؤول',
+            'data_entry_name'           => 'اسم المدخل (يدوي)',
             'delegate'                  => 'المندوب الخارجي',
             'second_person'             => 'الشخص الثاني',
             'association_id'            => 'الجمعية',
@@ -577,9 +640,11 @@ class PendingChange extends Model
             'payment.iban'                  => 'رقم الآيبان',
             'payment.barcode'               => 'الباركود',
             'payment.recipient_name'        => 'اسم المستلم',
+            'payment.data_entry_name'       => 'اسم مدخل بيانات الدفع',
             'estimated_amount'              => 'المبلغ المقدر',
-            'final_amount'                  => 'المبلغ النهائي',
             'field_visit_status_id'         => 'حالة الجولة الميدانية',
+            'fv_visitor'                    => 'زائر الجولة',
+            'payment_data_entry_name'       => 'اسم مدخل الدفع',
             'payment_ai.iban'               => 'رقم الآيبان AI',
             'payment_ai.barcode'            => 'الباركود AI',
             'payment_ai.recipient_name'     => 'اسم المستلم AI',
@@ -706,17 +771,39 @@ class PendingChange extends Model
         ];
     }
 
+    private function applyRegion(): void
+    {
+        $p = $this->payload ?? [];
+
+        if ($this->action === 'delete') {
+            \App\Models\Region::find($this->model_id)?->delete();
+            return;
+        }
+
+        $data = ['name' => $p['name'], 'is_active' => $p['is_active'] ?? true];
+
+        if ($this->action === 'create') {
+            $region = \App\Models\Region::create($data);
+            $this->updateQuietly(['model_id' => $region->id]);
+        } elseif ($this->action === 'update') {
+            \App\Models\Region::findOrFail($this->model_id)->update($data);
+        }
+    }
+
+    public static function regionFieldLabels(): array
+    {
+        return [
+            'name'      => 'الاسم',
+            'is_active' => 'نشط',
+        ];
+    }
+
     private function applyFieldVisit(): void
     {
         $p = $this->payload ?? [];
 
         if ($this->action === 'delete') {
             \App\Models\FieldVisit::find($this->model_id)?->delete();
-            $member = \App\Models\Member::find($p['member_id'] ?? null);
-            if ($member) {
-                $visitAmount = $member->fieldVisits()->latest()->value('estimated_amount') ?? 0;
-                $member->update(['final_amount' => ($member->estimated_amount ?? 0) + $visitAmount]);
-            }
             return;
         }
 
@@ -740,17 +827,11 @@ class PendingChange extends Model
                 $data['created_by'] = $this->requested_by;
                 $visit = $member->fieldVisits()->create($data);
                 $this->updateQuietly(['model_id' => $visit->id]);
-                $visitAmount = $member->fieldVisits()->latest()->value('estimated_amount') ?? 0;
-                $member->update(['final_amount' => ($member->estimated_amount ?? 0) + $visitAmount]);
             }
         } elseif ($this->action === 'update') {
             $visit = \App\Models\FieldVisit::find($this->model_id);
             if ($visit) {
                 $visit->update($data);
-                if ($member) {
-                    $visitAmount = $member->fieldVisits()->latest()->value('estimated_amount') ?? 0;
-                    $member->update(['final_amount' => ($member->estimated_amount ?? 0) + $visitAmount]);
-                }
             }
         }
     }

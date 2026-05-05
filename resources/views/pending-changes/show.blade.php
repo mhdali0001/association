@@ -51,17 +51,22 @@
         $topFields   = array_keys($labels);
         $scoreFields = [];
         $paymentFields = [];
+    } elseif ($modelType === 'region') {
+        $labels      = \App\Models\PendingChange::regionFieldLabels();
+        $topFields   = array_keys($labels);
+        $scoreFields = [];
+        $paymentFields = [];
     } else {
         $labels = \App\Models\PendingChange::memberFieldLabels();
         $topFields = [
             'full_name','age','gender','mother_name','national_id','verification_status_id',
             'dossier_number','current_address','marital_status','disease_type','phone','phone2',
-            'network','provider_status','job','housing_status','dependents_count',
+            'network','provider_status','job','housing_status','dependents_count','payments_count','notes',
             'illness_details','special_cases','special_cases_description','sham_cash_account',
             'other_association','representative_id','delegate','association_id','score','estimated_amount',
         ];
         $scoreFields   = ['work_score','housing_score','dependents_score','dependent_status_score','illness_score','special_cases_score'];
-        $paymentFields = ['iban','barcode'];
+        $paymentFields = ['iban','barcode','data_entry_name'];
     }
 
     // Resolve member link
@@ -176,6 +181,35 @@
                 <p class="text-xs text-gray-400 mb-0.5">عدد الأعضاء</p>
                 <p class="text-sm font-bold text-violet-700">{{ $payload['count'] ?? count($payload['member_ids'] ?? []) }}</p>
             </div>
+        </div>
+    </div>
+
+{{-- BULK SCORE DEDUCTION case --}}
+@elseif($action === 'bulk_score_deduction')
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-6">
+        <div class="flex items-center gap-2.5 bg-gradient-to-l from-red-50 to-orange-50 border-b border-red-100 px-6 py-3.5">
+            <div class="w-7 h-7 rounded-lg bg-red-100 flex items-center justify-center">
+                <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4"/>
+                </svg>
+            </div>
+            <h2 class="text-sm font-bold text-red-800">انقاص جماعي للنقاط</h2>
+        </div>
+        <div class="p-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="bg-red-50 rounded-xl px-3 py-2.5 border border-red-100">
+                <p class="text-xs text-gray-400 mb-0.5">مقدار الانقاص</p>
+                <p class="text-sm font-bold text-red-700">{{ $payload['score_deduction'] ?? 0 }} نقطة</p>
+            </div>
+            <div class="bg-red-50 rounded-xl px-3 py-2.5 border border-red-100">
+                <p class="text-xs text-gray-400 mb-0.5">عدد الأعضاء</p>
+                <p class="text-sm font-bold text-red-700">{{ $payload['count'] ?? count($payload['member_ids'] ?? []) }}</p>
+            </div>
+            @if(!empty($payload['score_deduction_reason']))
+            <div class="bg-red-50 rounded-xl px-3 py-2.5 border border-red-100 sm:col-span-2">
+                <p class="text-xs text-gray-400 mb-0.5">السبب</p>
+                <p class="text-sm font-bold text-red-700">{{ $payload['score_deduction_reason'] }}</p>
+            </div>
+            @endif
         </div>
     </div>
 
@@ -384,7 +418,7 @@
             </form>
 
             {{-- Approve with edit toggle --}}
-            @if($action !== 'delete' && !in_array($action, ['bulk_amount','bulk_delete','bulk_update']))
+            @if($action !== 'delete' && !in_array($action, ['bulk_amount','bulk_delete','bulk_update','bulk_score_deduction']))
             <button type="button" onclick="toggleEditPanel()"
                     class="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-6 py-3 rounded-xl transition-colors shadow-sm">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -413,7 +447,7 @@
         </div>
 
         {{-- Edit & Approve panel --}}
-        @if($action !== 'delete' && !in_array($action, ['bulk_amount','bulk_delete','bulk_update']))
+        @if($action !== 'delete' && !in_array($action, ['bulk_amount','bulk_delete','bulk_update','bulk_score_deduction']))
         <div id="edit-panel" class="hidden border-t border-blue-100 pt-5 mt-2">
             <div class="flex items-center gap-2 mb-4">
                 <div class="w-7 h-7 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -540,7 +574,7 @@
                     </div>
 
                 {{-- Marital status / Association / Verification status --}}
-                @elseif(in_array($modelType, ['marital_status','association','verification_status']))
+                @elseif(in_array($modelType, ['marital_status','association','verification_status','region']))
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">الاسم</label>
@@ -728,6 +762,11 @@
                             <span class="text-xs font-bold text-gray-600">حالة خاصة</span>
                         </label>
                     </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-bold text-gray-500 mb-1">ملاحظة</label>
+                        <textarea name="payload[notes]" rows="2"
+                                  class="{{ $inp }} resize-none">{{ $editPayload['notes'] ?? '' }}</textarea>
+                    </div>
                 </div>
 
                 {{-- Section: النقاط --}}
@@ -759,10 +798,14 @@
                 {{-- Section: بيانات الدفع --}}
                 @if(!empty($editPayload['payment']))
                 <p class="text-xs font-bold text-blue-600 uppercase tracking-wider mb-2">بيانات الدفع</p>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-1">اسم المستلم</label>
                         <input type="text" name="payload[payment][recipient_name]" value="{{ $editPayload['payment']['recipient_name'] ?? '' }}" class="{{ $inp }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">اسم مدخل البيانات</label>
+                        <input type="text" name="payload[payment][data_entry_name]" value="{{ $editPayload['payment']['data_entry_name'] ?? '' }}" class="{{ $inp }}">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-1">رقم الآيبان</label>
