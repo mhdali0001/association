@@ -387,19 +387,38 @@
         </div>
 
         <div class="lg:col-span-4">
-            @php $shamVal = old('sham_cash_account', $isEdit ? ($member->sham_cash_account ?? '') : ''); @endphp
-            <label class="{{ $labelClass }}">شام كاش</label>
-            <div class="flex items-center gap-3 flex-wrap mt-1">
-                @foreach(['' => 'لا', 'done' => 'نعم (تم)', 'manual' => 'يدوي'] as $optVal => $optLabel)
-                <label class="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-xl border text-sm font-medium transition-colors
-                    {{ $shamVal === $optVal ? 'bg-emerald-50 border-emerald-400 text-emerald-700' : 'bg-white border-gray-200 text-gray-600 hover:border-emerald-300' }}">
-                    <input type="radio" name="sham_cash_account" value="{{ $optVal }}"
-                           {{ $shamVal === $optVal ? 'checked' : '' }}
-                           class="text-emerald-600 focus:ring-emerald-500">
-                    {{ $optLabel }}
-                </label>
-                @endforeach
-            </div>
+            @php
+                $shamVal   = old('sham_cash_account', $isEdit ? ($member->sham_cash_account ?? '') : '');
+                $canEditSham = auth()->user()?->role === 'admin';
+                $shamLabels  = ['' => 'لا', 'done' => 'نعم (تم)', 'manual' => 'يدوي'];
+            @endphp
+            <label class="{{ $labelClass }}">
+                شام كاش
+                @if(!$canEditSham)
+                    <span class="mr-1 text-xs font-normal text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md">للمسؤول فقط</span>
+                @endif
+            </label>
+            @if($canEditSham)
+                <div class="flex items-center gap-3 flex-wrap mt-1">
+                    @foreach($shamLabels as $optVal => $optLabel)
+                    <label class="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-xl border text-sm font-medium transition-colors
+                        {{ $shamVal === $optVal ? 'bg-emerald-50 border-emerald-400 text-emerald-700' : 'bg-white border-gray-200 text-gray-600 hover:border-emerald-300' }}">
+                        <input type="radio" name="sham_cash_account" value="{{ $optVal }}"
+                               {{ $shamVal === $optVal ? 'checked' : '' }}
+                               class="text-emerald-600 focus:ring-emerald-500">
+                        {{ $optLabel }}
+                    </label>
+                    @endforeach
+                </div>
+            @else
+                <input type="hidden" name="sham_cash_account" value="{{ $shamVal }}">
+                <div class="mt-1 px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-500 inline-flex items-center gap-2 cursor-not-allowed select-none">
+                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                    {{ $shamLabels[$shamVal] ?? 'لا' }}
+                </div>
+            @endif
         </div>
 
         {{-- Score & Amount (readonly) --}}
@@ -482,6 +501,23 @@
                    class="w-full border {{ $colorBorder[$c] }} {{ $colorBg[$c] }} {{ $colorText[$c] }} font-bold rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-{{ $c }}-400 transition text-center">
         </div>
         @endforeach
+
+        {{-- إضافة نقاط --}}
+        <div class="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl">
+            <div>
+                <label class="block text-xs font-bold text-emerald-700 uppercase tracking-wide mb-1.5">إضافة نقاط</label>
+                <input type="number" name="score_addition" min="0" oninput="calcTotal()"
+                       value="{{ $scores?->score_addition ?? 0 }}"
+                       class="w-full border border-emerald-200 bg-white text-emerald-700 font-bold rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 transition text-center">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-emerald-700 uppercase tracking-wide mb-1.5">سبب الإضافة</label>
+                <input type="text" name="score_addition_reason"
+                       value="{{ $scores?->score_addition_reason ?? '' }}"
+                       placeholder="سبب إضافة النقاط..."
+                       class="w-full border border-emerald-200 bg-white text-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 transition">
+            </div>
+        </div>
 
         {{-- انقاص النقاط --}}
         <div class="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl">
@@ -716,9 +752,11 @@ function calcTotal() {
         const el = document.querySelector('[name="' + f + '"]');
         if (el) total += Math.max(0, parseInt(el.value) || 0);
     });
+    const additionEl = document.querySelector('[name="score_addition"]');
+    const addition = additionEl ? Math.max(0, parseInt(additionEl.value) || 0) : 0;
     const deductionEl = document.querySelector('[name="score_deduction"]');
     const deduction = deductionEl ? Math.max(0, parseInt(deductionEl.value) || 0) : 0;
-    total = Math.max(0, total - deduction);
+    total = Math.max(0, total + addition - deduction);
     const display = document.getElementById('total_score_display');
     if (display) display.textContent = total;
     const bar = document.getElementById('total_score_bar');

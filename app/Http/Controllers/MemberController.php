@@ -72,6 +72,8 @@ class MemberController extends Controller
         $housingStatusIds    = array_filter((array) $request->get('housing_status_id', []));
         $estimatedFrom       = trim($request->get('estimated_from', ''));
         $estimatedTo         = trim($request->get('estimated_to', ''));
+        $paymentsCountFrom   = trim($request->get('payments_count_from', ''));
+        $paymentsCountTo     = trim($request->get('payments_count_to', ''));
         // Field visit filters
         $fieldVisitStatusIds = array_filter((array) $request->get('field_visit_status_id', []));
         $fvHouseTypeIds      = array_filter((array) $request->get('fv_house_type_id', []));
@@ -168,6 +170,8 @@ class MemberController extends Controller
         $this->applyNoneFilter($query, 'housing_status_id', $housingStatusIds);
         if ($estimatedFrom !== '') $query->where('estimated_amount', '>=', (float) str_replace(',', '', $estimatedFrom));
         if ($estimatedTo   !== '') $query->where('estimated_amount', '<=', (float) str_replace(',', '', $estimatedTo));
+        if ($paymentsCountFrom !== '') $query->where('payments_count', '>=', (int) $paymentsCountFrom);
+        if ($paymentsCountTo   !== '') $query->where('payments_count', '<=', (int) $paymentsCountTo);
         if (!empty($paymentDataEntries)) {
             $includeNone = in_array('none', $paymentDataEntries);
             $realNames   = array_values(array_filter($paymentDataEntries, fn($v) => $v !== 'none'));
@@ -239,6 +243,8 @@ class MemberController extends Controller
         $fvCount              = trim($request->get('fv_count', ''));
         $estimatedFrom        = trim($request->get('estimated_from', ''));
         $estimatedTo          = trim($request->get('estimated_to', ''));
+        $paymentsCountFrom    = trim($request->get('payments_count_from', ''));
+        $paymentsCountTo      = trim($request->get('payments_count_to', ''));
         $regionList           = \App\Models\Region::active()->orderBy('name')->get();
         $verificationStatuses = VerificationStatus::active()->orderBy('name')->get();
         $finalStatusList      = FinalStatus::active()->orderBy('name')->get();
@@ -293,7 +299,7 @@ class MemberController extends Controller
         return view('members.index', compact(
             'members', 'search', 'dossierFrom', 'dossierTo', 'totalAmount', 'totalFinalAmount',
             'verificationIds', 'finalStatusIds', 'maritalStatuses', 'genders', 'delegates', 'secondPersons', 'specialCases', 'specialDescriptions', 'addresses', 'associationIds', 'networks', 'fieldVisitStatusIds', 'regionIds', 'housingStatusIds',
-            'estimatedFrom', 'estimatedTo',
+            'estimatedFrom', 'estimatedTo', 'paymentsCountFrom', 'paymentsCountTo',
             'fvHouseTypeIds', 'fvHouseConditionIds', 'fvVisitors', 'fvVisitorList', 'fvCreatedByIds', 'fvCreatedByList', 'fvDateFrom', 'fvDateTo', 'fvAmountFrom', 'fvAmountTo', 'fvNotes', 'fvHasVideo', 'fvHasSpecialCase', 'fvCount',
             'verificationStatuses', 'finalStatusList', 'maritalStatusList', 'delegateList', 'secondPersonList', 'specialDescriptionList', 'addressList', 'associationList',
             'duplicateIbans', 'fieldVisitStatuses', 'regionList', 'houseTypes', 'houseConditions', 'housingStatusList',
@@ -435,14 +441,16 @@ class MemberController extends Controller
     public function bulkAmountApply(Request $request)
     {
         $request->validate([
-            'score_deduction'        => 'required|integer|min:0',
+            'score_deduction'        => 'nullable|integer|min:0',
             'score_deduction_reason' => 'nullable|string|max:1000',
+            'score_addition'         => 'nullable|integer|min:0',
+            'score_addition_reason'  => 'nullable|string|max:1000',
             'apply_to'               => 'required|in:selected,filtered',
             'member_ids'             => 'array',
         ]);
 
-        $deduction = (int) $request->score_deduction;
-        $reason    = $request->score_deduction_reason ?: null;
+        $mode      = $request->get('ba_mode', 'deduct');
+        $isAdd     = $mode === 'add';
         $applyTo   = $request->apply_to;
 
         $query = $applyTo === 'selected'
@@ -450,15 +458,45 @@ class MemberController extends Controller
             : $this->buildBulkAmountQuery($request);
 
         $count = $query->count();
-
         if ($count === 0) {
             return back()->with('error', 'لم يتم تحديد أي أعضاء.');
         }
 
-        $label = "انقاص {$deduction} نقطة من {$count} عضو";
-        if ($reason) {
-            $label .= " — السبب: {$reason}";
+        if ($isAdd) {
+            $addition = (int) $request->score_addition;
+            $reason   = $request->score_addition_reason ?: null;
+            $label    = "إضافة {$addition} نقطة لـ {$count} عضو";
+            if ($reason) $label .= " — السبب: {$reason}";
+
+            if (!$this->isAdmin()) {
+                $memberIds = $query->pluck('id')->all();
+                PendingChange::create([
+                    'model_type'   => 'member',
+                    'model_id'     => null,
+                    'action'       => 'bulk_score_addition',
+                    'payload'      => [
+                        'score_addition'        => $addition,
+                        'score_addition_reason' => $reason,
+                        'member_ids'            => $memberIds,
+                        'count'                 => $count,
+                        'label'                 => $label,
+                    ],
+                    'original'     => null,
+                    'requested_by' => Auth::id(),
+                    'status'       => 'pending',
+                ]);
+                return back()->with('success', "تم إرسال طلب إضافة النقاط ({$label}) وهو بانتظار موافقة المسؤول.");
+            }
+
+            $this->applyBulkScoreAdditionToIds($query->pluck('id')->all(), $addition, $reason);
+            ActivityLogger::log('updated', "إضافة جماعية للنقاط: {$label}");
+            return back()->with('success', "تم تطبيق إضافة النقاط بنجاح: {$label}.");
         }
+
+        $deduction = (int) $request->score_deduction;
+        $reason    = $request->score_deduction_reason ?: null;
+        $label     = "انقاص {$deduction} نقطة من {$count} عضو";
+        if ($reason) $label .= " — السبب: {$reason}";
 
         if (!$this->isAdmin()) {
             $memberIds = $query->pluck('id')->all();
@@ -481,10 +519,40 @@ class MemberController extends Controller
         }
 
         $this->applyBulkScoreDeductionToIds($query->pluck('id')->all(), $deduction, $reason);
-
         ActivityLogger::log('updated', "انقاص جماعي للنقاط: {$label}");
-
         return back()->with('success', "تم تطبيق انقاص النقاط بنجاح: {$label}.");
+    }
+
+    private function applyBulkScoreAdditionToIds(array $ids, int $addition, ?string $reason): void
+    {
+        foreach ($ids as $memberId) {
+            $member = Member::find($memberId);
+            if (!$member) continue;
+
+            $scores = $member->scores ?? new MemberScore(['member_id' => $memberId]);
+
+            $rawScore = ($scores->work_score            ?? 0)
+                      + ($scores->housing_score          ?? 0)
+                      + ($scores->dependents_score       ?? 0)
+                      + ($scores->dependent_status_score ?? 0)
+                      + ($scores->illness_score          ?? 0)
+                      + ($scores->special_cases_score    ?? 0);
+
+            $deduction  = (int)($scores->score_deduction ?? 0);
+            $totalScore = max(0, $rawScore + $addition - $deduction);
+
+            $scores->fill([
+                'member_id'             => $memberId,
+                'score_addition'        => $addition,
+                'score_addition_reason' => $reason,
+                'total_score'           => $totalScore,
+            ])->save();
+
+            $member->update([
+                'score'            => $totalScore,
+                'estimated_amount' => $totalScore * 500,
+            ]);
+        }
     }
 
     private function applyBulkScoreDeductionToIds(array $ids, int $deduction, ?string $reason): void
@@ -502,7 +570,8 @@ class MemberController extends Controller
                       + ($scores->illness_score          ?? 0)
                       + ($scores->special_cases_score    ?? 0);
 
-            $totalScore = max(0, $rawScore - $deduction);
+            $addition   = (int)($scores->score_addition ?? 0);
+            $totalScore = max(0, $rawScore + $addition - $deduction);
 
             $scores->fill([
                 'member_id'              => $memberId,
@@ -779,6 +848,7 @@ class MemberController extends Controller
                          + min(5,  (int)($request->illness_score ?? 0))
                          + min(10, (int)($request->special_cases_score ?? 0));
         $deductionPayload = max(0, (int)($request->score_deduction ?? 0));
+        $additionPayload  = max(0, (int)($request->score_addition ?? 0));
         $scores = [
             'work_score'             => min(2,  (int)($request->work_score ?? 0)),
             'housing_score'          => min(4,  (int)($request->housing_score ?? 0)),
@@ -788,7 +858,9 @@ class MemberController extends Controller
             'special_cases_score'    => min(10, (int)($request->special_cases_score ?? 0)),
             'score_deduction'        => $deductionPayload,
             'score_deduction_reason' => $request->score_deduction_reason ?? null,
-            'total_score'            => max(0, $rawScorePayload - $deductionPayload),
+            'score_addition'         => $additionPayload,
+            'score_addition_reason'  => $request->score_addition_reason ?? null,
+            'total_score'            => max(0, $rawScorePayload + $additionPayload - $deductionPayload),
         ];
 
         $payment = [
@@ -838,7 +910,9 @@ class MemberController extends Controller
             'illness_details'           => $request->input('illness_details'),
             'special_cases'             => $request->boolean('special_cases'),
             'special_cases_description' => $request->input('special_cases_description'),
-            'sham_cash_account'         => in_array($request->input('sham_cash_account'), ['done','manual']) ? $request->input('sham_cash_account') : null,
+            'sham_cash_account'         => $this->isAdmin()
+                                              ? (in_array($request->input('sham_cash_account'), ['done','manual']) ? $request->input('sham_cash_account') : null)
+                                              : ($member?->sham_cash_account ?? null),
             'other_association'         => !empty($request->association_ids),
             'representative_id'         => $request->input('representative_id'),
             'data_entry_name'           => $request->input('data_entry_name'),
@@ -869,6 +943,7 @@ class MemberController extends Controller
                     'work_score', 'housing_score', 'dependents_score',
                     'dependent_status_score', 'illness_score', 'special_cases_score', 'total_score',
                     'score_deduction', 'score_deduction_reason',
+                    'score_addition', 'score_addition_reason',
                 ]) ?? [],
                 'payment' => $member->paymentInfo?->only([
                     'iban', 'barcode', 'iban_image', 'barcode_image', 'recipient_name', 'data_entry_name',
@@ -917,6 +992,8 @@ class MemberController extends Controller
             'special_cases_score'        => 'nullable|integer|min:0|max:10',
             'score_deduction'            => 'nullable|integer|min:0',
             'score_deduction_reason'     => 'nullable|string|max:500',
+            'score_addition'             => 'nullable|integer|min:0',
+            'score_addition_reason'      => 'nullable|string|max:500',
             // payment
             'iban'                       => 'nullable|string|max:50',
             'barcode'                    => 'nullable|string|max:100',
@@ -951,10 +1028,12 @@ class MemberController extends Controller
         $specialScore           = min(10, (int)($request->special_cases_score ?? 0));
         $scoreDeduction         = max(0,  (int)($request->score_deduction ?? 0));
         $scoreDeductionReason   = $request->score_deduction_reason ?? null;
+        $scoreAddition          = max(0,  (int)($request->score_addition ?? 0));
+        $scoreAdditionReason    = $request->score_addition_reason ?? null;
         // store region_id in data array for use below
         $data['region_id'] = $request->input('region_id') ?: null;
         $rawScore               = $workScore + $housingScore + $dependentsScore + $dependentStatusScore + $illnessScore + $specialScore;
-        $totalScore             = max(0, $rawScore - $scoreDeduction);
+        $totalScore             = max(0, $rawScore + $scoreAddition - $scoreDeduction);
 
         $member = Member::create([
             'full_name'                  => $data['full_name'],
@@ -985,7 +1064,7 @@ class MemberController extends Controller
             'illness_details'            => $data['illness_details'] ?? null,
             'special_cases'              => $request->boolean('special_cases'),
             'special_cases_description'  => $data['special_cases_description'] ?? null,
-            'sham_cash_account'          => in_array($request->input('sham_cash_account'), ['done','manual']) ? $request->input('sham_cash_account') : null,
+            'sham_cash_account'          => $this->isAdmin() && in_array($request->input('sham_cash_account'), ['done','manual']) ? $request->input('sham_cash_account') : null,
             'score'                      => $totalScore,
             'estimated_amount'           => $totalScore * 500,
         ]);
@@ -1001,6 +1080,8 @@ class MemberController extends Controller
             'total_score'            => $totalScore,
             'score_deduction'        => $scoreDeduction,
             'score_deduction_reason' => $scoreDeductionReason,
+            'score_addition'         => $scoreAddition,
+            'score_addition_reason'  => $scoreAdditionReason,
         ]);
 
         $ibanImagePath    = null;
@@ -1086,6 +1167,8 @@ class MemberController extends Controller
             'special_cases_score'        => 'nullable|integer|min:0|max:10',
             'score_deduction'            => 'nullable|integer|min:0',
             'score_deduction_reason'     => 'nullable|string|max:500',
+            'score_addition'             => 'nullable|integer|min:0',
+            'score_addition_reason'      => 'nullable|string|max:500',
             'iban'                       => 'nullable|string|max:50',
             'barcode'                    => 'nullable|string|max:100',
             'iban_image'                 => 'nullable|image|max:2048',
@@ -1120,8 +1203,10 @@ class MemberController extends Controller
         $specialScore         = min(10, (int)($request->special_cases_score ?? 0));
         $scoreDeduction       = max(0,  (int)($request->score_deduction ?? 0));
         $scoreDeductionReason = $request->score_deduction_reason ?? null;
+        $scoreAddition        = max(0,  (int)($request->score_addition ?? 0));
+        $scoreAdditionReason  = $request->score_addition_reason ?? null;
         $rawScore             = $workScore + $housingScore + $dependentsScore + $dependentStatusScore + $illnessScore + $specialScore;
-        $totalScore           = max(0, $rawScore - $scoreDeduction);
+        $totalScore           = max(0, $rawScore + $scoreAddition - $scoreDeduction);
 
         $member->update([
             'full_name'                  => $data['full_name'],
@@ -1153,7 +1238,7 @@ class MemberController extends Controller
             'illness_details'            => $data['illness_details'] ?? null,
             'special_cases'              => $request->boolean('special_cases'),
             'special_cases_description'  => $data['special_cases_description'] ?? null,
-            'sham_cash_account'          => in_array($request->input('sham_cash_account'), ['done','manual']) ? $request->input('sham_cash_account') : null,
+            'sham_cash_account'          => in_array($request->input('sham_cash_account'), ['done','manual']) ? $request->input('sham_cash_account') : null, // admin-only path
             'score'                      => $totalScore,
             'estimated_amount'           => $totalScore * 500,
         ]);
@@ -1170,6 +1255,8 @@ class MemberController extends Controller
             'total_score'            => $totalScore,
             'score_deduction'        => $scoreDeduction,
             'score_deduction_reason' => $scoreDeductionReason,
+            'score_addition'         => $scoreAddition,
+            'score_addition_reason'  => $scoreAdditionReason,
         ])->save();
 
         $payment = $member->paymentInfo ?? new PaymentInfo(['member_id' => $member->id]);
@@ -1282,8 +1369,8 @@ class MemberController extends Controller
             return redirect()->route('members.index')->with('success', 'لم يتم تحديد أي حقل للتعديل.');
         }
 
-        $allowed = ['network', 'marital_status', 'sham_cash_account', 'current_address', 'region_id', 'housing_status_id', 'verification_status_id', 'estimated_amount', 'payments_count', 'field_visit_status_id', 'fv_visitor', 'payment_data_entry_name'];
-        if ($this->isAdmin()) $allowed[] = 'final_status_id';
+        $allowed = ['network', 'marital_status', 'current_address', 'region_id', 'housing_status_id', 'verification_status_id', 'estimated_amount', 'payments_count', 'field_visit_status_id', 'fv_visitor', 'payment_data_entry_name'];
+        if ($this->isAdmin()) { $allowed[] = 'final_status_id'; $allowed[] = 'sham_cash_account'; }
         $data    = [];
 
         foreach ($fields as $field) {
@@ -1385,45 +1472,246 @@ class MemberController extends Controller
         return back()->with('success', "تم تحديث الحالة النهائية لـ {$member->full_name}.");
     }
 
+    public function scoreEqualizerIndex(Request $request)
+    {
+        $members = $this->buildFilteredQuery($request)
+            ->with(['verificationStatus', 'scores'])
+            ->orderByRaw('CAST(dossier_number AS UNSIGNED)')
+            ->paginate(50)
+            ->withQueryString();
+
+        $verificationStatuses = VerificationStatus::active()->orderBy('name')->get();
+        $finalStatusList      = FinalStatus::active()->orderBy('name')->get();
+        $maritalStatusList    = MaritalStatus::active()->orderBy('id')->get();
+        $associationList      = Association::active()->orderBy('name')->get();
+        $delegateList         = Member::whereNotNull('delegate')->where('delegate', '!=', '')->distinct()->orderBy('delegate')->pluck('delegate');
+        $addressList          = Member::whereNotNull('current_address')->where('current_address', '!=', '')->distinct()->orderBy('current_address')->pluck('current_address');
+        $regionList           = \App\Models\Region::active()->orderBy('name')->get();
+        $housingStatusList    = \App\Models\HousingStatus::active()->orderBy('name')->get();
+
+        return view('members.score-equalizer', compact(
+            'members',
+            'verificationStatuses', 'finalStatusList', 'maritalStatusList',
+            'associationList', 'delegateList', 'addressList',
+            'regionList', 'housingStatusList'
+        ));
+    }
+
+    public function scoreEqualizerApply(Request $request)
+    {
+        $request->validate([
+            'member_ids'   => 'required|array|min:1',
+            'member_ids.*' => 'integer|exists:members,id',
+            'target_score' => 'required|integer|min:0',
+            'reason'       => 'nullable|string|max:1000',
+        ]);
+
+        $ids    = $request->input('member_ids');
+        $target = (int) $request->input('target_score');
+        $reason = $request->input('reason') ?: null;
+        $count  = count($ids);
+        $label  = "تسوية نقاط {$count} عضو إلى {$target} نقطة";
+        if ($reason) $label .= " — السبب: {$reason}";
+
+        if (!$this->isAdmin()) {
+            $names = Member::whereIn('id', $ids)->limit(5)->pluck('full_name')->toArray();
+            PendingChange::create([
+                'model_type'   => 'member',
+                'model_id'     => null,
+                'action'       => 'bulk_score_equalize',
+                'payload'      => ['member_ids' => $ids, 'target_score' => $target, 'reason' => $reason, 'count' => $count, 'label' => $label, 'names_preview' => $names],
+                'original'     => null,
+                'requested_by' => Auth::id(),
+                'status'       => 'pending',
+            ]);
+            ActivityLogger::log('requested', "طلب {$label} — بانتظار موافقة المسؤول");
+            return back()->with('pending', "تم إرسال طلب {$label} — بانتظار موافقة المسؤول.");
+        }
+
+        $this->applyScoreEqualizationToIds($ids, $target, $reason);
+        ActivityLogger::log('updated', "تسوية نقاط: {$label}");
+        return back()->with('success', "تم تطبيق {$label} بنجاح.");
+    }
+
+    private function applyScoreEqualizationToIds(array $ids, int $target, ?string $reason): void
+    {
+        $clamped = max(0, $target);
+        foreach ($ids as $memberId) {
+            $member = Member::find($memberId);
+            if (!$member) continue;
+
+            $scores = $member->scores ?? new MemberScore(['member_id' => $memberId]);
+
+            $rawScore = ($scores->work_score            ?? 0)
+                      + ($scores->housing_score          ?? 0)
+                      + ($scores->dependents_score       ?? 0)
+                      + ($scores->dependent_status_score ?? 0)
+                      + ($scores->illness_score          ?? 0)
+                      + ($scores->special_cases_score    ?? 0);
+
+            if ($clamped >= $rawScore) {
+                $addition  = $clamped - $rawScore;
+                $deduction = 0;
+            } else {
+                $addition  = 0;
+                $deduction = $rawScore - $clamped;
+            }
+
+            $scores->fill([
+                'member_id'              => $memberId,
+                'score_addition'         => $addition,
+                'score_addition_reason'  => $addition  > 0 ? $reason : null,
+                'score_deduction'        => $deduction,
+                'score_deduction_reason' => $deduction > 0 ? $reason : null,
+                'total_score'            => $clamped,
+            ])->save();
+
+            $member->update([
+                'score'            => $clamped,
+                'estimated_amount' => $clamped * 500,
+            ]);
+        }
+    }
+
+    public function bulkSetScoreAdjustment(Request $request)
+    {
+        $request->validate([
+            'member_ids'   => 'required|array|min:1',
+            'member_ids.*' => 'integer|exists:members,id',
+            'mode'         => 'required|in:deduction,addition',
+            'amount'       => 'required|integer|min:0',
+            'reason'       => 'nullable|string|max:1000',
+        ]);
+
+        $ids    = $request->input('member_ids');
+        $mode   = $request->input('mode');
+        $amount = (int) $request->input('amount');
+        $reason = $request->input('reason') ?: null;
+        $count  = count($ids);
+
+        $modeLabel = $mode === 'addition' ? 'إضافة' : 'انقاص';
+        $label     = "تعيين {$modeLabel} {$amount} نقطة لـ {$count} عضو";
+        if ($reason) $label .= " — السبب: {$reason}";
+
+        if (!$this->isAdmin()) {
+            $names   = Member::whereIn('id', $ids)->limit(5)->pluck('full_name')->toArray();
+            $action  = $mode === 'addition' ? 'bulk_score_addition' : 'bulk_score_deduction';
+            $payload = $mode === 'addition'
+                ? ['score_addition'   => $amount, 'score_addition_reason'  => $reason, 'member_ids' => $ids, 'count' => $count, 'label' => $label, 'names_preview' => $names]
+                : ['score_deduction'  => $amount, 'score_deduction_reason' => $reason, 'member_ids' => $ids, 'count' => $count, 'label' => $label, 'names_preview' => $names];
+
+            PendingChange::create([
+                'model_type'   => 'member',
+                'model_id'     => null,
+                'action'       => $action,
+                'payload'      => $payload,
+                'original'     => null,
+                'requested_by' => Auth::id(),
+                'status'       => 'pending',
+            ]);
+
+            ActivityLogger::log('requested', "طلب {$label} — بانتظار موافقة المسؤول");
+            return back()->with('pending', "تم إرسال طلب {$label} — بانتظار موافقة المسؤول.");
+        }
+
+        if ($mode === 'addition') {
+            $this->applyBulkScoreAdditionToIds($ids, $amount, $reason);
+        } else {
+            $this->applyBulkScoreDeductionToIds($ids, $amount, $reason);
+        }
+
+        ActivityLogger::log('updated', "تعيين جماعي للنقاط: {$label}");
+        $tab = $mode === 'addition' ? 'additions' : 'deductions';
+        return redirect()->route('members.score-adjustments', ['tab' => $tab])
+                         ->with('success', "تم تعيين {$label} بنجاح.");
+    }
+
     public function scoreDeductionsIndex(Request $request)
     {
-        $search      = trim($request->get('search', ''));
-        $reasonFilter = trim($request->get('reason', ''));
-        $sortBy      = $request->get('sort', 'deduction_desc');
+        return redirect()->route('members.score-adjustments', array_merge($request->query(), ['tab' => 'deductions']));
+    }
 
-        $query = Member::query()
+    public function scoreAdditionsIndex(Request $request)
+    {
+        return redirect()->route('members.score-adjustments', array_merge($request->query(), ['tab' => 'additions']));
+    }
+
+    public function scoreAdjustmentsIndex(Request $request)
+    {
+        $tab          = $request->get('tab', 'deductions');
+        $search       = trim($request->get('search', ''));
+        $reasonFilter = trim($request->get('reason', ''));
+        $dateFrom     = $request->get('date_from', '');
+        $dateTo       = $request->get('date_to', '');
+        $sortBy       = $request->get('sort', 'dossier');
+
+        // Deductions query
+        $deductQuery = Member::query()
             ->join('member_scores', 'member_scores.member_id', '=', 'members.id')
             ->where('member_scores.score_deduction', '>', 0)
-            ->with(['verificationStatus', 'latestFieldVisit'])
-            ->select('members.*', 'member_scores.score_deduction', 'member_scores.score_deduction_reason', 'member_scores.total_score');
+            ->with(['verificationStatus'])
+            ->select('members.*', 'member_scores.score_deduction', 'member_scores.score_deduction_reason',
+                     'member_scores.total_score', 'member_scores.updated_at as score_updated_at');
+
+        // Additions query
+        $addQuery = Member::query()
+            ->join('member_scores', 'member_scores.member_id', '=', 'members.id')
+            ->where('member_scores.score_addition', '>', 0)
+            ->with(['verificationStatus'])
+            ->select('members.*', 'member_scores.score_addition', 'member_scores.score_addition_reason', 'member_scores.total_score');
 
         if ($search !== '') {
-            $query->where(function ($q) use ($search) {
+            $searchFn = function ($q) use ($search) {
                 $q->where('members.full_name', 'like', "%{$search}%")
                   ->orWhere('members.dossier_number', 'like', "%{$search}%")
                   ->orWhere('members.national_id', 'like', "%{$search}%");
-            });
+            };
+            $deductQuery->where($searchFn);
+            $addQuery->where($searchFn);
         }
 
         if ($reasonFilter !== '') {
-            $query->where('member_scores.score_deduction_reason', 'like', "%{$reasonFilter}%");
+            if ($tab === 'additions') {
+                $addQuery->where('member_scores.score_addition_reason', 'like', "%{$reasonFilter}%");
+            } else {
+                $deductQuery->where('member_scores.score_deduction_reason', 'like', "%{$reasonFilter}%");
+            }
         }
 
-        $query->when($sortBy === 'deduction_desc', fn($q) => $q->orderByDesc('member_scores.score_deduction'))
-              ->when($sortBy === 'deduction_asc',  fn($q) => $q->orderBy('member_scores.score_deduction'))
-              ->when($sortBy === 'name',            fn($q) => $q->orderBy('members.full_name'))
-              ->when($sortBy === 'dossier',         fn($q) => $q->orderBy('members.dossier_number'));
+        if ($dateFrom !== '') {
+            $deductQuery->where('member_scores.updated_at', '>=', $dateFrom . ' 00:00:00');
+        }
+        if ($dateTo !== '') {
+            $deductQuery->where('member_scores.updated_at', '<=', $dateTo . ' 23:59:59');
+        }
 
-        $members          = $query->paginate(50)->withQueryString();
-        $totalCount       = Member::join('member_scores', 'member_scores.member_id', '=', 'members.id')->where('member_scores.score_deduction', '>', 0)->count();
-        $totalDeduction   = \App\Models\MemberScore::where('score_deduction', '>', 0)->sum('score_deduction');
-        $reasonList       = \App\Models\MemberScore::where('score_deduction', '>', 0)
-                                ->whereNotNull('score_deduction_reason')
-                                ->where('score_deduction_reason', '!=', '')
-                                ->distinct()->orderBy('score_deduction_reason')->pluck('score_deduction_reason');
+        $deductQuery->when($sortBy === 'deduction_desc', fn($q) => $q->orderByDesc('member_scores.score_deduction'))
+                    ->when($sortBy === 'deduction_asc',  fn($q) => $q->orderBy('member_scores.score_deduction'))
+                    ->when($sortBy === 'date_desc',       fn($q) => $q->orderByDesc('member_scores.updated_at'))
+                    ->when($sortBy === 'date_asc',        fn($q) => $q->orderBy('member_scores.updated_at'))
+                    ->when($sortBy === 'name',            fn($q) => $q->orderBy('members.full_name'))
+                    ->when($sortBy === 'dossier',         fn($q) => $q->orderByRaw('CAST(members.dossier_number AS UNSIGNED)'));
 
-        return view('members.score-deductions', compact(
-            'members', 'totalCount', 'totalDeduction', 'search', 'reasonFilter', 'sortBy', 'reasonList'
+        $addQuery->when($sortBy === 'addition_desc', fn($q) => $q->orderByDesc('member_scores.score_addition'))
+                 ->when($sortBy === 'addition_asc',  fn($q) => $q->orderBy('member_scores.score_addition'))
+                 ->when($sortBy === 'name',           fn($q) => $q->orderBy('members.full_name'))
+                 ->when($sortBy === 'dossier',        fn($q) => $q->orderByRaw('CAST(members.dossier_number AS UNSIGNED)'));
+
+        $members = ($tab === 'additions' ? $addQuery : $deductQuery)->paginate(50)->withQueryString();
+
+        $totalDeductCount  = Member::join('member_scores', 'member_scores.member_id', '=', 'members.id')->where('member_scores.score_deduction', '>', 0)->count();
+        $totalAddCount     = Member::join('member_scores', 'member_scores.member_id', '=', 'members.id')->where('member_scores.score_addition', '>', 0)->count();
+        $totalDeduction    = \App\Models\MemberScore::where('score_deduction', '>', 0)->sum('score_deduction');
+        $totalAddition     = \App\Models\MemberScore::where('score_addition',  '>', 0)->sum('score_addition');
+
+        $reasonList = $tab === 'additions'
+            ? \App\Models\MemberScore::where('score_addition', '>', 0)->whereNotNull('score_addition_reason')->where('score_addition_reason', '!=', '')->distinct()->orderBy('score_addition_reason')->pluck('score_addition_reason')
+            : \App\Models\MemberScore::where('score_deduction', '>', 0)->whereNotNull('score_deduction_reason')->where('score_deduction_reason', '!=', '')->distinct()->orderBy('score_deduction_reason')->pluck('score_deduction_reason');
+
+        return view('members.score-adjustments', compact(
+            'members', 'tab', 'search', 'reasonFilter', 'sortBy', 'reasonList',
+            'dateFrom', 'dateTo',
+            'totalDeductCount', 'totalAddCount', 'totalDeduction', 'totalAddition'
         ));
     }
 }

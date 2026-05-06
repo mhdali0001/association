@@ -18,6 +18,7 @@ use App\Http\Controllers\MemberImageController;
 use App\Http\Controllers\PendingChangeController;
 use App\Http\Controllers\MemberImportController;
 use App\Http\Controllers\VerificationStatusController;
+use App\Http\Controllers\EmployeeController;
 use Illuminate\Support\Facades\Route;
 
 // Welcome
@@ -55,6 +56,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/payment-review/import',             [PaymentReviewController::class, 'importShow'])   ->name('payment-review.import.show');
         Route::post('/payment-review/import',            [PaymentReviewController::class, 'importStore'])  ->name('payment-review.import.store');
         Route::get('/payment-review/duplicate-ibans',    [PaymentReviewController::class, 'duplicateIbans'])->name('payment-review.duplicate-ibans');
+        Route::get('/payment-review/recent-ibans',       [PaymentReviewController::class, 'recentIbans'])   ->name('payment-review.recent-ibans');
         Route::post('/payment-review/bulk-delete',        [PaymentReviewController::class, 'bulkDelete'])   ->name('payment-review.bulk-delete');
         Route::post('/payment-review/{member}',          [PaymentReviewController::class, 'store'])        ->name('payment-review.store');
         Route::patch('/payment-review/{member}/iban',    [PaymentReviewController::class, 'updateIban'])   ->name('payment-review.update-iban');
@@ -84,7 +86,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/members/bulk-amount',     [MemberController::class, 'bulkAmountApply'])     ->name('members.bulk-amount.apply');
     Route::get('/members/bulk-payments',    [MemberController::class, 'bulkPaymentsShow'])    ->name('members.bulk-payments');
     Route::post('/members/bulk-payments',   [MemberController::class, 'bulkPaymentsApply'])   ->name('members.bulk-payments.apply');
-    Route::get('/members/score-deductions', [MemberController::class, 'scoreDeductionsIndex'])->name('members.score-deductions');
+    Route::get('/members/score-deductions',  [MemberController::class, 'scoreDeductionsIndex']) ->name('members.score-deductions');
+    Route::get('/members/score-additions',   [MemberController::class, 'scoreAdditionsIndex'])  ->name('members.score-additions');
+    Route::get('/members/score-adjustments',  [MemberController::class, 'scoreAdjustmentsIndex']) ->name('members.score-adjustments');
+    Route::post('/members/bulk-set-score',    [MemberController::class, 'bulkSetScoreAdjustment'])->name('members.bulk-set-score');
+    Route::get('/members/score-equalizer',    [MemberController::class, 'scoreEqualizerIndex'])   ->name('members.score-equalizer');
+    Route::post('/members/score-equalizer',   [MemberController::class, 'scoreEqualizerApply'])   ->name('members.score-equalizer.apply');
     Route::get('/members/import',                 [MemberImportController::class, 'show'])    ->name('members.import.show');
     Route::post('/members/import',                [MemberImportController::class, 'store'])   ->name('members.import.store');
     Route::get('/members/import-gender',          [\App\Http\Controllers\GenderImportController::class, 'show'])  ->name('members.import-gender.show');
@@ -111,6 +118,10 @@ Route::middleware('auth')->group(function () {
     Route::resource('house-types',      \App\Http\Controllers\HouseTypeController::class)     ->only(['index', 'store', 'update', 'destroy']);
     Route::resource('house-conditions', \App\Http\Controllers\HouseConditionController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('housing-statuses', \App\Http\Controllers\HousingStatusController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('employees', EmployeeController::class)->except(['create', 'edit']);
+    Route::post('/employees/{employee}/transactions',                 [EmployeeController::class, 'storeTransaction'])   ->name('employees.transactions.store');
+    Route::delete('/employees/{employee}/transactions/{transaction}', [EmployeeController::class, 'destroyTransaction']) ->name('employees.transactions.destroy');
+
     Route::resource('regions', \App\Http\Controllers\RegionController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::post('/regions/quick-store', [\App\Http\Controllers\RegionController::class, 'quickStore'])->name('regions.quick-store');
     Route::get('/field-visits/with-amounts',                               [\App\Http\Controllers\FieldVisitController::class, 'withAmounts'])->name('field-visits.with-amounts');

@@ -172,7 +172,7 @@ class FieldVisitController extends Controller
         $amountFrom       = trim($request->get('amount_from', ''));
         $amountTo         = trim($request->get('amount_to', ''));
         $typeFilter       = $request->get('type', 'all'); // all | positive | negative
-        $sortBy           = $request->get('sort', 'amount_desc');
+        $sortBy           = $request->get('sort', 'dossier');
 
         $query = FieldVisit::query()
             ->join('members', 'members.id', '=', 'field_visits.member_id')
@@ -223,12 +223,14 @@ class FieldVisitController extends Controller
             $query->where('field_visits.estimated_amount', '<=', (float)$amountTo);
         }
 
-        $query->when($sortBy === 'amount_desc', fn($q) => $q->orderByDesc('field_visits.estimated_amount'))
-              ->when($sortBy === 'amount_asc',  fn($q) => $q->orderBy('field_visits.estimated_amount'))
-              ->when($sortBy === 'date_desc',   fn($q) => $q->orderByDesc('field_visits.visit_date'))
-              ->when($sortBy === 'date_asc',    fn($q) => $q->orderBy('field_visits.visit_date'))
-              ->when($sortBy === 'name',        fn($q) => $q->orderBy('members.full_name'))
-              ->when($sortBy === 'dossier',     fn($q) => $q->orderBy('members.dossier_number'));
+        $query->when($sortBy === 'amount_desc',  fn($q) => $q->orderByDesc('field_visits.estimated_amount'))
+              ->when($sortBy === 'amount_asc',   fn($q) => $q->orderBy('field_visits.estimated_amount'))
+              ->when($sortBy === 'date_desc',    fn($q) => $q->orderByDesc('field_visits.visit_date'))
+              ->when($sortBy === 'date_asc',     fn($q) => $q->orderBy('field_visits.visit_date'))
+              ->when($sortBy === 'name',         fn($q) => $q->orderBy('members.full_name'))
+              ->when($sortBy === 'dossier',      fn($q) => $q->orderBy('members.dossier_number'))
+              ->when($sortBy === 'created_desc', fn($q) => $q->orderByDesc('field_visits.created_at'))
+              ->when($sortBy === 'created_asc',  fn($q) => $q->orderBy('field_visits.created_at'));
 
         $visits = $query->paginate(50)->withQueryString();
 

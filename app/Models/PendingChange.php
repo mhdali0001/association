@@ -49,6 +49,8 @@ class PendingChange extends Model
             'delete'       => 'حذف',
             'bulk_amount'           => 'تعديل جماعي للمبلغ',
             'bulk_score_deduction'  => 'انقاص جماعي للنقاط',
+            'bulk_score_addition'   => 'إضافة جماعية للنقاط',
+            'bulk_score_equalize'   => 'تسوية جماعية للنقاط',
             'bulk_delete'           => 'حذف جماعي',
             'bulk_update'           => 'تعديل جماعي',
             default        => $this->action,
@@ -74,7 +76,7 @@ class PendingChange extends Model
     /** A short description for list views */
     public function summary(): string
     {
-        if (in_array($this->action, ['bulk_amount', 'bulk_score_deduction'])) {
+        if (in_array($this->action, ['bulk_amount', 'bulk_score_deduction', 'bulk_score_addition', 'bulk_score_equalize'])) {
             return "{$this->actionLabel()}: " . ($this->payload['label'] ?? '');
         }
 
@@ -117,6 +119,10 @@ class PendingChange extends Model
             $this->applyBulkAmount();
         } elseif ($this->action === 'bulk_score_deduction') {
             $this->applyBulkScoreDeduction();
+        } elseif ($this->action === 'bulk_score_addition') {
+            $this->applyBulkScoreAddition();
+        } elseif ($this->action === 'bulk_score_equalize') {
+            $this->applyBulkScoreEqualize();
         } elseif ($this->action === 'bulk_delete') {
             $this->applyBulkDelete();
         } elseif ($this->action === 'bulk_update') {
@@ -241,7 +247,8 @@ class PendingChange extends Model
                       + ($scores->illness_score          ?? 0)
                       + ($scores->special_cases_score    ?? 0);
 
-            $totalScore = max(0, $rawScore - $deduction);
+            $addition   = (int)($scores->score_addition ?? 0);
+            $totalScore = max(0, $rawScore + $addition - $deduction);
 
             $scores->fill([
                 'member_id'              => $memberId,
@@ -257,13 +264,99 @@ class PendingChange extends Model
         }
     }
 
+    private function applyBulkScoreAddition(): void
+    {
+        $p        = $this->payload ?? [];
+        $addition = (int) ($p['score_addition'] ?? 0);
+        $reason   = $p['score_addition_reason'] ?? null;
+        $ids      = $p['member_ids'] ?? [];
+
+        if (empty($ids)) return;
+
+        foreach ($ids as $memberId) {
+            $member = Member::find($memberId);
+            if (!$member) continue;
+
+            $scores = $member->scores ?? new MemberScore(['member_id' => $memberId]);
+
+            $rawScore = ($scores->work_score            ?? 0)
+                      + ($scores->housing_score          ?? 0)
+                      + ($scores->dependents_score       ?? 0)
+                      + ($scores->dependent_status_score ?? 0)
+                      + ($scores->illness_score          ?? 0)
+                      + ($scores->special_cases_score    ?? 0);
+
+            $deduction  = (int)($scores->score_deduction ?? 0);
+            $totalScore = max(0, $rawScore + $addition - $deduction);
+
+            $scores->fill([
+                'member_id'             => $memberId,
+                'score_addition'        => $addition,
+                'score_addition_reason' => $reason,
+                'total_score'           => $totalScore,
+            ])->save();
+
+            $member->update([
+                'score'            => $totalScore,
+                'estimated_amount' => $totalScore * 500,
+            ]);
+        }
+    }
+
+    private function applyBulkScoreEqualize(): void
+    {
+        $p      = $this->payload ?? [];
+        $target = (int) ($p['target_score'] ?? 0);
+        $reason = $p['reason'] ?? null;
+        $ids    = $p['member_ids'] ?? [];
+
+        if (empty($ids)) return;
+
+        foreach ($ids as $memberId) {
+            $member = Member::find($memberId);
+            if (!$member) continue;
+
+            $scores = $member->scores ?? new MemberScore(['member_id' => $memberId]);
+
+            $rawScore = ($scores->work_score            ?? 0)
+                      + ($scores->housing_score          ?? 0)
+                      + ($scores->dependents_score       ?? 0)
+                      + ($scores->dependent_status_score ?? 0)
+                      + ($scores->illness_score          ?? 0)
+                      + ($scores->special_cases_score    ?? 0);
+
+            $clamped = max(0, $target);
+            if ($clamped >= $rawScore) {
+                $addition  = $clamped - $rawScore;
+                $deduction = 0;
+            } else {
+                $addition  = 0;
+                $deduction = $rawScore - $clamped;
+            }
+
+            $scores->fill([
+                'member_id'              => $memberId,
+                'score_addition'         => $addition,
+                'score_addition_reason'  => $addition > 0 ? $reason : null,
+                'score_deduction'        => $deduction,
+                'score_deduction_reason' => $deduction > 0 ? $reason : null,
+                'total_score'            => $clamped,
+            ])->save();
+
+            $member->update([
+                'score'            => $clamped,
+                'estimated_amount' => $clamped * 500,
+            ]);
+        }
+    }
+
     /**
      * Reverse a previously-applied change (called from revoke).
      * Best-effort: bulk and delete-type actions may not be fully reversible.
      */
     public function undo(): void
     {
-        if (in_array($this->action, ['bulk_amount', 'bulk_score_deduction', 'bulk_delete', 'bulk_update'])) {
+        if (in_array($this->action, ['bulk_amount', 'bulk_score_deduction', 'bulk_score_addition', 'bulk_score_equalize', 'bulk_delete', 'bulk_update'])) {
             return; // bulk operations are not automatically reversible
         }
 
@@ -431,8 +524,10 @@ class PendingChange extends Model
         $specialScore         = (int)($scores['special_cases_score']    ?? 0);
         $scoreDeduction       = max(0, (int)($scores['score_deduction'] ?? 0));
         $scoreDeductionReason = $scores['score_deduction_reason']       ?? null;
+        $scoreAddition        = max(0, (int)($scores['score_addition']  ?? 0));
+        $scoreAdditionReason  = $scores['score_addition_reason']        ?? null;
         $rawScore             = $workScore + $housingScore + $dependentsScore + $dependentStatusScore + $illnessScore + $specialScore;
-        $totalScore           = max(0, $rawScore - $scoreDeduction);
+        $totalScore           = max(0, $rawScore + $scoreAddition - $scoreDeduction);
 
         $memberData = [
             'full_name'                 => $p['full_name']                 ?? null,
@@ -480,6 +575,8 @@ class PendingChange extends Model
             'total_score'            => $totalScore,
             'score_deduction'        => $scoreDeduction,
             'score_deduction_reason' => $scoreDeductionReason,
+            'score_addition'         => $scoreAddition,
+            'score_addition_reason'  => $scoreAdditionReason,
         ];
 
         $payment   = $p['payment']    ?? [];

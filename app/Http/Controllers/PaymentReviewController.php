@@ -151,8 +151,10 @@ class PaymentReviewController extends Controller
 
     public function duplicateIbans(Request $request)
     {
-        $search          = trim($request->get('search', ''));
-        $finalStatusId   = $request->get('final_status_id', '');
+        $search        = trim($request->get('search', ''));
+        $finalStatusId = $request->get('final_status_id', '');
+        $dateFrom      = $request->get('date_from', '');
+        $dateTo        = $request->get('date_to', '');
 
         // Find IBANs that appear more than once in payment_info
         $duplicateIbans = DB::table('payment_info')
@@ -193,13 +195,72 @@ class PaymentReviewController extends Controller
             );
         }
 
+        // Filter: keep only IBAN groups where at least one payment_info was added in the date range
+        if ($dateFrom !== '' || $dateTo !== '') {
+            $membersByIban = $membersByIban->filter(function ($members) use ($dateFrom, $dateTo) {
+                return $members->contains(function ($member) use ($dateFrom, $dateTo) {
+                    $date = optional($member->paymentInfo)->created_at;
+                    if (!$date) return false;
+                    if ($dateFrom !== '' && $date->startOfDay()->lt(\Carbon\Carbon::parse($dateFrom)->startOfDay())) return false;
+                    if ($dateTo   !== '' && $date->startOfDay()->gt(\Carbon\Carbon::parse($dateTo)->startOfDay()))   return false;
+                    return true;
+                });
+            });
+        }
+
         $totalDuplicateIbans   = $membersByIban->count();
         $totalAffectedMembers  = $membersByIban->flatten()->count();
         $finalStatusList       = \App\Models\FinalStatus::active()->orderBy('name')->get();
 
         return view('payment-review.duplicate-ibans', compact(
             'membersByIban', 'search', 'finalStatusId', 'finalStatusList',
-            'totalDuplicateIbans', 'totalAffectedMembers'
+            'totalDuplicateIbans', 'totalAffectedMembers',
+            'dateFrom', 'dateTo'
+        ));
+    }
+
+    public function recentIbans(Request $request)
+    {
+        $tab = $request->get('tab', 'week');
+
+        $weekStart  = now()->subDays(7)->startOfDay();
+        $monthStart = now()->subDays(30)->startOfDay();
+
+        $buildQuery = fn($from) => Member::whereHas('paymentInfo', fn($q) =>
+                $q->whereNotNull('iban')->where('iban', '!=', '')->where('created_at', '>=', $from)
+            )
+            ->with(['paymentInfo' => fn($q) => $q->where('created_at', '>=', $from), 'verificationStatus', 'finalStatus', 'association'])
+            ->orderBy('full_name')
+            ->get();
+
+        $weekMembers  = $buildQuery($weekStart);
+        $monthMembers = $buildQuery($monthStart);
+
+        // Duplicate IBANs added recently: IBANs that appear >1 time overall AND were added in the period
+        $buildDuplicateQuery = fn($from) => DB::table('payment_info')
+            ->select('iban', DB::raw('COUNT(*) as count'))
+            ->whereNotNull('iban')->where('iban', '!=', '')
+            ->where('created_at', '>=', $from)
+            ->groupBy('iban')
+            ->having('count', '>', 1)
+            ->pluck('count', 'iban');
+
+        $weekDuplicateIbans  = $buildDuplicateQuery($weekStart);
+        $monthDuplicateIbans = $buildDuplicateQuery($monthStart);
+
+        $buildDuplicateMembers = fn($ibans, $from) => $ibans->mapWithKeys(fn($count, $iban) => [
+            $iban => Member::whereHas('paymentInfo', fn($q) => $q->where('iban', $iban))
+                ->with(['paymentInfo' => fn($q) => $q->where('iban', $iban)->where('created_at', '>=', $from), 'verificationStatus', 'finalStatus', 'association'])
+                ->orderBy('full_name')
+                ->get()
+        ]);
+
+        $weekDuplicateMembers  = $buildDuplicateMembers($weekDuplicateIbans,  $weekStart);
+        $monthDuplicateMembers = $buildDuplicateMembers($monthDuplicateIbans, $monthStart);
+
+        return view('payment-review.recent-ibans', compact(
+            'tab', 'weekMembers', 'monthMembers', 'weekStart', 'monthStart',
+            'weekDuplicateMembers', 'monthDuplicateMembers'
         ));
     }
 

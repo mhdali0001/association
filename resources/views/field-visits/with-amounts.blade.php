@@ -94,8 +94,10 @@
                     <option value="amount_asc"  {{ $sortBy === 'amount_asc'  ? 'selected' : '' }}>المبلغ (الأقل أولاً)</option>
                     <option value="date_desc"   {{ $sortBy === 'date_desc'   ? 'selected' : '' }}>تاريخ الجولة (الأحدث)</option>
                     <option value="date_asc"    {{ $sortBy === 'date_asc'    ? 'selected' : '' }}>تاريخ الجولة (الأقدم)</option>
-                    <option value="name"        {{ $sortBy === 'name'        ? 'selected' : '' }}>الاسم</option>
-                    <option value="dossier"     {{ $sortBy === 'dossier'     ? 'selected' : '' }}>رقم الاضبارة</option>
+                    <option value="name"          {{ $sortBy === 'name'          ? 'selected' : '' }}>الاسم</option>
+                    <option value="dossier"       {{ $sortBy === 'dossier'       ? 'selected' : '' }}>رقم الاضبارة</option>
+                    <option value="created_desc"  {{ $sortBy === 'created_desc'  ? 'selected' : '' }}>تاريخ الإضافة (الأحدث أولاً)</option>
+                    <option value="created_asc"   {{ $sortBy === 'created_asc'   ? 'selected' : '' }}>تاريخ الإضافة (الأقدم أولاً)</option>
                 </select>
             </div>
         </div>
@@ -185,7 +187,6 @@
         <table class="w-full text-sm">
             <thead>
                 <tr class="border-b border-gray-100 bg-gray-50/30">
-                    <th class="text-right font-semibold text-gray-500 px-4 py-3 whitespace-nowrap">#</th>
                     <th class="text-right font-semibold text-gray-500 px-4 py-3 whitespace-nowrap">العضو</th>
                     <th class="text-right font-semibold text-gray-500 px-4 py-3 whitespace-nowrap">رقم الاضبارة</th>
                     <th class="text-right font-semibold text-gray-500 px-4 py-3 whitespace-nowrap">تاريخ الجولة</th>
@@ -201,9 +202,6 @@
                 @foreach($visits as $visit)
                 @php $isPositive = $visit->estimated_amount > 0; @endphp
                 <tr class="hover:bg-gray-50/60 transition-colors {{ $isPositive ? '' : 'bg-red-50/20' }}">
-                    <td class="px-4 py-3 text-gray-400 text-xs">
-                        {{ ($visits->currentPage() - 1) * $visits->perPage() + $loop->iteration }}
-                    </td>
                     <td class="px-4 py-3">
                         <p class="font-semibold text-gray-800 whitespace-nowrap">{{ $visit->member?->full_name ?? '—' }}</p>
                         @if($visit->member?->verificationStatus)

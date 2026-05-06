@@ -107,8 +107,10 @@ class MemberRowImporter
             $specialScore         = min(10, $this->toInt($row['درجة_الحالات_الخاصة'] ?? $row['special_cases_score']    ?? null) ?? 0);
             $scoreDeduction       = max(0,  $this->toInt($row['انقاص_النقاط']        ?? $row['score_deduction']        ?? null) ?? 0);
             $deductionReason      = trim($row['سبب_الانقاص'] ?? $row['score_deduction_reason'] ?? '') ?: null;
+            $scoreAddition        = max(0,  $this->toInt($row['إضافة_النقاط']         ?? $row['score_addition']         ?? null) ?? 0);
+            $additionReason       = trim($row['سبب_الإضافة']  ?? $row['score_addition_reason']  ?? '') ?: null;
             $rawScore             = $workScore + $housingScore + $dependentsScore + $dependentStatusScore + $illnessScore + $specialScore;
-            $totalScore           = max(0, $rawScore - $scoreDeduction);
+            $totalScore           = max(0, $rawScore + $scoreAddition - $scoreDeduction);
 
             $member->update([
                 'score'            => $totalScore,
@@ -125,6 +127,8 @@ class MemberRowImporter
                 'special_cases_score'    => $specialScore,
                 'score_deduction'        => $scoreDeduction,
                 'score_deduction_reason' => $deductionReason,
+                'score_addition'         => $scoreAddition,
+                'score_addition_reason'  => $additionReason,
                 'total_score'            => $totalScore,
             ]);
 

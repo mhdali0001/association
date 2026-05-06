@@ -97,6 +97,13 @@
                        class="w-full pr-10 pl-4 py-3 text-base border border-gray-200 rounded-xl bg-gray-50
                               focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:bg-white transition placeholder-gray-300">
             </div>
+            <button type="submit"
+                    class="flex items-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl transition-colors shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+                </svg>
+                بحث
+            </button>
             <button type="button" onclick="toggleFilters()"
                     class="flex items-center gap-2 px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 hover:bg-white hover:border-emerald-300 transition-colors text-sm font-bold text-gray-600 shrink-0">
                 <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -151,6 +158,23 @@
                 <span class="text-xs text-gray-400 pb-2.5 shrink-0">ل.س مقدر</span>
             </div>
 
+            {{-- Payments count range --}}
+            <div class="flex items-end gap-3">
+                <div class="flex-1">
+                    <label class="block text-sm font-semibold text-gray-600 mb-1.5">عدد الدفعات من</label>
+                    <input type="number" name="payments_count_from" value="{{ $paymentsCountFrom }}" min="0" step="1"
+                           placeholder="0"
+                           class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:bg-white transition placeholder-gray-300 font-mono">
+                </div>
+                <span class="text-gray-400 pb-2.5">—</span>
+                <div class="flex-1">
+                    <label class="block text-sm font-semibold text-gray-600 mb-1.5">إلى</label>
+                    <input type="number" name="payments_count_to" value="{{ $paymentsCountTo }}" min="0" step="1"
+                           placeholder="∞"
+                           class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:bg-white transition placeholder-gray-300 font-mono">
+                </div>
+                <span class="text-xs text-gray-400 pb-2.5 shrink-0">دفعة</span>
+            </div>
 
         </div>
 
@@ -1157,7 +1181,8 @@
                     </select>
                 </div>
 
-                {{-- Sham Cash --}}
+                {{-- Sham Cash (admin only) --}}
+                @if(auth()->user()?->role === 'admin')
                 <div class="be-field" data-field="sham_cash_account">
                     <div class="flex items-center gap-2 mb-1.5">
                         <input type="checkbox" name="apply_fields[]" value="sham_cash_account" class="be-toggle rounded border-gray-300 text-blue-600 focus:ring-blue-400 cursor-pointer" onchange="toggleBulkField(this)">
@@ -1170,6 +1195,7 @@
                         <option value="">لا</option>
                     </select>
                 </div>
+                @endif
 
                 {{-- Housing Status --}}
                 <div class="be-field" data-field="housing_status_id">
@@ -1239,14 +1265,40 @@
                         <input type="checkbox" name="apply_fields[]" value="fv_visitor" class="be-toggle rounded border-gray-300 text-blue-600 focus:ring-blue-400 cursor-pointer" onchange="toggleBulkField(this)">
                         <label class="text-sm font-semibold text-gray-600 cursor-pointer select-none">الزائر</label>
                     </div>
-                    <input type="text" name="fields[fv_visitor]" disabled placeholder="اسم الزائر..."
-                           list="fv-visitor-list-be"
-                           class="be-input w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-100 text-gray-400 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
-                    <datalist id="fv-visitor-list-be">
-                        @foreach($fvVisitorList as $v)
-                            <option value="{{ $v }}">
-                        @endforeach
-                    </datalist>
+                    <div class="relative visitor-combo" id="visitor-combo-be">
+                        <div class="flex gap-1">
+                            <input type="text" name="fields[fv_visitor]" id="visitor-input-be" disabled
+                                   placeholder="اكتب أو اختر اسم الزائر..."
+                                   autocomplete="off"
+                                   class="be-input flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-100 text-gray-400 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 transition">
+                            <button type="button" id="visitor-dropdown-btn-be" disabled
+                                    onclick="toggleVisitorDropdown()"
+                                    class="be-input shrink-0 px-2.5 py-2 border border-gray-200 rounded-xl bg-gray-100 text-gray-300 hover:bg-gray-50 transition focus:outline-none">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div id="visitor-panel-be"
+                             class="hidden absolute z-50 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden"
+                             style="max-height:220px">
+                            <div class="p-2 border-b border-gray-100 sticky top-0 bg-white">
+                                <input type="text" id="visitor-search-be" placeholder="بحث في الأسماء..."
+                                       oninput="filterVisitorList(this.value)"
+                                       class="w-full text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                            </div>
+                            <div id="visitor-list-be" class="overflow-y-auto" style="max-height:160px">
+                                @forelse($fvVisitorList as $v)
+                                    <div class="visitor-opt px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 cursor-pointer"
+                                         onclick="selectVisitor('{{ addslashes($v) }}')">
+                                        {{ $v }}
+                                    </div>
+                                @empty
+                                    <p class="px-3 py-2 text-xs text-gray-400">لا توجد أسماء مسجلة</p>
+                                @endforelse
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {{-- Payment Data Entry Name --}}
@@ -1595,16 +1647,54 @@ function toggleBulkEdit() {
 
 function toggleBulkField(cb) {
     var field = cb.closest('.be-field');
-    var input = field.querySelector('.be-input');
-    input.disabled = !cb.checked;
-    if (cb.checked) {
-        input.classList.remove('bg-gray-100', 'text-gray-400');
-        input.classList.add('bg-white', 'text-gray-800');
-    } else {
-        input.classList.add('bg-gray-100', 'text-gray-400');
-        input.classList.remove('bg-white', 'text-gray-800');
+    field.querySelectorAll('.be-input').forEach(function(input) {
+        input.disabled = !cb.checked;
+        if (cb.checked) {
+            input.classList.remove('bg-gray-100', 'text-gray-400');
+            input.classList.add('bg-white', 'text-gray-800');
+        } else {
+            input.classList.add('bg-gray-100', 'text-gray-400');
+            input.classList.remove('bg-white', 'text-gray-800');
+            // Close visitor dropdown if field is disabled
+            if (input.id === 'visitor-dropdown-btn-be') {
+                document.getElementById('visitor-panel-be')?.classList.add('hidden');
+            }
+        }
+    });
+}
+
+// ── Visitor combobox ──────────────────────────────────────────────────────
+function toggleVisitorDropdown() {
+    var panel = document.getElementById('visitor-panel-be');
+    var btn = document.getElementById('visitor-dropdown-btn-be');
+    if (btn.disabled) return;
+    panel.classList.toggle('hidden');
+    if (!panel.classList.contains('hidden')) {
+        document.getElementById('visitor-search-be').value = '';
+        filterVisitorList('');
+        setTimeout(function() { document.getElementById('visitor-search-be').focus(); }, 50);
     }
 }
+
+function selectVisitor(name) {
+    document.getElementById('visitor-input-be').value = name;
+    document.getElementById('visitor-panel-be').classList.add('hidden');
+}
+
+function filterVisitorList(q) {
+    q = q.toLowerCase();
+    document.querySelectorAll('#visitor-list-be .visitor-opt').forEach(function(opt) {
+        opt.style.display = opt.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+}
+
+// Close visitor dropdown on outside click
+document.addEventListener('click', function(e) {
+    var combo = document.getElementById('visitor-combo-be');
+    if (combo && !combo.contains(e.target)) {
+        document.getElementById('visitor-panel-be')?.classList.add('hidden');
+    }
+});
 
 function injectBulkEditIds() {
     var enabledFields = document.querySelectorAll('#bulk-edit-form .be-toggle:checked');

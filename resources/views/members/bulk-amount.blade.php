@@ -923,12 +923,32 @@
 
             <div class="h-8 w-px bg-gray-200 hidden sm:block shrink-0"></div>
 
-            {{-- Score deduction points --}}
+            {{-- Mode toggle --}}
+            <div class="flex items-center gap-1 bg-gray-100 rounded-xl p-1 shrink-0">
+                <label class="flex items-center gap-1.5 px-3 py-2 rounded-lg cursor-pointer transition-all has-[:checked]:bg-white has-[:checked]:shadow-sm has-[:checked]:text-red-700 text-gray-500 text-sm font-semibold">
+                    <input type="radio" name="ba_mode" value="deduct" checked class="hidden" onchange="toggleBaMode()">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4"/></svg>
+                    انقاص
+                </label>
+                <label class="flex items-center gap-1.5 px-3 py-2 rounded-lg cursor-pointer transition-all has-[:checked]:bg-white has-[:checked]:shadow-sm has-[:checked]:text-emerald-700 text-gray-500 text-sm font-semibold">
+                    <input type="radio" name="ba_mode" value="add" class="hidden" onchange="toggleBaMode()">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    إضافة
+                </label>
+            </div>
+
+            <div class="h-8 w-px bg-gray-200 hidden sm:block shrink-0"></div>
+
+            {{-- Points input (shared) --}}
             <div class="flex items-center gap-2 shrink-0">
-                <label class="text-sm font-bold text-gray-600 shrink-0">انقاص نقاط</label>
-                <input type="number" name="score_deduction" id="deduction-input" min="0" step="1" placeholder="0"
+                <label id="points-label" class="text-sm font-bold text-red-600 shrink-0">انقاص نقاط</label>
+                <input type="number" id="points-input" min="0" step="1" placeholder="0" value="0"
                        class="w-24 border-2 border-red-200 rounded-xl px-3 py-2.5 text-base font-bold text-red-700
-                              focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-red-400 transition text-center">
+                              focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-red-400 transition text-center"
+                       oninput="syncPointsInput()">
+                {{-- Hidden real inputs --}}
+                <input type="hidden" name="score_deduction" id="deduction-input" value="0">
+                <input type="hidden" name="score_addition"  id="addition-input"  value="0">
                 <span class="text-sm text-gray-400 font-medium shrink-0">نقطة</span>
             </div>
 
@@ -936,40 +956,43 @@
 
             {{-- Reason --}}
             <div class="flex items-center gap-2 flex-1 min-w-[200px] max-w-sm">
-                <label class="text-sm font-bold text-gray-600 shrink-0">السبب</label>
-                <input type="text" name="score_deduction_reason" id="reason-input"
+                <label id="reason-label" class="text-sm font-bold text-gray-600 shrink-0">السبب</label>
+                <input type="text" name="score_deduction_reason" id="deduction-reason-input"
                        placeholder="سبب الانقاص (اختياري)"
                        class="flex-1 border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-700
                               focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-violet-400 transition">
+                <input type="text" name="score_addition_reason" id="addition-reason-input"
+                       placeholder="سبب الإضافة (اختياري)"
+                       class="hidden flex-1 border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-700
+                              focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 transition">
             </div>
 
             <div class="h-8 w-px bg-gray-200 hidden sm:block shrink-0"></div>
 
             {{-- Action Buttons --}}
             <div class="flex gap-2 flex-wrap">
-                {{-- Apply to selected --}}
                 <button type="submit" name="apply_to" value="selected"
                         id="apply-selected-btn"
                         onclick="return confirmApply('selected')"
                         class="flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed
                                text-white font-bold px-5 py-2.5 rounded-xl transition-colors text-sm shadow-sm"
                         disabled>
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4"/>
-                    </svg>
-                    انقاص المحدد
+                    <span id="apply-selected-icon">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4"/></svg>
+                    </span>
+                    <span id="apply-selected-label">انقاص المحدد</span>
                     <span id="apply-selected-count" class="bg-white/20 rounded-full px-1.5 py-0.5 text-xs">0</span>
                 </button>
 
-                {{-- Apply to all filtered --}}
                 <button type="submit" name="apply_to" value="filtered"
                         onclick="return confirmApply('filtered')"
+                        id="apply-filtered-btn"
                         class="flex items-center gap-2 bg-orange-500 hover:bg-orange-600
                                text-white font-bold px-5 py-2.5 rounded-xl transition-colors text-sm shadow-sm">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
-                    </svg>
-                    انقاص الكل
+                    <span id="apply-filtered-icon">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+                    </span>
+                    <span id="apply-filtered-label">انقاص الكل</span>
                     <span class="bg-white/20 rounded-full px-1.5 py-0.5 text-xs">{{ $fmt($totalCount) }}</span>
                 </button>
             </div>
@@ -980,6 +1003,54 @@
 </form>
 
 <script>
+// ── Mode toggle (deduct / add) ─────────────────────────────────────────
+function toggleBaMode() {
+    var mode = document.querySelector('input[name="ba_mode"]:checked').value;
+    var isAdd = mode === 'add';
+
+    var pointsInput  = document.getElementById('points-input');
+    var pointsLabel  = document.getElementById('points-label');
+    var deductHidden = document.getElementById('deduction-input');
+    var addHidden    = document.getElementById('addition-input');
+    var deductReason = document.getElementById('deduction-reason-input');
+    var addReason    = document.getElementById('addition-reason-input');
+    var selBtn       = document.getElementById('apply-selected-btn');
+    var filtBtn      = document.getElementById('apply-filtered-btn');
+
+    if (isAdd) {
+        pointsLabel.textContent = 'إضافة نقاط';
+        pointsLabel.className   = 'text-sm font-bold text-emerald-700 shrink-0';
+        pointsInput.className   = pointsInput.className.replace(/border-red-\d+|text-red-\d+|focus:ring-red-\d+|focus:border-red-\d+/g, '')
+            + ' border-emerald-300 text-emerald-700 focus:ring-emerald-400 focus:border-emerald-400';
+        deductReason.classList.add('hidden');    addReason.classList.remove('hidden');
+        document.getElementById('apply-selected-label').textContent = 'إضافة للمحدد';
+        document.getElementById('apply-filtered-label').textContent = 'إضافة للكل';
+        selBtn.className = selBtn.className.replace('bg-red-600 hover:bg-red-700', 'bg-emerald-600 hover:bg-emerald-700');
+    } else {
+        pointsLabel.textContent = 'انقاص نقاط';
+        pointsLabel.className   = 'text-sm font-bold text-red-600 shrink-0';
+        pointsInput.className   = pointsInput.className.replace(/border-emerald-\d+|text-emerald-\d+|focus:ring-emerald-\d+|focus:border-emerald-\d+/g, '')
+            + ' border-red-200 text-red-700 focus:ring-red-400 focus:border-red-400';
+        addReason.classList.add('hidden');    deductReason.classList.remove('hidden');
+        document.getElementById('apply-selected-label').textContent = 'انقاص المحدد';
+        document.getElementById('apply-filtered-label').textContent = 'انقاص الكل';
+        selBtn.className = selBtn.className.replace('bg-emerald-600 hover:bg-emerald-700', 'bg-red-600 hover:bg-red-700');
+    }
+    syncPointsInput();
+}
+
+function syncPointsInput() {
+    var val  = parseInt(document.getElementById('points-input').value) || 0;
+    var mode = document.querySelector('input[name="ba_mode"]:checked').value;
+    if (mode === 'add') {
+        document.getElementById('addition-input').value  = val;
+        document.getElementById('deduction-input').value = 0;
+    } else {
+        document.getElementById('deduction-input').value = val;
+        document.getElementById('addition-input').value  = 0;
+    }
+}
+
 // ── Filter toggle ──────────────────────────────────────────────────────
 
 function removeEmptyBaFilters(form) {

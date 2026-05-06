@@ -213,6 +213,35 @@
         </div>
     </div>
 
+{{-- BULK SCORE ADDITION case --}}
+@elseif($action === 'bulk_score_addition')
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-6">
+        <div class="flex items-center gap-2.5 bg-gradient-to-l from-emerald-50 to-teal-50 border-b border-emerald-100 px-6 py-3.5">
+            <div class="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center">
+                <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                </svg>
+            </div>
+            <h2 class="text-sm font-bold text-emerald-800">إضافة جماعية للنقاط</h2>
+        </div>
+        <div class="p-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="bg-emerald-50 rounded-xl px-3 py-2.5 border border-emerald-100">
+                <p class="text-xs text-gray-400 mb-0.5">مقدار الإضافة</p>
+                <p class="text-sm font-bold text-emerald-700">{{ $payload['score_addition'] ?? 0 }} نقطة</p>
+            </div>
+            <div class="bg-emerald-50 rounded-xl px-3 py-2.5 border border-emerald-100">
+                <p class="text-xs text-gray-400 mb-0.5">عدد الأعضاء</p>
+                <p class="text-sm font-bold text-emerald-700">{{ $payload['count'] ?? count($payload['member_ids'] ?? []) }}</p>
+            </div>
+            @if(!empty($payload['score_addition_reason']))
+            <div class="bg-emerald-50 rounded-xl px-3 py-2.5 border border-emerald-100 sm:col-span-2">
+                <p class="text-xs text-gray-400 mb-0.5">السبب</p>
+                <p class="text-sm font-bold text-emerald-700">{{ $payload['score_addition_reason'] }}</p>
+            </div>
+            @endif
+        </div>
+    </div>
+
 {{-- DELETE case --}}
 @elseif($action === 'delete')
     <div class="bg-red-50 border border-red-200 rounded-2xl p-6 mb-6">
@@ -418,7 +447,7 @@
             </form>
 
             {{-- Approve with edit toggle --}}
-            @if($action !== 'delete' && !in_array($action, ['bulk_amount','bulk_delete','bulk_update','bulk_score_deduction']))
+            @if($action !== 'delete' && !in_array($action, ['bulk_amount','bulk_delete','bulk_update','bulk_score_deduction','bulk_score_addition']))
             <button type="button" onclick="toggleEditPanel()"
                     class="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-6 py-3 rounded-xl transition-colors shadow-sm">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -447,7 +476,7 @@
         </div>
 
         {{-- Edit & Approve panel --}}
-        @if($action !== 'delete' && !in_array($action, ['bulk_amount','bulk_delete','bulk_update','bulk_score_deduction']))
+        @if($action !== 'delete' && !in_array($action, ['bulk_amount','bulk_delete','bulk_update','bulk_score_deduction','bulk_score_addition']))
         <div id="edit-panel" class="hidden border-t border-blue-100 pt-5 mt-2">
             <div class="flex items-center gap-2 mb-4">
                 <div class="w-7 h-7 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -517,7 +546,7 @@
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">المبلغ المقدر (ل.س)</label>
-                            <input type="number" name="payload[estimated_amount]" value="{{ $editPayload['estimated_amount'] ?? '' }}" min="0" step="0.01"
+                            <input type="number" name="payload[estimated_amount]" value="{{ $editPayload['estimated_amount'] ?? '' }}" step="0.01"
                                    class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 bg-gray-50">
                         </div>
                         <div>
@@ -719,12 +748,27 @@
                         <input type="number" name="payload[estimated_amount]" value="{{ $editPayload['estimated_amount'] ?? '' }}" step="0.01" class="{{ $inp }}">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-1">حساب شام كاش</label>
-                        <select name="payload[sham_cash_account]" class="{{ $inp }}">
-                            <option value="">— لا يوجد —</option>
-                            <option value="done" {{ ($editPayload['sham_cash_account'] ?? '') === 'done' ? 'selected' : '' }}>تم</option>
-                            <option value="manual" {{ ($editPayload['sham_cash_account'] ?? '') === 'manual' ? 'selected' : '' }}>يدوي</option>
-                        </select>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">
+                            حساب شام كاش
+                            @if(auth()->user()?->role !== 'admin')
+                                <span class="mr-1 text-xs font-normal text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md">للمسؤول فقط</span>
+                            @endif
+                        </label>
+                        @if(auth()->user()?->role === 'admin')
+                            <select name="payload[sham_cash_account]" class="{{ $inp }}">
+                                <option value="">— لا يوجد —</option>
+                                <option value="done" {{ ($editPayload['sham_cash_account'] ?? '') === 'done' ? 'selected' : '' }}>تم</option>
+                                <option value="manual" {{ ($editPayload['sham_cash_account'] ?? '') === 'manual' ? 'selected' : '' }}>يدوي</option>
+                            </select>
+                        @else
+                            <input type="hidden" name="payload[sham_cash_account]" value="{{ $editPayload['sham_cash_account'] ?? '' }}">
+                            <div class="px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-500 inline-flex items-center gap-2 cursor-not-allowed">
+                                <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                </svg>
+                                {{ ['done' => 'تم', 'manual' => 'يدوي'][$editPayload['sham_cash_account'] ?? ''] ?? 'لا يوجد' }}
+                            </div>
+                        @endif
                     </div>
                     <div class="flex items-center gap-4 pt-5">
                         <label class="inline-flex items-center gap-2 cursor-pointer">
@@ -779,6 +823,19 @@
                         <input type="number" name="payload[scores][{{ $sf }}]" value="{{ $editPayload['scores'][$sf] ?? 0 }}" min="0" step="0.5" class="{{ $inp }}">
                     </div>
                     @endforeach
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+                    <div>
+                        <label class="block text-xs font-bold text-emerald-700 mb-1">إضافة النقاط</label>
+                        <input type="number" name="payload[scores][score_addition]" value="{{ $editPayload['scores']['score_addition'] ?? 0 }}" min="0"
+                               class="w-full border border-emerald-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-400 bg-white text-emerald-700 font-bold text-center">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-emerald-700 mb-1">سبب الإضافة</label>
+                        <input type="text" name="payload[scores][score_addition_reason]" value="{{ $editPayload['scores']['score_addition_reason'] ?? '' }}"
+                               placeholder="سبب إضافة النقاط..."
+                               class="w-full border border-emerald-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-400 bg-white">
+                    </div>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
                     <div>

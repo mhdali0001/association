@@ -194,7 +194,8 @@
                         ['members.import.show', 'استيراد Excel',        'M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
                         ['members.bulk-amount',       'انقاص النقاط',     'M20 12H4'],
                         ['members.bulk-payments',     'الدفعات الجماعية',  'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z'],
-                        ['members.score-deductions',  'المنقوصة نقاطهم',  'M9 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414a2 2 0 001.414.586H19a2 2 0 002-2V7a2 2 0 00-2-2h-8.172a2 2 0 00-1.414.586L3 12z'],
+                        ['members.score-adjustments', 'تعديلات النقاط',    'M3 6h18M3 12h18M3 18h18'],
+                        ['members.score-equalizer',  'تسوية النقاط',      'M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4'],
                         ['delegates.index',     'المندوبون',            'M17 20h5v-2a4 4 0 00-5-3.87M9 20H4v-2a4 4 0 015-3.87m6-4.13a4 4 0 11-8 0 4 4 0 018 0zm6-4a3 3 0 11-6 0 3 3 0 016 0z'],
                         ['member-images.index', 'أرشيف الصور',          'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'],
                         ['age-statistics.index','إحصائيات الأعمار',    'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'],
@@ -225,6 +226,16 @@
 
             {{-- المالية --}}
             <div>
+                <p class="sidebar-group-label text-[10px] font-bold text-gray-400 uppercase tracking-widest px-3 mb-1.5 overflow-hidden whitespace-nowrap">الموظفون</p>
+                @if(Auth::user()->role === 'admin')
+                <div class="space-y-0.5 mb-3">
+                    <a href="{{ route('employees.index') }}" data-tip="الموظفون"
+                       class="nav-link {{ request()->routeIs('employees.*') ? 'active' : '' }}">
+                        <svg class="nav-icon shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        <span class="sidebar-label">الموظفون</span>
+                    </a>
+                </div>
+                @endif
                 <p class="sidebar-group-label text-[10px] font-bold text-gray-400 uppercase tracking-widest px-3 mb-1.5 overflow-hidden whitespace-nowrap">المالية</p>
                 <div class="space-y-0.5">
                     @foreach([

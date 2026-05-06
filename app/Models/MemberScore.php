@@ -11,6 +11,7 @@ class MemberScore extends Model
         'member_id', 'work_score', 'housing_score',
         'dependents_score', 'dependent_status_score', 'illness_score', 'special_cases_score', 'total_score',
         'score_deduction', 'score_deduction_reason',
+        'score_addition', 'score_addition_reason',
     ];
 
     public function member()

@@ -31,6 +31,13 @@
                 <p class="text-white font-black text-2xl leading-none">{{ $totalAffectedMembers }}</p>
                 <p class="text-rose-200 text-xs mt-0.5">عضو متأثر</p>
             </div>
+            <a href="{{ route('payment-review.recent-ibans') }}"
+               class="flex items-center gap-2 bg-white/15 hover:bg-white/25 border border-white/30 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                الآيبانات الحديثة
+            </a>
             <a href="{{ route('payment-review.index') }}"
                class="flex items-center gap-2 bg-white/15 hover:bg-white/25 border border-white/30 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -70,11 +77,26 @@
         </select>
     </div>
 
+    {{-- Date range filter --}}
+    <div class="flex items-center gap-2">
+        <div class="relative">
+            <label class="absolute -top-5 right-0 text-xs font-semibold text-gray-400 whitespace-nowrap">تاريخ الإضافة من</label>
+            <input type="date" name="date_from" value="{{ $dateFrom }}"
+                   class="text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-rose-400 focus:bg-white transition text-gray-600">
+        </div>
+        <span class="text-gray-300 text-sm">—</span>
+        <div class="relative">
+            <label class="absolute -top-5 right-0 text-xs font-semibold text-gray-400 whitespace-nowrap">إلى</label>
+            <input type="date" name="date_to" value="{{ $dateTo }}"
+                   class="text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-rose-400 focus:bg-white transition text-gray-600">
+        </div>
+    </div>
+
     <button type="submit"
             class="flex items-center gap-2 bg-gradient-to-l from-red-600 to-rose-500 hover:from-red-700 hover:to-rose-600 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm">
         بحث
     </button>
-    @if($search || $finalStatusId)
+    @if($search || $finalStatusId || $dateFrom || $dateTo)
         <a href="{{ route('payment-review.duplicate-ibans') }}"
            class="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -84,6 +106,21 @@
         </a>
     @endif
 </form>
+
+{{-- Results count (shown when filter is active) --}}
+@if($search || $finalStatusId || $dateFrom || $dateTo)
+<div class="mb-4 flex items-center gap-3 px-4 py-2.5 bg-rose-50 border border-rose-100 rounded-xl text-sm">
+    <svg class="w-4 h-4 text-rose-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+    </svg>
+    <span class="text-rose-700 font-medium">نتائج البحث:</span>
+    <span class="font-black text-rose-800">{{ number_format($totalDuplicateIbans) }}</span>
+    <span class="text-rose-600">آيبان مكرر</span>
+    <span class="text-rose-300 mx-1">•</span>
+    <span class="font-black text-rose-800">{{ number_format($totalAffectedMembers) }}</span>
+    <span class="text-rose-600">عضو متأثر</span>
+</div>
+@endif
 
 {{-- Results --}}
 @if($membersByIban->isEmpty())
@@ -135,6 +172,7 @@
                             <th class="font-semibold text-gray-400 text-xs px-4 py-2.5">حالة التحقق</th>
                             <th class="font-semibold text-gray-400 text-xs px-4 py-2.5">الحالة النهائية</th>
                             <th class="font-semibold text-gray-400 text-xs px-4 py-2.5">المبلغ المقدر</th>
+                            <th class="font-semibold text-gray-400 text-xs px-4 py-2.5 whitespace-nowrap">تاريخ إضافة الآيبان</th>
                             <th class="px-4 py-2.5 w-16"></th>
                         </tr>
                     </thead>
@@ -182,6 +220,15 @@
                                 @if($member->estimated_amount)
                                     <span class="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-0.5">
                                         {{ number_format((float)$member->estimated_amount, 0, '.', ',') }}
+                                    </span>
+                                @else
+                                    <span class="text-gray-300 text-xs">—</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                @if($member->paymentInfo?->created_at)
+                                    <span class="text-xs text-gray-500 font-mono">
+                                        {{ $member->paymentInfo->created_at->format('Y/m/d') }}
                                     </span>
                                 @else
                                     <span class="text-gray-300 text-xs">—</span>

@@ -436,6 +436,17 @@
                         </div>
                     </div>
                 @endforeach
+                @if(($member->scores->score_addition ?? 0) > 0)
+                <div class="flex justify-between items-center bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2.5 mt-1">
+                    <div>
+                        <span class="text-sm font-bold text-emerald-700">إضافة نقاط</span>
+                        @if($member->scores->score_addition_reason)
+                            <p class="text-xs text-emerald-500 mt-0.5">{{ $member->scores->score_addition_reason }}</p>
+                        @endif
+                    </div>
+                    <span class="text-2xl font-black text-emerald-600">+{{ $member->scores->score_addition }}</span>
+                </div>
+                @endif
                 @if(($member->scores->score_deduction ?? 0) > 0)
                 <div class="flex justify-between items-center bg-red-50 border border-red-200 rounded-xl px-3 py-2.5 mt-1">
                     <div>
