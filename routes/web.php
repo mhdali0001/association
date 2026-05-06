@@ -112,14 +112,17 @@ Route::middleware('auth')->group(function () {
     Route::delete('/member-images/{memberImage}',    [MemberImageController::class, 'destroy'])    ->name('member-images.destroy');
     Route::get('/members-duplicates', [DuplicateMembersController::class, 'index'])->name('members.duplicates');
     Route::get('/age-statistics',     [\App\Http\Controllers\AgeStatisticsController::class, 'index'])->name('age-statistics.index');
-    Route::get('/delegates',          [DelegateController::class, 'index'])         ->name('delegates.index');
-    Route::get('/delegates/{delegate}',[DelegateController::class, 'show'])         ->name('delegates.show');
+    Route::get('/delegates',              [DelegateController::class, 'index'])   ->name('delegates.index');
+    Route::get('/delegates/{delegate}',   [DelegateController::class, 'show'])    ->name('delegates.show');
+    Route::patch('/delegates/{delegate}', [DelegateController::class, 'rename'])  ->name('delegates.rename');
+    Route::delete('/delegates/{delegate}',[DelegateController::class, 'destroy']) ->name('delegates.destroy');
     Route::resource('field-visit-statuses', \App\Http\Controllers\FieldVisitStatusController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('house-types',      \App\Http\Controllers\HouseTypeController::class)     ->only(['index', 'store', 'update', 'destroy']);
     Route::resource('house-conditions', \App\Http\Controllers\HouseConditionController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('housing-statuses', \App\Http\Controllers\HousingStatusController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('employees', EmployeeController::class)->except(['create', 'edit']);
     Route::post('/employees/{employee}/transactions',                 [EmployeeController::class, 'storeTransaction'])   ->name('employees.transactions.store');
+    Route::put('/employees/{employee}/transactions/{transaction}',   [EmployeeController::class, 'updateTransaction'])  ->name('employees.transactions.update');
     Route::delete('/employees/{employee}/transactions/{transaction}', [EmployeeController::class, 'destroyTransaction']) ->name('employees.transactions.destroy');
 
     Route::resource('regions', \App\Http\Controllers\RegionController::class)->only(['index', 'store', 'update', 'destroy']);

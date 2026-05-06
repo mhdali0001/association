@@ -242,13 +242,13 @@
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1">العملة</label>
                     <div class="flex rounded-xl border border-gray-200 overflow-hidden text-sm font-bold">
-                        <label class="flex-1 flex items-center justify-center gap-1.5 py-2.5 cursor-pointer has-[:checked]:bg-slate-700 has-[:checked]:text-white text-gray-500 hover:bg-gray-50 transition-colors">
-                            <input type="radio" name="base_salary_currency" value="SYP" checked class="sr-only">
-                            ل.س
-                        </label>
-                        <label class="flex-1 flex items-center justify-center gap-1.5 py-2.5 cursor-pointer has-[:checked]:bg-emerald-600 has-[:checked]:text-white text-gray-500 hover:bg-gray-50 transition-colors border-r border-gray-200">
-                            <input type="radio" name="base_salary_currency" value="USD" class="sr-only">
+                        <label class="flex-1 flex items-center justify-center gap-1.5 py-2.5 cursor-pointer has-[:checked]:bg-emerald-600 has-[:checked]:text-white text-gray-500 hover:bg-gray-50 transition-colors">
+                            <input type="radio" name="base_salary_currency" value="USD" checked class="sr-only">
                             $ دولار
+                        </label>
+                        <label class="flex-1 flex items-center justify-center gap-1.5 py-2.5 cursor-pointer has-[:checked]:bg-slate-700 has-[:checked]:text-white text-gray-500 hover:bg-gray-50 transition-colors border-r border-gray-200">
+                            <input type="radio" name="base_salary_currency" value="SYP" class="sr-only">
+                            ل.س
                         </label>
                     </div>
                 </div>

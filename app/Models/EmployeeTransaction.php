@@ -31,6 +31,7 @@ class EmployeeTransaction extends Model
             'addition'  => 'إضافة',
             'deduction' => 'خصم',
             'advance'   => 'سلفة',
+            'bonus'     => 'مكافأة',
             default     => $this->type,
         };
     }
@@ -42,6 +43,6 @@ class EmployeeTransaction extends Model
 
     public function isCredit(): bool
     {
-        return in_array($this->type, ['salary', 'addition', 'advance']);
+        return in_array($this->type, ['salary', 'addition', 'advance', 'bonus']);
     }
 }

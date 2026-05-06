@@ -190,9 +190,15 @@ class PaymentReviewController extends Controller
 
         // Filter: keep only IBAN groups that contain at least one member with the selected final status
         if ($finalStatusId !== '') {
-            $membersByIban = $membersByIban->filter(
-                fn($members) => $members->contains('final_status_id', (int) $finalStatusId)
-            );
+            if ($finalStatusId === 'none') {
+                $membersByIban = $membersByIban->filter(
+                    fn($members) => $members->contains(fn($m) => is_null($m->final_status_id))
+                );
+            } else {
+                $membersByIban = $membersByIban->filter(
+                    fn($members) => $members->contains('final_status_id', (int) $finalStatusId)
+                );
+            }
         }
 
         // Filter: keep only IBAN groups where at least one payment_info was added in the date range

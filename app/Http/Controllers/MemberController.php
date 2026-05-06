@@ -1369,7 +1369,7 @@ class MemberController extends Controller
             return redirect()->route('members.index')->with('success', 'لم يتم تحديد أي حقل للتعديل.');
         }
 
-        $allowed = ['network', 'marital_status', 'current_address', 'region_id', 'housing_status_id', 'verification_status_id', 'estimated_amount', 'payments_count', 'field_visit_status_id', 'fv_visitor', 'payment_data_entry_name'];
+        $allowed = ['network', 'marital_status', 'current_address', 'region_id', 'housing_status_id', 'verification_status_id', 'estimated_amount', 'payments_count', 'field_visit_status_id', 'fv_visitor', 'payment_data_entry_name', 'delegate'];
         if ($this->isAdmin()) { $allowed[] = 'final_status_id'; $allowed[] = 'sham_cash_account'; }
         $data    = [];
 

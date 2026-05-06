@@ -67,6 +67,7 @@
         <select name="final_status_id" onwheel="this.blur()"
                 class="text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-rose-400 focus:bg-white transition text-gray-600 min-w-[160px]">
             <option value="">— كل الحالات النهائية —</option>
+            <option value="none" {{ $finalStatusId === 'none' ? 'selected' : '' }}>بدون حالة نهائية</option>
             @foreach($finalStatusList as $fs)
                 <option value="{{ $fs->id }}"
                         {{ $finalStatusId == $fs->id ? 'selected' : '' }}

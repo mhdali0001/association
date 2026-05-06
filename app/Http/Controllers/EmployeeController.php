@@ -24,8 +24,8 @@ class EmployeeController extends Controller
             ->orderBy('name')
             ->get();
 
-        $totalPaidSYP     = EmployeeTransaction::whereIn('type', ['salary', 'addition', 'advance'])->where('currency', 'SYP')->sum('amount');
-        $totalPaidUSD     = EmployeeTransaction::whereIn('type', ['salary', 'addition', 'advance'])->where('currency', 'USD')->sum('amount');
+        $totalPaidSYP     = EmployeeTransaction::whereIn('type', ['salary', 'addition', 'advance', 'bonus'])->where('currency', 'SYP')->sum('amount');
+        $totalPaidUSD     = EmployeeTransaction::whereIn('type', ['salary', 'addition', 'advance', 'bonus'])->where('currency', 'USD')->sum('amount');
         $totalDeductedSYP = EmployeeTransaction::where('type', 'deduction')->where('currency', 'SYP')->sum('amount');
         $totalDeductedUSD = EmployeeTransaction::where('type', 'deduction')->where('currency', 'USD')->sum('amount');
 
@@ -85,9 +85,10 @@ class EmployeeController extends Controller
                 'additions' => (float) $byCur->where('type', 'addition')->sum('amount'),
                 'deductions'=> (float) $byCur->where('type', 'deduction')->sum('amount'),
                 'advances'  => (float) $byCur->where('type', 'advance')->sum('amount'),
+                'bonuses'   => (float) $byCur->where('type', 'bonus')->sum('amount'),
             ];
             $totals[$cur]['net'] = $totals[$cur]['salary'] + $totals[$cur]['additions']
-                + $totals[$cur]['advances'] - $totals[$cur]['deductions'];
+                + $totals[$cur]['advances'] + $totals[$cur]['bonuses'] - $totals[$cur]['deductions'];
         }
 
         return view('employees.show', compact(
@@ -130,7 +131,7 @@ class EmployeeController extends Controller
         $this->adminOnly();
 
         $data = $request->validate([
-            'type'             => 'required|in:salary,addition,deduction,advance',
+            'type'             => 'required|in:salary,addition,deduction,advance,bonus',
             'amount'           => 'required|numeric|min:0.01',
             'currency'         => 'required|in:SYP,USD',
             'reason'           => 'nullable|string|max:500',
@@ -143,6 +144,24 @@ class EmployeeController extends Controller
         EmployeeTransaction::create($data);
 
         return back()->with('success', 'تمت إضافة العملية بنجاح.');
+    }
+
+    public function updateTransaction(Request $request, Employee $employee, EmployeeTransaction $transaction)
+    {
+        $this->adminOnly();
+        abort_if($transaction->employee_id !== $employee->id, 403);
+
+        $data = $request->validate([
+            'type'             => 'required|in:salary,addition,deduction,advance,bonus',
+            'amount'           => 'required|numeric|min:0.01',
+            'currency'         => 'required|in:SYP,USD',
+            'reason'           => 'nullable|string|max:500',
+            'transaction_date' => 'required|date',
+        ]);
+
+        $transaction->update($data);
+
+        return back()->with('success', 'تم تعديل العملية بنجاح.');
     }
 
     public function destroyTransaction(Employee $employee, EmployeeTransaction $transaction)

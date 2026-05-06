@@ -166,12 +166,12 @@
             </div>
             <span class="text-xs text-gray-400">الصافي</span>
         </div>
-        @if($totals['SYP']['salary'] + $totals['SYP']['additions'] + $totals['SYP']['advances'] + $totals['SYP']['deductions'] > 0)
+        @if($totals['SYP']['salary'] + $totals['SYP']['additions'] + $totals['SYP']['advances'] + $totals['SYP']['bonuses'] + $totals['SYP']['deductions'] > 0)
             <p class="font-black text-lg leading-tight {{ $sypNet >= 0 ? 'text-emerald-600' : 'text-red-600' }}">
                 {{ $sypNet < 0 ? '-' : '' }}{{ number_format(abs($sypNet)) }} <span class="text-xs font-normal text-gray-400">ل.س</span>
             </p>
         @endif
-        @if($totals['USD']['salary'] + $totals['USD']['additions'] + $totals['USD']['advances'] + $totals['USD']['deductions'] > 0)
+        @if($totals['USD']['salary'] + $totals['USD']['additions'] + $totals['USD']['advances'] + $totals['USD']['bonuses'] + $totals['USD']['deductions'] > 0)
             <p class="font-black text-lg leading-tight {{ $usdNet >= 0 ? 'text-emerald-600' : 'text-red-600' }}">
                 {{ $usdNet < 0 ? '-' : '' }}{{ number_format(abs($usdNet), 2) }} <span class="text-xs font-normal text-gray-400">$</span>
             </p>
@@ -223,6 +223,13 @@
                         </div>
                         <span class="text-xs font-bold">سلفة</span>
                     </button>
+                    <button type="button" data-type="bonus" onclick="selectType('bonus')"
+                            class="type-card col-span-2 flex items-center gap-2.5 px-3 py-3 rounded-xl border-2 border-gray-100 bg-white text-gray-400 hover:border-gray-200 hover:bg-gray-50 transition-all cursor-pointer text-right">
+                        <div class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/></svg>
+                        </div>
+                        <span class="text-xs font-bold">مكافأة</span>
+                    </button>
                 </div>
             </div>
 
@@ -236,13 +243,13 @@
                         <input type="number" name="amount" min="0.01" step="0.01" required placeholder="0"
                                class="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-slate-300 focus:outline-none bg-gray-50 text-gray-800">
                         <div class="flex rounded-xl border border-gray-200 overflow-hidden text-xs font-bold shrink-0">
-                            <label class="flex items-center justify-center px-3 py-2.5 cursor-pointer transition-colors has-[:checked]:bg-slate-700 has-[:checked]:text-white text-gray-500 hover:bg-gray-50">
-                                <input type="radio" name="currency" value="SYP" checked id="cur-syp" class="sr-only">
-                                ل.س
-                            </label>
-                            <label class="flex items-center justify-center px-3 py-2.5 cursor-pointer transition-colors has-[:checked]:bg-emerald-600 has-[:checked]:text-white text-gray-500 hover:bg-gray-50 border-r border-gray-200">
-                                <input type="radio" name="currency" value="USD" id="cur-usd" class="sr-only">
+                            <label class="flex items-center justify-center px-3 py-2.5 cursor-pointer transition-colors has-[:checked]:bg-emerald-600 has-[:checked]:text-white text-gray-500 hover:bg-gray-50">
+                                <input type="radio" name="currency" value="USD" checked id="cur-usd" class="sr-only">
                                 $
+                            </label>
+                            <label class="flex items-center justify-center px-3 py-2.5 cursor-pointer transition-colors has-[:checked]:bg-slate-700 has-[:checked]:text-white text-gray-500 hover:bg-gray-50 border-r border-gray-200">
+                                <input type="radio" name="currency" value="SYP" id="cur-syp" class="sr-only">
+                                ل.س
                             </label>
                         </div>
                     </div>
@@ -295,10 +302,10 @@
                                class="w-full pr-9 pl-3 py-2 text-xs border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-slate-300 focus:outline-none">
                     </div>
                     <div class="flex rounded-xl border border-gray-200 overflow-hidden text-xs font-bold">
-                        @foreach(['all' => 'الكل', 'salary' => 'راتب', 'addition' => 'إضافة', 'deduction' => 'خصم', 'advance' => 'سلفة'] as $val => $lbl)
+                        @foreach(['all' => 'الكل', 'salary' => 'راتب', 'addition' => 'إضافة', 'deduction' => 'خصم', 'advance' => 'سلفة', 'bonus' => 'مكافأة'] as $val => $lbl)
                         <a href="{{ route('employees.show', $employee) }}?type={{ $val }}&search={{ $search }}"
                            class="px-3 py-2 transition-colors {{ $typeFilter === $val
-                               ? ($val === 'salary' ? 'bg-blue-600 text-white' : ($val === 'addition' ? 'bg-emerald-600 text-white' : ($val === 'deduction' ? 'bg-red-600 text-white' : ($val === 'advance' ? 'bg-amber-500 text-white' : 'bg-slate-700 text-white'))))
+                               ? ($val === 'salary' ? 'bg-blue-600 text-white' : ($val === 'addition' ? 'bg-emerald-600 text-white' : ($val === 'deduction' ? 'bg-red-600 text-white' : ($val === 'advance' ? 'bg-amber-500 text-white' : ($val === 'bonus' ? 'bg-violet-600 text-white' : 'bg-slate-700 text-white')))))
                                : 'bg-white text-gray-500 hover:bg-gray-50' }}">
                             {{ $lbl }}
                         </a>
@@ -339,7 +346,7 @@
                             <th class="font-semibold text-gray-400 text-xs px-4 py-3">السبب</th>
                             <th class="font-semibold text-gray-400 text-xs px-4 py-3 whitespace-nowrap">التاريخ</th>
                             <th class="font-semibold text-gray-400 text-xs px-4 py-3 whitespace-nowrap">بواسطة</th>
-                            <th class="w-10 px-3 py-3"></th>
+                            <th class="w-20 px-3 py-3"></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-50">
@@ -350,6 +357,7 @@
                                 'addition'  => ['icon' => 'M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z', 'badge' => 'bg-emerald-100 text-emerald-700', 'iconColor' => 'text-emerald-500', 'amtClass' => 'text-emerald-700'],
                                 'deduction' => ['icon' => 'M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z', 'badge' => 'bg-red-100 text-red-700', 'iconColor' => 'text-red-500', 'amtClass' => 'text-red-600'],
                                 'advance'   => ['icon' => 'M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6', 'badge' => 'bg-amber-100 text-amber-700', 'iconColor' => 'text-amber-500', 'amtClass' => 'text-amber-700'],
+                                'bonus'     => ['icon' => 'M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7', 'badge' => 'bg-violet-100 text-violet-700', 'iconColor' => 'text-violet-500', 'amtClass' => 'text-violet-700'],
                             ];
                             $meta = $typeMeta[$tx->type] ?? ['icon' => '', 'badge' => 'bg-gray-100 text-gray-700', 'iconColor' => 'text-gray-400', 'amtClass' => 'text-gray-700'];
                         @endphp
@@ -378,14 +386,29 @@
                                 <span class="text-xs text-gray-400">{{ $tx->creator?->name ?? '—' }}</span>
                             </td>
                             <td class="px-3 py-3">
-                                <form method="POST" action="{{ route('employees.transactions.destroy', [$employee, $tx]) }}"
-                                      onsubmit="return confirm('هل أنت متأكد من حذف هذه العملية؟')">
-                                    @csrf @method('DELETE')
-                                    <button type="submit"
-                                            class="opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                <div class="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                    <button type="button"
+                                            onclick="openEditTx({
+                                                id: {{ $tx->id }},
+                                                type: '{{ $tx->type }}',
+                                                amount: '{{ (float)$tx->amount }}',
+                                                currency: '{{ $tx->currency }}',
+                                                reason: {{ json_encode($tx->reason) }},
+                                                date: '{{ $tx->transaction_date->format('Y-m-d') }}',
+                                                url: '{{ route('employees.transactions.update', [$employee, $tx]) }}'
+                                            })"
+                                            class="w-7 h-7 rounded-lg text-gray-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                     </button>
-                                </form>
+                                    <form method="POST" action="{{ route('employees.transactions.destroy', [$employee, $tx]) }}"
+                                          onsubmit="return confirm('هل أنت متأكد من حذف هذه العملية؟')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit"
+                                                class="w-7 h-7 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         @endforeach
@@ -457,13 +480,13 @@
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1">عملة الراتب</label>
                     <div class="flex rounded-xl border border-gray-200 overflow-hidden text-sm font-bold">
-                        <label class="flex-1 flex items-center justify-center py-2.5 cursor-pointer has-[:checked]:bg-slate-700 has-[:checked]:text-white text-gray-500 hover:bg-gray-50 transition-colors">
-                            <input type="radio" name="base_salary_currency" value="SYP" {{ ($employee->base_salary_currency ?? 'SYP') === 'SYP' ? 'checked' : '' }} class="sr-only">
-                            ل.س
-                        </label>
-                        <label class="flex-1 flex items-center justify-center py-2.5 cursor-pointer has-[:checked]:bg-emerald-600 has-[:checked]:text-white text-gray-500 hover:bg-gray-50 transition-colors border-r border-gray-200">
-                            <input type="radio" name="base_salary_currency" value="USD" {{ ($employee->base_salary_currency ?? 'SYP') === 'USD' ? 'checked' : '' }} class="sr-only">
+                        <label class="flex-1 flex items-center justify-center py-2.5 cursor-pointer has-[:checked]:bg-emerald-600 has-[:checked]:text-white text-gray-500 hover:bg-gray-50 transition-colors">
+                            <input type="radio" name="base_salary_currency" value="USD" checked class="sr-only">
                             $ دولار
+                        </label>
+                        <label class="flex-1 flex items-center justify-center py-2.5 cursor-pointer has-[:checked]:bg-slate-700 has-[:checked]:text-white text-gray-500 hover:bg-gray-50 transition-colors border-r border-gray-200">
+                            <input type="radio" name="base_salary_currency" value="SYP" class="sr-only">
+                            ل.س
                         </label>
                     </div>
                 </div>
@@ -505,6 +528,88 @@
     </div>
 </div>
 
+{{-- ===== Modal: تعديل العملية ===== --}}
+<div id="modal-edit-tx" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.5)">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <h2 class="text-base font-bold text-gray-800">تعديل العملية</h2>
+            <button onclick="document.getElementById('modal-edit-tx').classList.add('hidden')"
+                    class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form method="POST" id="edit-tx-form" class="p-6 space-y-4">
+            @csrf @method('PUT')
+
+            {{-- Type selector --}}
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-2">نوع العملية</label>
+                <div class="grid grid-cols-5 gap-1.5" id="edit-type-selector">
+                    @foreach([
+                        ['salary',    'راتب',   'blue'],
+                        ['addition',  'إضافة',  'emerald'],
+                        ['deduction', 'خصم',    'red'],
+                        ['advance',   'سلفة',   'amber'],
+                        ['bonus',     'مكافأة', 'violet'],
+                    ] as [$val, $lbl, $clr])
+                    <button type="button" data-type="{{ $val }}"
+                            onclick="selectEditType('{{ $val }}')"
+                            class="edit-type-btn py-2 rounded-xl border-2 text-xs font-bold transition-all
+                                   border-gray-100 bg-white text-gray-400 hover:border-gray-200 hover:bg-gray-50">
+                        {{ $lbl }}
+                    </button>
+                    @endforeach
+                </div>
+                <input type="hidden" name="type" id="edit-tx-type" value="salary">
+            </div>
+
+            {{-- Amount + currency --}}
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1.5">المبلغ</label>
+                <div class="flex gap-2">
+                    <input type="number" name="amount" id="edit-tx-amount" min="0.01" step="0.01" required placeholder="0"
+                           class="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-slate-300 focus:outline-none bg-gray-50">
+                    <div class="flex rounded-xl border border-gray-200 overflow-hidden text-xs font-bold shrink-0">
+                        <label class="flex items-center justify-center px-3 py-2.5 cursor-pointer transition-colors has-[:checked]:bg-emerald-600 has-[:checked]:text-white text-gray-500 hover:bg-gray-50">
+                            <input type="radio" name="currency" value="USD" id="edit-cur-usd" class="sr-only">
+                            $
+                        </label>
+                        <label class="flex items-center justify-center px-3 py-2.5 cursor-pointer transition-colors has-[:checked]:bg-slate-700 has-[:checked]:text-white text-gray-500 hover:bg-gray-50 border-r border-gray-200">
+                            <input type="radio" name="currency" value="SYP" id="edit-cur-syp" class="sr-only">
+                            ل.س
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Reason --}}
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1.5">السبب / الوصف</label>
+                <textarea name="reason" id="edit-tx-reason" rows="2"
+                          class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-slate-300 focus:outline-none bg-gray-50 resize-none"></textarea>
+            </div>
+
+            {{-- Date --}}
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1.5">التاريخ</label>
+                <input type="date" name="transaction_date" id="edit-tx-date" required
+                       class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-slate-300 focus:outline-none bg-gray-50">
+            </div>
+
+            <div class="flex gap-3 pt-1 border-t border-gray-100">
+                <button type="submit" id="edit-tx-submit"
+                        class="flex-1 bg-slate-700 hover:bg-slate-800 text-white text-sm font-bold py-2.5 rounded-xl transition-colors">
+                    حفظ التعديلات
+                </button>
+                <button type="button" onclick="document.getElementById('modal-edit-tx').classList.add('hidden')"
+                        class="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition-colors">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 const typeConfig = {
     salary:    {
@@ -538,6 +643,14 @@ const typeConfig = {
         placeholder: 'ملاحظة السلفة...',
         cardClass:   'border-amber-400 bg-amber-50 text-amber-700',
         iconClass:   'bg-amber-100',
+    },
+    bonus:     {
+        amountLabel: 'قيمة المكافأة',
+        submitLabel: 'تسجيل المكافأة',
+        submitClass: 'bg-violet-600 hover:bg-violet-700',
+        placeholder: 'سبب المكافأة...',
+        cardClass:   'border-violet-400 bg-violet-50 text-violet-700',
+        iconClass:   'bg-violet-100',
     },
 };
 
@@ -573,6 +686,42 @@ function selectType(type) {
 document.getElementById('modal-edit').addEventListener('click', function(e) {
     if (e.target === this) this.classList.add('hidden');
 });
+document.getElementById('modal-edit-tx').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.add('hidden');
+});
+
+const editTypeColors = {
+    salary:    { border: 'border-blue-400',    bg: 'bg-blue-50',    text: 'text-blue-700',    submit: 'bg-blue-600 hover:bg-blue-700' },
+    addition:  { border: 'border-emerald-400', bg: 'bg-emerald-50', text: 'text-emerald-700', submit: 'bg-emerald-600 hover:bg-emerald-700' },
+    deduction: { border: 'border-red-400',     bg: 'bg-red-50',     text: 'text-red-700',     submit: 'bg-red-600 hover:bg-red-700' },
+    advance:   { border: 'border-amber-400',   bg: 'bg-amber-50',   text: 'text-amber-700',   submit: 'bg-amber-500 hover:bg-amber-600' },
+    bonus:     { border: 'border-violet-400',  bg: 'bg-violet-50',  text: 'text-violet-700',  submit: 'bg-violet-600 hover:bg-violet-700' },
+};
+
+function selectEditType(type) {
+    document.getElementById('edit-tx-type').value = type;
+    const clr = editTypeColors[type];
+    document.querySelectorAll('.edit-type-btn').forEach(btn => {
+        if (btn.dataset.type === type) {
+            btn.className = `edit-type-btn py-2 rounded-xl border-2 text-xs font-bold transition-all ${clr.border} ${clr.bg} ${clr.text}`;
+        } else {
+            btn.className = 'edit-type-btn py-2 rounded-xl border-2 text-xs font-bold transition-all border-gray-100 bg-white text-gray-400 hover:border-gray-200 hover:bg-gray-50';
+        }
+    });
+    const submit = document.getElementById('edit-tx-submit');
+    submit.className = `flex-1 text-white text-sm font-bold py-2.5 rounded-xl transition-colors ${clr.submit}`;
+}
+
+function openEditTx(tx) {
+    document.getElementById('edit-tx-form').action = tx.url;
+    document.getElementById('edit-tx-amount').value = tx.amount;
+    document.getElementById('edit-tx-reason').value = tx.reason || '';
+    document.getElementById('edit-tx-date').value = tx.date;
+    document.getElementById('edit-cur-usd').checked = true;
+    document.getElementById('edit-cur-syp').checked = false;
+    selectEditType(tx.type);
+    document.getElementById('modal-edit-tx').classList.remove('hidden');
+}
 </script>
 
 @endsection
