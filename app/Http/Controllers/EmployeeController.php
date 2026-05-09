@@ -43,14 +43,18 @@ class EmployeeController extends Controller
         $data = $request->validate([
             'name'                 => 'required|string|max:255',
             'job_title'            => 'nullable|string|max:255',
+            'department'           => 'nullable|string|max:255',
             'phone'                => 'nullable|string|max:50',
             'base_salary'          => 'nullable|numeric|min:0',
             'base_salary_currency' => 'nullable|in:SYP,USD',
             'notes'                => 'nullable|string|max:1000',
+            'hire_date'            => 'nullable|date',
+            'access_pin'           => 'nullable|string|max:20|unique:employees,access_pin',
         ]);
 
         $data['base_salary']          = $data['base_salary'] ?? 0;
         $data['base_salary_currency'] = $data['base_salary_currency'] ?? 'SYP';
+        if (empty($data['access_pin'])) unset($data['access_pin']);
 
         Employee::create($data);
 
@@ -103,12 +107,16 @@ class EmployeeController extends Controller
         $data = $request->validate([
             'name'                 => 'required|string|max:255',
             'job_title'            => 'nullable|string|max:255',
+            'department'           => 'nullable|string|max:255',
             'phone'                => 'nullable|string|max:50',
             'base_salary'          => 'nullable|numeric|min:0',
             'base_salary_currency' => 'nullable|in:SYP,USD',
             'notes'                => 'nullable|string|max:1000',
             'is_active'            => 'nullable|boolean',
+            'hire_date'            => 'nullable|date',
+            'access_pin'           => 'nullable|string|max:20|unique:employees,access_pin,' . $employee->id,
         ]);
+        if (empty($data['access_pin'])) unset($data['access_pin']);
 
         $data['base_salary']          = $data['base_salary'] ?? 0;
         $data['base_salary_currency'] = $data['base_salary_currency'] ?? 'SYP';

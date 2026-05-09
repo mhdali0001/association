@@ -7,11 +7,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Employee extends Model
 {
-    protected $fillable = ['name', 'job_title', 'phone', 'base_salary', 'base_salary_currency', 'notes', 'is_active'];
+    protected $fillable = ['name', 'job_title', 'department', 'phone', 'base_salary', 'base_salary_currency', 'notes', 'is_active', 'hire_date', 'access_pin'];
 
     protected $casts = [
         'is_active'   => 'boolean',
         'base_salary' => 'decimal:2',
+        'hire_date'   => 'date',
     ];
 
     public function transactions(): HasMany
@@ -29,8 +30,8 @@ class Employee extends Model
             $tx = $tx->where('currency', $currency);
         }
 
-        $credits = $tx->whereIn('type', ['salary', 'addition', 'advance'])->sum('amount');
-        $debits  = $tx->where('type', 'deduction')->sum('amount');
+        $credits = $tx->whereIn('type', ['salary', 'addition', 'bonus'])->sum('amount');
+        $debits  = $tx->whereIn('type', ['deduction', 'advance'])->sum('amount');
 
         return (float) ($credits - $debits);
     }

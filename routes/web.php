@@ -20,12 +20,19 @@ use App\Http\Controllers\PendingChangeController;
 use App\Http\Controllers\MemberImportController;
 use App\Http\Controllers\VerificationStatusController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\EmployeePortalController;
 use Illuminate\Support\Facades\Route;
 
 // Welcome
 Route::get('/', function () {
     return view('welcome');
 });
+
+// Employee self-service portal (public)
+Route::get('/portal',          [EmployeePortalController::class, 'login'])        ->name('employee-portal.login');
+Route::post('/portal',         [EmployeePortalController::class, 'authenticate']) ->name('employee-portal.authenticate');
+Route::get('/portal/me',       [EmployeePortalController::class, 'dashboard'])    ->name('employee-portal.dashboard');
+Route::post('/portal/logout',  [EmployeePortalController::class, 'logout'])       ->name('employee-portal.logout');
 
 // Auth
 Route::middleware('guest')->group(function () {

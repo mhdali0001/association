@@ -19,21 +19,28 @@
 @endif
 
 {{-- Hero --}}
-<div class="relative bg-gradient-to-l from-slate-900 via-slate-800 to-slate-700 rounded-3xl overflow-hidden shadow-xl mb-6">
-    <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute -top-12 -right-12 w-64 h-64 bg-white/5 rounded-full"></div>
-        <div class="absolute -bottom-20 left-8 w-80 h-80 bg-white/5 rounded-full"></div>
-        <div class="absolute inset-0 opacity-5" style="background-image:linear-gradient(rgba(255,255,255,.2) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.2) 1px,transparent 1px);background-size:40px 40px"></div>
+@php
+    $tenure = $employee->hire_date ? $employee->hire_date->diff(now()) : null;
+    $tenureStr = $tenure
+        ? ($tenure->y > 0 ? $tenure->y . ' سنة' . ($tenure->m > 0 ? ' و' . $tenure->m . ' شهر' : '') : ($tenure->m > 0 ? $tenure->m . ' شهر' : $tenure->days . ' يوم'))
+        : null;
+@endphp
+<div class="relative rounded-3xl overflow-hidden shadow-2xl mb-6" style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#0f172a 100%)">
+    <div class="absolute inset-0 pointer-events-none overflow-hidden">
+        <div class="absolute -top-16 -right-16 w-72 h-72 rounded-full opacity-10" style="background:radial-gradient(circle,#6366f1,transparent)"></div>
+        <div class="absolute -bottom-24 -left-10 w-96 h-96 rounded-full opacity-10" style="background:radial-gradient(circle,#06b6d4,transparent)"></div>
+        <div class="absolute top-0 left-0 right-0 h-px" style="background:linear-gradient(90deg,transparent,rgba(255,255,255,0.12),transparent)"></div>
     </div>
     <div class="relative p-7">
-        <div class="flex items-start justify-between flex-wrap gap-5">
+        <div class="flex items-start justify-between flex-wrap gap-5 mb-6">
             {{-- Employee identity --}}
             <div class="flex items-center gap-5">
                 <div class="relative shrink-0">
-                    <div class="w-16 h-16 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center text-white font-black text-3xl">
+                    <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-white font-black text-3xl shadow-lg"
+                         style="background:linear-gradient(135deg,#6366f1,#4f46e5)">
                         {{ mb_substr($employee->name, 0, 1) }}
                     </div>
-                    <div class="absolute -bottom-1 -left-1 w-5 h-5 rounded-full border-2 border-slate-800 flex items-center justify-center {{ $employee->is_active ? 'bg-emerald-400' : 'bg-gray-400' }}">
+                    <div class="absolute -bottom-1 -left-1 w-5 h-5 rounded-full border-2 flex items-center justify-center {{ $employee->is_active ? 'bg-emerald-400' : 'bg-gray-500' }}" style="border-color:#0f172a">
                         @if($employee->is_active)
                             <svg class="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                         @else
@@ -42,44 +49,120 @@
                     </div>
                 </div>
                 <div>
-                    <div class="flex items-center gap-2.5 mb-0.5">
-                        <h1 class="text-2xl font-black text-white">{{ $employee->name }}</h1>
-                        <span class="text-xs font-bold px-2.5 py-1 rounded-full {{ $employee->is_active ? 'bg-emerald-400/25 text-emerald-200 border border-emerald-400/30' : 'bg-gray-400/25 text-gray-300 border border-gray-400/30' }}">
+                    <div class="flex items-center gap-2.5 mb-1">
+                        <h1 class="text-2xl font-black text-white tracking-tight">{{ $employee->name }}</h1>
+                        <span class="text-[11px] font-bold px-2.5 py-1 rounded-lg {{ $employee->is_active ? 'bg-emerald-400/20 text-emerald-300 border border-emerald-400/30' : 'bg-gray-500/20 text-gray-400 border border-gray-500/30' }}">
                             {{ $employee->is_active ? 'نشط' : 'غير نشط' }}
                         </span>
                     </div>
-                    @if($employee->job_title)
-                        <p class="text-slate-300 text-sm">{{ $employee->job_title }}</p>
-                    @endif
-                    @if($employee->phone)
-                        <p class="text-slate-400 text-xs mt-1.5 flex items-center gap-1.5">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
-                            {{ $employee->phone }}
-                        </p>
-                    @endif
+                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5">
+                        @if($employee->job_title)
+                            <span class="flex items-center gap-1.5 text-sm" style="color:#94a3b8">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                                {{ $employee->job_title }}
+                            </span>
+                        @endif
+                        @if($employee->department)
+                            <span class="flex items-center gap-1.5 text-sm" style="color:#94a3b8">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                                {{ $employee->department }}
+                            </span>
+                        @endif
+                        @if($employee->phone)
+                            <span class="flex items-center gap-1.5 text-sm" style="color:#94a3b8">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                                {{ $employee->phone }}
+                            </span>
+                        @endif
+                        @if($employee->hire_date)
+                            <span class="flex items-center gap-1.5 text-sm" style="color:#94a3b8">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                منذ {{ $employee->hire_date->format('Y/m/d') }}
+                                @if($tenureStr)
+                                    <span class="text-xs px-1.5 py-0.5 rounded-md" style="background:rgba(99,102,241,0.2);color:#a5b4fc">{{ $tenureStr }}</span>
+                                @endif
+                            </span>
+                        @endif
+                    </div>
                 </div>
             </div>
 
-            {{-- Actions + base salary --}}
-            <div class="flex flex-wrap items-center gap-3">
-                <div class="bg-white/10 border border-white/20 rounded-2xl px-5 py-3 text-center">
-                    <p class="text-white font-black text-xl leading-none">
-                        {{ ($employee->base_salary_currency ?? 'SYP') === 'USD' ? number_format((float)$employee->base_salary, 2) : number_format((float)$employee->base_salary) }}
-                        <span class="text-sm font-normal text-slate-300">{{ ($employee->base_salary_currency ?? 'SYP') === 'USD' ? '$' : 'ل.س' }}</span>
-                    </p>
-                    <p class="text-slate-400 text-xs mt-1">الراتب الأساسي</p>
-                </div>
+            {{-- Actions --}}
+            <div class="flex flex-wrap items-center gap-2">
                 <button onclick="document.getElementById('modal-edit').classList.remove('hidden')"
-                        class="flex items-center gap-2 bg-white/15 hover:bg-white/25 border border-white/25 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
+                        class="flex items-center gap-2 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all"
+                        style="background:rgba(99,102,241,0.25);border:1px solid rgba(99,102,241,0.4)">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                     تعديل البيانات
                 </button>
                 <a href="{{ route('employees.index') }}"
-                   class="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white/80 hover:text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
+                   class="flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl transition-all"
+                   style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.7)">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                     الموظفون
                 </a>
             </div>
+        </div>
+
+        {{-- Info chips row --}}
+        <div class="flex flex-wrap gap-2 pt-5" style="border-top:1px solid rgba(255,255,255,0.07)">
+            {{-- Base salary --}}
+            <div class="flex items-center gap-2 rounded-xl px-4 py-2.5" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09)">
+                <div class="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style="background:rgba(99,102,241,0.25)">
+                    <svg class="w-3.5 h-3.5" style="color:#a5b4fc" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold" style="color:#64748b">الراتب الأساسي</p>
+                    <p class="text-sm font-black text-white leading-tight">
+                        {{ ($employee->base_salary_currency ?? 'SYP') === 'USD' ? number_format((float)$employee->base_salary, 2) : number_format((float)$employee->base_salary) }}
+                        <span class="text-xs font-normal" style="color:#94a3b8">{{ ($employee->base_salary_currency ?? 'SYP') === 'USD' ? '$' : 'ل.س' }}</span>
+                    </p>
+                </div>
+            </div>
+            {{-- Transactions count --}}
+            <div class="flex items-center gap-2 rounded-xl px-4 py-2.5" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.09)">
+                <div class="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style="background:rgba(6,182,212,0.2)">
+                    <svg class="w-3.5 h-3.5" style="color:#22d3ee" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold" style="color:#64748b">إجمالي العمليات</p>
+                    <p class="text-sm font-black text-white leading-tight">{{ $employee->transactions->count() }} عملية</p>
+                </div>
+            </div>
+            {{-- Portal PIN --}}
+            <div class="flex items-center gap-2 rounded-xl px-4 py-2.5" style="background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2)">
+                <div class="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style="background:rgba(99,102,241,0.25)">
+                    <svg class="w-3.5 h-3.5" style="color:#a5b4fc" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold mb-0.5" style="color:#6366f1">كلمة سر البوابة</p>
+                    @if($employee->access_pin)
+                        <div class="flex items-center gap-2">
+                            <p class="text-sm font-black text-white leading-tight tracking-widest" id="pin-display" style="filter:blur(5px)">{{ $employee->access_pin }}</p>
+                            <button type="button" onclick="togglePinDisplay()" class="text-[10px] font-semibold px-1.5 py-0.5 rounded-md transition-colors" style="color:#a5b4fc;background:rgba(99,102,241,0.2)" id="pin-toggle-btn">إظهار</button>
+                        </div>
+                    @else
+                        <p class="text-xs" style="color:#475569">لم تُعيَّن بعد — أضفها من تعديل البيانات</p>
+                    @endif
+                </div>
+            </div>
+            {{-- Portal link --}}
+            <a href="{{ route('employee-portal.login') }}" target="_blank"
+               class="flex items-center gap-2 rounded-xl px-4 py-2.5 transition-all hover:opacity-80"
+               style="background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.2)">
+                <div class="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style="background:rgba(6,182,212,0.2)">
+                    <svg class="w-3.5 h-3.5" style="color:#22d3ee" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                </div>
+                <p class="text-[11px] font-bold" style="color:#22d3ee">فتح بوابة الموظفين</p>
+            </a>
+            @if($employee->notes)
+            <div class="flex items-center gap-2 rounded-xl px-4 py-2.5 flex-1 min-w-[200px]" style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2)">
+                <div class="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style="background:rgba(245,158,11,0.2)">
+                    <svg class="w-3.5 h-3.5" style="color:#fbbf24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <p class="text-xs font-medium leading-snug" style="color:#fcd34d">{{ $employee->notes }}</p>
+            </div>
+            @endif
         </div>
     </div>
 </div>
@@ -461,34 +544,44 @@
             @csrf @method('PUT')
             <div class="grid grid-cols-2 gap-4">
                 <div class="col-span-2">
-                    <label class="block text-xs font-bold text-gray-500 mb-1">الاسم <span class="text-red-500">*</span></label>
+                    <label class="block text-xs font-bold text-gray-500 mb-1.5">الاسم <span class="text-red-500">*</span></label>
                     <input type="text" name="name" required value="{{ $employee->name }}"
-                           class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-slate-400 focus:outline-none bg-gray-50">
+                           class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 focus:outline-none bg-gray-50 transition-all">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1">المسمى الوظيفي</label>
+                    <label class="block text-xs font-bold text-gray-500 mb-1.5">المسمى الوظيفي</label>
                     <input type="text" name="job_title" value="{{ $employee->job_title }}"
-                           class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-slate-400 focus:outline-none bg-gray-50">
+                           class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 focus:outline-none bg-gray-50 transition-all">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1">الهاتف</label>
+                    <label class="block text-xs font-bold text-gray-500 mb-1.5">القسم / الإدارة</label>
+                    <input type="text" name="department" value="{{ $employee->department }}" placeholder="مثال: المالية"
+                           class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 focus:outline-none bg-gray-50 transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1.5">الهاتف</label>
                     <input type="text" name="phone" value="{{ $employee->phone }}"
-                           class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-slate-400 focus:outline-none bg-gray-50">
+                           class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 focus:outline-none bg-gray-50 transition-all">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1">الراتب الأساسي</label>
+                    <label class="block text-xs font-bold text-gray-500 mb-1.5">تاريخ التعيين</label>
+                    <input type="date" name="hire_date" value="{{ $employee->hire_date?->format('Y-m-d') }}"
+                           class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 focus:outline-none bg-gray-50 transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1.5">الراتب الأساسي</label>
                     <input type="number" name="base_salary" min="0" value="{{ (float)$employee->base_salary }}"
-                           class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-slate-400 focus:outline-none bg-gray-50">
+                           class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 focus:outline-none bg-gray-50 transition-all">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1">عملة الراتب</label>
+                    <label class="block text-xs font-bold text-gray-500 mb-1.5">عملة الراتب</label>
                     <div class="flex rounded-xl border border-gray-200 overflow-hidden text-sm font-bold">
                         <label class="flex-1 flex items-center justify-center py-2.5 cursor-pointer has-[:checked]:bg-emerald-600 has-[:checked]:text-white text-gray-500 hover:bg-gray-50 transition-colors">
-                            <input type="radio" name="base_salary_currency" value="USD" checked class="sr-only">
+                            <input type="radio" name="base_salary_currency" value="USD" {{ ($employee->base_salary_currency ?? 'SYP') === 'USD' ? 'checked' : '' }} class="sr-only">
                             $ دولار
                         </label>
                         <label class="flex-1 flex items-center justify-center py-2.5 cursor-pointer has-[:checked]:bg-slate-700 has-[:checked]:text-white text-gray-500 hover:bg-gray-50 transition-colors border-r border-gray-200">
-                            <input type="radio" name="base_salary_currency" value="SYP" class="sr-only">
+                            <input type="radio" name="base_salary_currency" value="SYP" {{ ($employee->base_salary_currency ?? 'SYP') === 'SYP' ? 'checked' : '' }} class="sr-only">
                             ل.س
                         </label>
                     </div>
@@ -497,14 +590,33 @@
                     <label class="flex items-center gap-2 cursor-pointer">
                         <input type="hidden" name="is_active" value="0">
                         <input type="checkbox" name="is_active" value="1" {{ $employee->is_active ? 'checked' : '' }}
-                               class="w-4 h-4 rounded border-gray-300 text-slate-600 focus:ring-slate-400">
+                               class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-400">
                         <span class="text-sm font-semibold text-gray-600">موظف نشط</span>
                     </label>
                 </div>
                 <div class="col-span-2">
-                    <label class="block text-xs font-bold text-gray-500 mb-1">ملاحظات</label>
+                    <label class="block text-xs font-bold text-gray-500 mb-1.5">ملاحظات</label>
                     <textarea name="notes" rows="2"
-                              class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-slate-400 focus:outline-none bg-gray-50 resize-none">{{ $employee->notes }}</textarea>
+                              class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 focus:outline-none bg-gray-50 resize-none transition-all">{{ $employee->notes }}</textarea>
+                </div>
+                <div class="col-span-2">
+                    <label class="block text-xs font-bold text-gray-500 mb-1.5">
+                        كلمة سر البوابة
+                        <span class="font-normal text-gray-400 mr-1">— يستخدمها الموظف للدخول إلى بوابته</span>
+                    </label>
+                    <div class="flex gap-2">
+                        <input type="text" name="access_pin" id="edit-pin-field"
+                               value="{{ $employee->access_pin }}"
+                               placeholder="مثال: 1234 أو ABC123"
+                               autocomplete="off"
+                               class="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-bold tracking-widest focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 focus:outline-none bg-gray-50 transition-all">
+                        <button type="button" onclick="generatePin()"
+                                class="shrink-0 px-3 py-2.5 rounded-xl text-xs font-bold transition-colors"
+                                style="background:#f0f4ff;color:#4f46e5;border:1px solid #c7d2fe">
+                            توليد تلقائي
+                        </button>
+                    </div>
+                    <p class="text-[11px] text-gray-400 mt-1">اتركها فارغة إذا لم تريد تغييرها</p>
                 </div>
             </div>
             <div class="flex gap-3 pt-2 border-t border-gray-100">
@@ -724,6 +836,24 @@ function openEditTx(tx) {
     document.getElementById('edit-cur-syp').checked = false;
     selectEditType(tx.type);
     document.getElementById('modal-edit-tx').classList.remove('hidden');
+}
+
+let pinVisible = false;
+function togglePinDisplay() {
+    const el  = document.getElementById('pin-display');
+    const btn = document.getElementById('pin-toggle-btn');
+    if (!el) return;
+    pinVisible = !pinVisible;
+    el.style.filter  = pinVisible ? 'none' : 'blur(5px)';
+    btn.textContent  = pinVisible ? 'إخفاء' : 'إظهار';
+}
+
+function generatePin() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let pin = '';
+    for (let i = 0; i < 6; i++) pin += chars[Math.floor(Math.random() * chars.length)];
+    const field = document.getElementById('edit-pin-field');
+    if (field) field.value = pin;
 }
 </script>
 

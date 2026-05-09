@@ -43,6 +43,6 @@ class EmployeeTransaction extends Model
 
     public function isCredit(): bool
     {
-        return in_array($this->type, ['salary', 'addition', 'advance', 'bonus']);
+        return in_array($this->type, ['salary', 'addition', 'bonus']);
     }
 }
