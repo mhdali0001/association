@@ -8,7 +8,7 @@ class Member extends Model
 {
     protected $fillable = [
         'full_name', 'age', 'gender', 'mother_name', 'national_id',
-        'verification_status_id', 'final_status_id', 'dossier_number', 'current_address', 'region_id',
+        'verification_status_id', 'final_status_id', 'dossier_number', 'current_address', 'region_id', 'sector_id',
         'marital_status', 'disease_type', 'other_association', 'phone', 'phone2',
         'representative_id', 'data_entry_name', 'delegate', 'second_person', 'network', 'provider_status', 'job',
         'housing_status_id', 'dependents_count', 'illness_details',
@@ -26,6 +26,11 @@ class Member extends Model
     public function region()
     {
         return $this->belongsTo(Region::class);
+    }
+
+    public function sector()
+    {
+        return $this->belongsTo(Sector::class);
     }
 
     public function representative()

@@ -165,7 +165,7 @@ class FieldVisitController extends Controller
     {
         $search           = trim($request->get('search', ''));
         $reasonFilter     = trim($request->get('reason', ''));
-        $visitorFilter    = trim($request->get('visitor', ''));
+        $visitorFilter    = array_values(array_filter((array) $request->get('visitor', [])));
         $createdByFilter  = array_filter((array) $request->get('created_by', []));
         $dateFrom         = trim($request->get('date_from', ''));
         $dateTo           = trim($request->get('date_to', ''));
@@ -199,8 +199,8 @@ class FieldVisitController extends Controller
             $query->where('field_visits.amount_reason', 'like', "%{$reasonFilter}%");
         }
 
-        if ($visitorFilter !== '') {
-            $query->where('field_visits.visitor', 'like', "%{$visitorFilter}%");
+        if (!empty($visitorFilter)) {
+            $query->whereIn('field_visits.visitor', $visitorFilter);
         }
 
         if (!empty($createdByFilter)) {

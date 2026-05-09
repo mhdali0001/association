@@ -216,21 +216,89 @@
                     <form id="region-form" class="hidden mt-2"
                           method="POST" action="{{ route('members.region.update', $member) }}">
                         @csrf @method('PATCH')
+                        @php $allRegions = \App\Models\Region::active()->orderBy('name')->get(); @endphp
+                        <input type="hidden" name="region_id" id="region-id-input" value="{{ $member->region_id }}">
+                        <div class="mb-2 relative" id="region-dropdown">
+                            <button type="button" onclick="toggleRegionDropdown(event)"
+                                    class="w-full flex items-center justify-between gap-2 border border-teal-200 rounded-lg px-3 py-2 text-sm bg-teal-50/30 hover:border-teal-400 focus:outline-none transition-colors text-right">
+                                <span id="region-selected-label" class="truncate {{ $member->region_id ? 'text-gray-800 font-medium' : 'text-gray-400' }}">
+                                    {{ $member->region?->name ?? '— بدون منطقة —' }}
+                                </span>
+                                <svg class="w-4 h-4 text-gray-400 shrink-0" id="region-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                            </button>
+                            <div id="region-panel" class="hidden absolute z-50 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                                <div class="p-2 border-b border-gray-100">
+                                    <input type="text" id="region-search" placeholder="ابحث في المناطق..."
+                                           oninput="filterRegions(this.value)" autocomplete="off"
+                                           class="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-400 focus:outline-none">
+                                </div>
+                                <ul id="region-list" class="max-h-52 overflow-y-auto py-1">
+                                    <li class="region-opt">
+                                        <button type="button" onclick="selectRegion('', '— بدون منطقة —')"
+                                                class="w-full text-right px-3 py-2 text-sm text-gray-400 hover:bg-gray-50 transition-colors">
+                                            — بدون منطقة —
+                                        </button>
+                                    </li>
+                                    @foreach($allRegions as $reg)
+                                    <li class="region-opt">
+                                        <button type="button"
+                                                onclick="selectRegion('{{ $reg->id }}', '{{ addslashes($reg->name) }}')"
+                                                data-name="{{ mb_strtolower($reg->name) }}"
+                                                class="w-full text-right px-3 py-2 text-sm transition-colors hover:bg-teal-50
+                                                       {{ $member->region_id == $reg->id ? 'bg-teal-50 text-teal-700 font-bold' : 'text-gray-700' }}">
+                                            {{ $reg->name }}
+                                        </button>
+                                    </li>
+                                    @endforeach
+                                </ul>
+                                <div id="region-no-results" class="hidden px-3 py-2 text-xs text-gray-400 text-center">لا توجد نتائج</div>
+                            </div>
+                        </div>
                         <div class="flex gap-2">
-                            <select name="region_id"
-                                    class="flex-1 border border-teal-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-400 focus:border-teal-400 bg-teal-50/30">
-                                <option value="">— بدون منطقة —</option>
-                                @foreach(\App\Models\Region::active()->orderBy('name')->get() as $reg)
-                                    <option value="{{ $reg->id }}" {{ $member->region_id == $reg->id ? 'selected' : '' }}>
-                                        {{ $reg->name }}
-                                    </option>
-                                @endforeach
-                            </select>
                             <button type="submit"
                                     class="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors shrink-0">
                                 حفظ
                             </button>
                             <button type="button" onclick="toggleRegionEdit()"
+                                    class="border border-gray-200 text-gray-500 hover:bg-gray-50 text-xs px-3 py-2 rounded-lg transition-colors shrink-0">
+                                إلغاء
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                {{-- القطاع --}}
+                <div class="px-5 py-3.5 hover:bg-gray-50/50 transition-colors">
+                    <div class="flex items-center justify-between gap-2 mb-0.5">
+                        <p class="text-xs text-gray-400 font-medium">القطاع</p>
+                        <button type="button" onclick="toggleSectorEdit()"
+                                class="text-xs text-indigo-500 hover:text-indigo-700 flex items-center gap-1 transition-colors">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            تعديل
+                        </button>
+                    </div>
+                    <p id="sector-display" class="text-sm font-semibold {{ $member->sector ? 'text-gray-800' : 'text-gray-300' }}">
+                        {{ $member->sector?->name ?? '—' }}
+                    </p>
+                    <form id="sector-form" class="hidden mt-2"
+                          method="POST" action="{{ route('members.sector.update', $member) }}">
+                        @csrf @method('PATCH')
+                        @php $allSectors = \App\Models\Sector::active()->orderBy('name')->get(); @endphp
+                        <select name="sector_id"
+                                class="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm bg-indigo-50/30 focus:ring-2 focus:ring-indigo-400 focus:outline-none mb-2">
+                            <option value="">— بدون قطاع —</option>
+                            @foreach($allSectors as $sec)
+                                <option value="{{ $sec->id }}" {{ $member->sector_id == $sec->id ? 'selected' : '' }}>{{ $sec->name }}</option>
+                            @endforeach
+                        </select>
+                        <div class="flex gap-2">
+                            <button type="submit"
+                                    class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors shrink-0">
+                                حفظ
+                            </button>
+                            <button type="button" onclick="toggleSectorEdit()"
                                     class="border border-gray-200 text-gray-500 hover:bg-gray-50 text-xs px-3 py-2 rounded-lg transition-colors shrink-0">
                                 إلغاء
                             </button>
@@ -1061,7 +1129,60 @@ function toggleAddressEdit() {
 function toggleRegionEdit() {
     document.getElementById('region-form').classList.toggle('hidden');
     document.getElementById('region-display').classList.toggle('hidden');
+    if (!document.getElementById('region-form').classList.contains('hidden')) {
+        setTimeout(() => document.getElementById('region-search').focus(), 50);
+    }
 }
+
+function toggleSectorEdit() {
+    document.getElementById('sector-form').classList.toggle('hidden');
+    document.getElementById('sector-display').classList.toggle('hidden');
+}
+
+function toggleRegionDropdown(e) {
+    e.stopPropagation();
+    const panel = document.getElementById('region-panel');
+    const isHidden = panel.classList.contains('hidden');
+    panel.classList.toggle('hidden', !isHidden);
+    document.getElementById('region-chevron').style.transform = isHidden ? 'rotate(180deg)' : '';
+    if (isHidden) {
+        const s = document.getElementById('region-search');
+        s.value = '';
+        filterRegions('');
+        setTimeout(() => s.focus(), 50);
+    }
+}
+
+function selectRegion(id, name) {
+    document.getElementById('region-id-input').value = id;
+    const lbl = document.getElementById('region-selected-label');
+    lbl.textContent = name;
+    lbl.className = id ? 'truncate text-gray-800 font-medium' : 'truncate text-gray-400';
+    document.getElementById('region-panel').classList.add('hidden');
+    document.getElementById('region-chevron').style.transform = '';
+}
+
+function filterRegions(q) {
+    q = q.toLowerCase().trim();
+    let visible = 0;
+    document.querySelectorAll('#region-list .region-opt').forEach((li, i) => {
+        if (i === 0) { li.style.display = q ? 'none' : ''; return; } // "بدون منطقة" row
+        const btn = li.querySelector('button');
+        const match = !q || (btn.dataset.name || '').includes(q);
+        li.style.display = match ? '' : 'none';
+        if (match) visible++;
+    });
+    document.getElementById('region-no-results').classList.toggle('hidden', visible > 0 || !q);
+}
+
+document.addEventListener('click', function(e) {
+    const dd = document.getElementById('region-dropdown');
+    if (dd && !dd.contains(e.target)) {
+        document.getElementById('region-panel')?.classList.add('hidden');
+        const ch = document.getElementById('region-chevron');
+        if (ch) ch.style.transform = '';
+    }
+});
 </script>
 
 @endsection

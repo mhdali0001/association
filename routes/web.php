@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\DelegateController;
 use App\Http\Controllers\PaymentReviewController;
 use App\Http\Controllers\AssociationController;
@@ -36,7 +37,9 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middl
 
 // Dashboard (protected)
 Route::middleware('auth')->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard',                        [DashboardController::class,  'index'])           ->name('dashboard');
+    Route::get('/dashboard/user-activity/{user}',   [DashboardController::class,  'userWeekActivity'])->name('dashboard.user-activity');
+    Route::get('/statistics',                       [StatisticsController::class, 'index'])            ->name('statistics');
     Route::middleware('admin')->group(function () {
         Route::get('/users',           [UserController::class,  'index'])        ->name('users.index');
         Route::get('/users/create',    [AuthController::class,  'showRegister']) ->name('users.create');
@@ -92,6 +95,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/members/bulk-set-score',    [MemberController::class, 'bulkSetScoreAdjustment'])->name('members.bulk-set-score');
     Route::get('/members/score-equalizer',    [MemberController::class, 'scoreEqualizerIndex'])   ->name('members.score-equalizer');
     Route::post('/members/score-equalizer',   [MemberController::class, 'scoreEqualizerApply'])   ->name('members.score-equalizer.apply');
+    Route::get('/members/score-manager',        [MemberController::class, 'scoreManagerIndex'])  ->name('members.score-manager');
+    Route::get('/members/score-manager/export',       [MemberController::class, 'scoreManagerExport'])    ->name('members.score-manager.export');
+    Route::post('/members/bulk-score-update',          [MemberController::class, 'bulkScoreUpdate'])        ->name('members.bulk-score-update');
+    Route::patch('/members/{member}/score',   [MemberController::class, 'updateMemberScore'])     ->name('members.score.update');
+    Route::delete('/members/{member}/score',  [MemberController::class, 'resetMemberScore'])      ->name('members.score.reset');
     Route::get('/members/import',                 [MemberImportController::class, 'show'])    ->name('members.import.show');
     Route::post('/members/import',                [MemberImportController::class, 'store'])   ->name('members.import.store');
     Route::get('/members/import-gender',          [\App\Http\Controllers\GenderImportController::class, 'show'])  ->name('members.import-gender.show');
@@ -104,6 +112,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('members', MemberController::class);
     Route::patch('/members/{member}/address', [MemberController::class, 'updateAddress'])->name('members.address.update');
     Route::patch('/members/{member}/region',  [MemberController::class, 'updateRegion']) ->name('members.region.update');
+    Route::patch('/members/{member}/sector',  [MemberController::class, 'updateSector']) ->name('members.sector.update');
     Route::get('/member-images',                     [MemberImageController::class, 'index'])      ->name('member-images.index');
     Route::post('/member-images',                    [MemberImageController::class, 'storeGlobal'])->name('member-images.store-global');
     Route::get('/member-images/{memberImage}/edit',  [MemberImageController::class, 'edit'])       ->name('member-images.edit');
@@ -127,6 +136,7 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('regions', \App\Http\Controllers\RegionController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::post('/regions/quick-store', [\App\Http\Controllers\RegionController::class, 'quickStore'])->name('regions.quick-store');
+    Route::resource('sectors', \App\Http\Controllers\SectorController::class)->only(['index', 'store', 'update', 'destroy', 'show']);
     Route::get('/field-visits/with-amounts',                               [\App\Http\Controllers\FieldVisitController::class, 'withAmounts'])->name('field-visits.with-amounts');
     Route::post('/members/{member}/field-visits',                          [\App\Http\Controllers\FieldVisitController::class, 'store'])  ->name('field-visits.store');
     Route::put('/members/{member}/field-visits/{fieldVisit}',             [\App\Http\Controllers\FieldVisitController::class, 'update'])        ->name('field-visits.update');

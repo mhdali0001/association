@@ -71,17 +71,20 @@
             </div>
             <div>
                 <label class="block text-xs font-bold text-gray-500 mb-1">الزائر</label>
-                <input type="hidden" name="visitor" id="visitor-input" value="{{ $visitorFilter }}">
                 <div class="relative" id="visitor-dropdown">
                     <button type="button" id="visitor-btn"
                             onclick="toggleVisitorDropdown(event)"
-                            class="w-full flex items-center justify-between gap-2 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 hover:border-slate-300 focus:ring-2 focus:ring-slate-300 focus:outline-none transition-colors text-right">
-                        <span id="visitor-display" class="{{ $visitorFilter ? 'text-gray-800 font-medium' : 'text-gray-400' }} truncate">
-                            {{ $visitorFilter ?: 'اختر زائراً...' }}
+                            class="w-full flex items-center justify-between gap-2 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 hover:border-slate-300 focus:outline-none transition-colors text-right">
+                        <span id="visitor-display" class="{{ !empty($visitorFilter) ? 'text-gray-800 font-medium' : 'text-gray-400' }} truncate">
+                            @if(!empty($visitorFilter))
+                                {{ count($visitorFilter) === 1 ? $visitorFilter[0] : count($visitorFilter) . ' زوار مختارون' }}
+                            @else
+                                اختر زائراً...
+                            @endif
                         </span>
                         <span class="flex items-center gap-1 shrink-0">
-                            @if($visitorFilter)
-                                <span onclick="clearVisitor(event)"
+                            @if(!empty($visitorFilter))
+                                <span id="visitor-clear-x" onclick="clearVisitors(event)"
                                       class="text-gray-400 hover:text-red-500 transition-colors p-0.5 rounded cursor-pointer">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                                 </span>
@@ -90,37 +93,22 @@
                         </span>
                     </button>
                     <div id="visitor-panel"
-                         class="hidden absolute z-40 top-full mt-1 w-full min-w-[220px] bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden">
+                         class="hidden absolute z-40 top-full mt-1 w-full min-w-[240px] bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden">
                         <div class="p-2 border-b border-gray-100">
-                            <div class="relative">
-                                <span class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/></svg>
-                                </span>
-                                <input type="text" id="visitor-search" placeholder="ابحث في الزوار..."
-                                       class="w-full pr-9 pl-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-slate-300 focus:outline-none"
-                                       oninput="filterVisitors(this.value)" autocomplete="off">
-                            </div>
+                            <input type="text" id="visitor-search" placeholder="ابحث في الزوار..."
+                                   class="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-slate-300 focus:outline-none"
+                                   oninput="filterVisitorItems(this.value)" autocomplete="off">
                         </div>
                         <ul class="max-h-60 overflow-y-auto py-1" id="visitor-options">
-                            <li id="visitor-clear-opt">
-                                <button type="button" onclick="selectVisitor('', 'اختر زائراً...')"
-                                        class="w-full text-right px-4 py-2 text-sm text-gray-400 hover:bg-gray-50 transition-colors flex items-center gap-2">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                                    الكل (بلا فلتر)
-                                </button>
-                            </li>
                             @forelse($visitorList as $v)
                             <li class="visitor-item">
-                                <button type="button"
-                                        onclick="selectVisitor('{{ addslashes($v) }}', '{{ addslashes($v) }}')"
-                                        data-name="{{ mb_strtolower($v) }}"
-                                        class="visitor-opt w-full text-right px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors flex items-center justify-between gap-2
-                                               {{ $visitorFilter === $v ? 'bg-slate-50 text-slate-700 font-bold' : 'text-gray-700' }}">
-                                    <span class="truncate">{{ $v }}</span>
-                                    @if($visitorFilter === $v)
-                                        <svg class="w-3.5 h-3.5 text-slate-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                    @endif
-                                </button>
+                                <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-slate-50 cursor-pointer transition-colors">
+                                    <input type="checkbox" name="visitor[]" value="{{ $v }}"
+                                           {{ in_array($v, $visitorFilter) ? 'checked' : '' }}
+                                           class="visitor-cb rounded border-gray-300 text-slate-600 focus:ring-slate-400"
+                                           onchange="updateVisitorDisplay()">
+                                    <span class="text-sm text-gray-700 truncate visitor-label">{{ $v }}</span>
+                                </label>
                             </li>
                             @empty
                             <li class="px-4 py-3 text-xs text-gray-400 text-center">لا يوجد زوار مسجلون</li>
@@ -201,7 +189,7 @@
                 </svg>
                 بحث
             </button>
-            @if($search || $reasonFilter || $visitorFilter || !empty($createdByFilter) || $dateFrom || $dateTo || $amountFrom || $amountTo)
+            @if($search || $reasonFilter || !empty($visitorFilter) || !empty($createdByFilter) || $dateFrom || $dateTo || $amountFrom || $amountTo)
             <a href="{{ route('field-visits.with-amounts', $typeFilter !== 'all' ? ['type' => $typeFilter] : []) }}"
                class="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-bold px-4 py-2 rounded-xl transition-colors">
                 مسح الفلاتر
@@ -345,7 +333,7 @@ document.querySelectorAll('label:has(input[type="checkbox"].hidden)').forEach(la
     });
 });
 
-// Visitor searchable dropdown
+// Visitor multi-select dropdown
 function toggleVisitorDropdown(e) {
     e.stopPropagation();
     const panel = document.getElementById('visitor-panel');
@@ -353,41 +341,46 @@ function toggleVisitorDropdown(e) {
     panel.classList.toggle('hidden', !isHidden);
     document.getElementById('visitor-chevron').style.transform = isHidden ? 'rotate(180deg)' : '';
     if (isHidden) {
-        const search = document.getElementById('visitor-search');
-        search.value = '';
-        filterVisitors('');
-        setTimeout(() => search.focus(), 50);
+        const s = document.getElementById('visitor-search');
+        s.value = '';
+        filterVisitorItems('');
+        setTimeout(() => s.focus(), 50);
     }
 }
 
-function selectVisitor(value, display) {
-    document.getElementById('visitor-input').value = value;
+function updateVisitorDisplay() {
+    const checked = Array.from(document.querySelectorAll('.visitor-cb:checked'));
     const disp = document.getElementById('visitor-display');
-    disp.textContent = display;
-    disp.className = value ? 'text-gray-800 font-medium truncate' : 'text-gray-400 truncate';
-    document.getElementById('visitor-panel').classList.add('hidden');
-    document.getElementById('visitor-chevron').style.transform = '';
+    if (checked.length === 0) {
+        disp.textContent = 'اختر زائراً...';
+        disp.className = 'text-gray-400 truncate';
+    } else if (checked.length === 1) {
+        disp.textContent = checked[0].value;
+        disp.className = 'text-gray-800 font-medium truncate';
+    } else {
+        disp.textContent = checked.length + ' زوار مختارون';
+        disp.className = 'text-gray-800 font-medium truncate';
+    }
 }
 
-function clearVisitor(e) {
+function clearVisitors(e) {
     e.stopPropagation();
-    selectVisitor('', 'اختر زائراً...');
+    document.querySelectorAll('.visitor-cb').forEach(cb => cb.checked = false);
+    updateVisitorDisplay();
 }
 
-function filterVisitors(q) {
+function filterVisitorItems(q) {
     q = (q || '').toLowerCase().trim();
     let visible = 0;
     document.querySelectorAll('.visitor-item').forEach(li => {
-        const btn = li.querySelector('.visitor-opt');
-        const match = !q || (btn.dataset.name || '').includes(q);
+        const lbl = li.querySelector('.visitor-label');
+        const match = !q || (lbl?.textContent || '').toLowerCase().includes(q);
         li.style.display = match ? '' : 'none';
         if (match) visible++;
     });
     document.getElementById('visitor-no-results').classList.toggle('hidden', visible > 0);
-    document.getElementById('visitor-clear-opt').style.display = q ? 'none' : '';
 }
 
-// Close dropdown on outside click
 document.addEventListener('click', function(e) {
     const dd = document.getElementById('visitor-dropdown');
     if (dd && !dd.contains(e.target)) {

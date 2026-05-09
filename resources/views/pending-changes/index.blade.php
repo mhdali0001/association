@@ -168,6 +168,20 @@
 
     </div>
 
+    {{-- Result count --}}
+    @if($hasActiveFilters)
+        <div class="px-4 py-2.5 border-b border-gray-100 bg-amber-50/40 flex items-center gap-2">
+            <svg class="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
+            </svg>
+            <span class="text-sm text-gray-600">
+                نتائج الفلتر:
+                <span class="font-black text-amber-600 mx-1">{{ number_format($changes->total()) }}</span>
+                طلب
+            </span>
+        </div>
+    @endif
+
     {{-- Table --}}
     @if($changes->isEmpty())
         <div class="flex flex-col items-center justify-center py-16 text-center">

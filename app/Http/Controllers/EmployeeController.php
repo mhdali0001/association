@@ -24,8 +24,8 @@ class EmployeeController extends Controller
             ->orderBy('name')
             ->get();
 
-        $totalPaidSYP     = EmployeeTransaction::whereIn('type', ['salary', 'addition', 'advance', 'bonus'])->where('currency', 'SYP')->sum('amount');
-        $totalPaidUSD     = EmployeeTransaction::whereIn('type', ['salary', 'addition', 'advance', 'bonus'])->where('currency', 'USD')->sum('amount');
+        $totalPaidSYP     = EmployeeTransaction::whereIn('type', ['salary', 'addition', 'bonus'])->where('currency', 'SYP')->sum('amount');
+        $totalPaidUSD     = EmployeeTransaction::whereIn('type', ['salary', 'addition', 'bonus'])->where('currency', 'USD')->sum('amount');
         $totalDeductedSYP = EmployeeTransaction::where('type', 'deduction')->where('currency', 'SYP')->sum('amount');
         $totalDeductedUSD = EmployeeTransaction::where('type', 'deduction')->where('currency', 'USD')->sum('amount');
 
@@ -88,7 +88,7 @@ class EmployeeController extends Controller
                 'bonuses'   => (float) $byCur->where('type', 'bonus')->sum('amount'),
             ];
             $totals[$cur]['net'] = $totals[$cur]['salary'] + $totals[$cur]['additions']
-                + $totals[$cur]['advances'] + $totals[$cur]['bonuses'] - $totals[$cur]['deductions'];
+                + $totals[$cur]['bonuses'] - $totals[$cur]['deductions'] - $totals[$cur]['advances'];
         }
 
         return view('employees.show', compact(

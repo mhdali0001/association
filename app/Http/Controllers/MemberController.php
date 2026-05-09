@@ -33,6 +33,7 @@ class MemberController extends Controller
             'representatives'      => User::orderBy('name')->get(),
             'regionsList'          => \App\Models\Region::active()->orderBy('name')->get(),
             'housingStatuses'      => \App\Models\HousingStatus::active()->orderBy('name')->get(),
+            'sectorsList'          => \App\Models\Sector::active()->orderBy('name')->get(),
         ];
     }
 
@@ -53,6 +54,7 @@ class MemberController extends Controller
     private function buildFilteredQuery(Request $request): \Illuminate\Database\Eloquent\Builder
     {
         $search              = $request->get('search');
+        $dossierSearch       = trim($request->get('dossier_search', ''));
         $dossierFrom         = trim($request->get('dossier_from', ''));
         $dossierTo           = trim($request->get('dossier_to', ''));
         $verificationIds     = array_filter((array) $request->get('verification_status_id', []));
@@ -69,6 +71,7 @@ class MemberController extends Controller
         $shamCash              = array_filter((array) $request->get('sham_cash', []));
         $paymentDataEntries    = array_filter((array) $request->get('payment_data_entry', []));
         $regionIds             = array_filter((array) $request->get('region_id', []));
+        $sectorIds             = array_filter((array) $request->get('sector_id', []));
         $housingStatusIds    = array_filter((array) $request->get('housing_status_id', []));
         $estimatedFrom       = trim($request->get('estimated_from', ''));
         $estimatedTo         = trim($request->get('estimated_to', ''));
@@ -100,6 +103,7 @@ class MemberController extends Controller
                   ->orWhere('second_person', 'like', "%{$search}%");
             });
         }
+        if ($dossierSearch !== '') $query->where('dossier_number', 'like', "%{$dossierSearch}%");
         if ($dossierFrom !== '') $query->whereRaw('CAST(dossier_number AS UNSIGNED) >= ?', [(int) $dossierFrom]);
         if ($dossierTo   !== '') $query->whereRaw('CAST(dossier_number AS UNSIGNED) <= ?', [(int) $dossierTo]);
         if (!empty($verificationIds)) {
@@ -112,7 +116,7 @@ class MemberController extends Controller
         }
         $this->applyNoneFilter($query, 'final_status_id', $finalStatusIds);
         $this->applyNoneFilter($query, 'marital_status', $maritalStatuses, true);
-        if (!empty($genders))             $query->whereIn('gender', $genders);
+        $this->applyNoneFilter($query, 'gender', $genders, true);
         $this->applyNoneFilter($query, 'delegate', $delegates, true);
         $this->applyNoneFilter($query, 'second_person', $secondPersons, true);
         if ($specialCases === '1') {
@@ -167,6 +171,7 @@ class MemberController extends Controller
             }
         }
         $this->applyNoneFilter($query, 'region_id', $regionIds);
+        $this->applyNoneFilter($query, 'sector_id', $sectorIds);
         $this->applyNoneFilter($query, 'housing_status_id', $housingStatusIds);
         if ($estimatedFrom !== '') $query->where('estimated_amount', '>=', (float) str_replace(',', '', $estimatedFrom));
         if ($estimatedTo   !== '') $query->where('estimated_amount', '<=', (float) str_replace(',', '', $estimatedTo));
@@ -192,6 +197,7 @@ class MemberController extends Controller
     public function index(Request $request)
     {
         $search              = $request->get('search');
+        $dossierSearch       = trim($request->get('dossier_search', ''));
         $dossierFrom         = trim($request->get('dossier_from', ''));
         $dossierTo           = trim($request->get('dossier_to', ''));
         $verificationIds     = array_filter((array) $request->get('verification_status_id', []));
@@ -213,7 +219,7 @@ class MemberController extends Controller
             ->select(DB::raw('SUM(COALESCE(estimated_amount, 0) + COALESCE((SELECT estimated_amount FROM field_visits fv WHERE fv.member_id = members.id ORDER BY fv.created_at DESC LIMIT 1), 0)) as total'))
             ->value('total') ?? 0;
 
-        $query   = $filteredQuery->with(['verificationStatus', 'representative', 'paymentInfo', 'fieldVisits.status', 'region', 'housingStatus', 'latestFieldVisit']);
+        $query   = $filteredQuery->with(['verificationStatus', 'representative', 'paymentInfo', 'fieldVisits.status', 'region', 'sector', 'housingStatus', 'latestFieldVisit']);
         $members = $query->orderByRaw('CAST(dossier_number AS UNSIGNED) ASC')->paginate(20)->withQueryString();
 
         // Collect duplicate IBANs for warning indicator
@@ -227,6 +233,7 @@ class MemberController extends Controller
             ->flip()
             ->toArray();
         $regionIds            = array_filter((array) $request->get('region_id', []));
+        $sectorIds            = array_filter((array) $request->get('sector_id', []));
         $housingStatusIds     = array_filter((array) $request->get('housing_status_id', []));
         $fieldVisitStatusIds  = array_filter((array) $request->get('field_visit_status_id', []));
         $fvHouseTypeIds       = array_filter((array) $request->get('fv_house_type_id', []));
@@ -246,6 +253,7 @@ class MemberController extends Controller
         $paymentsCountFrom    = trim($request->get('payments_count_from', ''));
         $paymentsCountTo      = trim($request->get('payments_count_to', ''));
         $regionList           = \App\Models\Region::active()->orderBy('name')->get();
+        $sectorList           = \App\Models\Sector::active()->orderBy('name')->get();
         $verificationStatuses = VerificationStatus::active()->orderBy('name')->get();
         $finalStatusList      = FinalStatus::active()->orderBy('name')->get();
         $maritalStatusList    = MaritalStatus::active()->orderBy('id')->get();
@@ -297,12 +305,12 @@ class MemberController extends Controller
                                     ->pluck('data_entry_name');
 
         return view('members.index', compact(
-            'members', 'search', 'dossierFrom', 'dossierTo', 'totalAmount', 'totalFinalAmount',
-            'verificationIds', 'finalStatusIds', 'maritalStatuses', 'genders', 'delegates', 'secondPersons', 'specialCases', 'specialDescriptions', 'addresses', 'associationIds', 'networks', 'fieldVisitStatusIds', 'regionIds', 'housingStatusIds',
+            'members', 'search', 'dossierSearch', 'dossierFrom', 'dossierTo', 'totalAmount', 'totalFinalAmount',
+            'verificationIds', 'finalStatusIds', 'maritalStatuses', 'genders', 'delegates', 'secondPersons', 'specialCases', 'specialDescriptions', 'addresses', 'associationIds', 'networks', 'fieldVisitStatusIds', 'regionIds', 'sectorIds', 'housingStatusIds',
             'estimatedFrom', 'estimatedTo', 'paymentsCountFrom', 'paymentsCountTo',
             'fvHouseTypeIds', 'fvHouseConditionIds', 'fvVisitors', 'fvVisitorList', 'fvCreatedByIds', 'fvCreatedByList', 'fvDateFrom', 'fvDateTo', 'fvAmountFrom', 'fvAmountTo', 'fvNotes', 'fvHasVideo', 'fvHasSpecialCase', 'fvCount',
             'verificationStatuses', 'finalStatusList', 'maritalStatusList', 'delegateList', 'secondPersonList', 'specialDescriptionList', 'addressList', 'associationList',
-            'duplicateIbans', 'fieldVisitStatuses', 'regionList', 'houseTypes', 'houseConditions', 'housingStatusList',
+            'duplicateIbans', 'fieldVisitStatuses', 'regionList', 'sectorList', 'houseTypes', 'houseConditions', 'housingStatusList',
             'paymentDataEntries', 'paymentDataEntryList'
         ));
     }
@@ -778,6 +786,15 @@ class MemberController extends Controller
         return redirect()->route('members.show', $member)->with('success', 'تم تحديث المنطقة بنجاح.');
     }
 
+    public function updateSector(Request $request, Member $member)
+    {
+        $request->validate(['sector_id' => 'nullable|exists:sectors,id']);
+        $newSectorId = $request->input('sector_id') ?: null;
+        $member->update(['sector_id' => $newSectorId]);
+        ActivityLogger::log('updated', "تعديل قطاع المستفيد: {$member->full_name}", $member);
+        return redirect()->route('members.show', $member)->with('success', 'تم تحديث القطاع بنجاح.');
+    }
+
     public function updateAddress(Request $request, Member $member)
     {
         $request->validate(['current_address' => 'nullable|string|max:255']);
@@ -896,6 +913,7 @@ class MemberController extends Controller
             'dossier_number'            => $request->input('dossier_number'),
             'current_address'           => $request->input('current_address'),
             'region_id'                 => $request->input('region_id') ?: null,
+            'sector_id'                 => $request->input('sector_id') ?: null,
             'marital_status'            => $request->input('marital_status'),
             'disease_type'              => $request->input('disease_type'),
             'phone'                     => $request->input('phone'),
@@ -1030,8 +1048,9 @@ class MemberController extends Controller
         $scoreDeductionReason   = $request->score_deduction_reason ?? null;
         $scoreAddition          = max(0,  (int)($request->score_addition ?? 0));
         $scoreAdditionReason    = $request->score_addition_reason ?? null;
-        // store region_id in data array for use below
-        $data['region_id'] = $request->input('region_id') ?: null;
+        // store region_id / sector_id in data array for use below
+        $data['region_id']  = $request->input('region_id') ?: null;
+        $data['sector_id']  = $request->input('sector_id') ?: null;
         $rawScore               = $workScore + $housingScore + $dependentsScore + $dependentStatusScore + $illnessScore + $specialScore;
         $totalScore             = max(0, $rawScore + $scoreAddition - $scoreDeduction);
 
@@ -1142,6 +1161,7 @@ class MemberController extends Controller
             'dossier_number'             => 'nullable|string|max:50|unique:members,dossier_number,' . $member->id,
             'current_address'            => 'nullable|string',
             'region_id'                  => 'nullable|exists:regions,id',
+            'sector_id'                  => 'nullable|exists:sectors,id',
             'marital_status'             => 'nullable|string|max:100',
             'disease_type'               => 'nullable|string|max:255',
             'phone'                      => 'nullable|string|max:50',
@@ -1369,7 +1389,7 @@ class MemberController extends Controller
             return redirect()->route('members.index')->with('success', 'لم يتم تحديد أي حقل للتعديل.');
         }
 
-        $allowed = ['network', 'marital_status', 'current_address', 'region_id', 'housing_status_id', 'verification_status_id', 'estimated_amount', 'payments_count', 'field_visit_status_id', 'fv_visitor', 'payment_data_entry_name', 'delegate'];
+        $allowed = ['network', 'marital_status', 'current_address', 'region_id', 'sector_id', 'housing_status_id', 'verification_status_id', 'estimated_amount', 'payments_count', 'field_visit_status_id', 'fv_visitor', 'payment_data_entry_name', 'delegate'];
         if ($this->isAdmin()) { $allowed[] = 'final_status_id'; $allowed[] = 'sham_cash_account'; }
         $data    = [];
 
@@ -1713,5 +1733,235 @@ class MemberController extends Controller
             'dateFrom', 'dateTo',
             'totalDeductCount', 'totalAddCount', 'totalDeduction', 'totalAddition'
         ));
+    }
+
+    private function buildScoreManagerQuery(Request $request): array
+    {
+        $search    = trim($request->get('search', ''));
+        $sortBy    = $request->get('sort', 'dossier');
+        $hasScores = $request->get('has_scores', '');
+
+        $scoreComponents = [
+            'work_score'             => 2,
+            'housing_score'          => 4,
+            'dependents_score'       => 20,
+            'dependent_status_score' => 2,
+            'illness_score'          => 5,
+            'special_cases_score'    => 10,
+        ];
+
+        $scoreFilters = [];
+        foreach (array_keys($scoreComponents) as $col) {
+            $scoreFilters[$col] = $request->get("sf_{$col}", '');
+        }
+
+        $fvAmountSub = \App\Models\FieldVisit::selectRaw('COALESCE(SUM(estimated_amount), 0)')
+            ->whereColumn('member_id', 'members.id');
+
+        $query = Member::query()
+            ->leftJoin('member_scores', 'member_scores.member_id', '=', 'members.id')
+            ->select('members.*',
+                'member_scores.id as score_id',
+                'member_scores.work_score',
+                'member_scores.housing_score',
+                'member_scores.dependents_score',
+                'member_scores.dependent_status_score',
+                'member_scores.illness_score',
+                'member_scores.special_cases_score',
+                'member_scores.score_addition',
+                'member_scores.score_addition_reason',
+                'member_scores.score_deduction',
+                'member_scores.score_deduction_reason',
+                'member_scores.total_score',
+                'member_scores.updated_at as score_updated_at'
+            )
+            ->selectSub($fvAmountSub, 'field_visit_amount');
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('members.full_name', 'like', "%{$search}%")
+                  ->orWhere('members.dossier_number', 'like', "%{$search}%")
+                  ->orWhere('members.national_id', 'like', "%{$search}%");
+            });
+        }
+
+        if ($hasScores === '1') {
+            $query->whereNotNull('member_scores.id')->where('member_scores.total_score', '>', 0);
+        } elseif ($hasScores === '0') {
+            $query->where(fn($q) => $q->whereNull('member_scores.id')->orWhere('member_scores.total_score', 0));
+        }
+
+        foreach ($scoreFilters as $col => $val) {
+            if ($val === '0') {
+                $query->where(function ($q) use ($col) {
+                    $q->whereNull("member_scores.{$col}")
+                      ->orWhere("member_scores.{$col}", 0);
+                });
+            } elseif ($val !== '') {
+                $query->where("member_scores.{$col}", '>=', (int) $val);
+            }
+        }
+
+        $query->when($sortBy === 'score_desc', fn($q) => $q->orderByDesc('member_scores.total_score'))
+              ->when($sortBy === 'score_asc',  fn($q) => $q->orderBy('member_scores.total_score'))
+              ->when($sortBy === 'fv_desc',    fn($q) => $q->orderByDesc('field_visit_amount'))
+              ->when($sortBy === 'fv_asc',     fn($q) => $q->orderBy('field_visit_amount'))
+              ->when($sortBy === 'name',       fn($q) => $q->orderBy('members.full_name'))
+              ->when($sortBy === 'dossier',    fn($q) => $q->orderByRaw('CAST(members.dossier_number AS UNSIGNED)'));
+
+        return compact('query', 'search', 'sortBy', 'hasScores', 'scoreFilters', 'scoreComponents');
+    }
+
+    public function scoreManagerExport(Request $request)
+    {
+        ['query' => $query] = $this->buildScoreManagerQuery($request);
+
+        $validKeys = ['ws', 'hs', 'ds', 'dss', 'is', 'ss', 'add', 'fv'];
+        $excluded  = [];
+        foreach ($request->input('excl', []) as $key) {
+            if (in_array($key, $validKeys)) {
+                $excluded[$key] = true;
+            }
+        }
+
+        $filename = 'نقاط-المستفيدين-' . now()->format('Y-m-d') . '.xlsx';
+        return Excel::download(new \App\Exports\ScoreManagerExport($query, $excluded), $filename);
+    }
+
+    public function bulkScoreUpdate(Request $request)
+    {
+        $request->validate([
+            'ids'                    => 'required|array|min:1',
+            'ids.*'                  => 'integer|exists:members,id',
+            'work_score'             => 'nullable|integer|min:0|max:2',
+            'housing_score'          => 'nullable|integer|min:0|max:4',
+            'dependents_score'       => 'nullable|integer|min:0|max:20',
+            'dependent_status_score' => 'nullable|integer|min:0|max:2',
+            'illness_score'          => 'nullable|integer|min:0|max:5',
+            'special_cases_score'    => 'nullable|integer|min:0|max:10',
+            'score_addition'         => 'nullable|integer|min:0',
+            'score_deduction'        => 'nullable|integer|min:0',
+        ]);
+
+        $scoreFields = ['work_score','housing_score','dependents_score','dependent_status_score','illness_score','special_cases_score','score_addition','score_deduction'];
+
+        $fields = [];
+        foreach ($scoreFields as $field) {
+            if ($request->input($field) !== null && $request->input($field) !== '') {
+                $fields[$field] = (int) $request->input($field);
+            }
+        }
+
+        if (empty($fields)) {
+            return back()->with('error', 'لم يتم تحديد أي حقل للتعديل.');
+        }
+
+        $members = Member::whereIn('id', $request->ids)->get();
+
+        foreach ($members as $member) {
+            $score = \App\Models\MemberScore::firstOrNew(['member_id' => $member->id]);
+            foreach ($fields as $key => $value) {
+                $score->$key = $value;
+            }
+            $total = max(0,
+                ($score->work_score             ?? 0) +
+                ($score->housing_score          ?? 0) +
+                ($score->dependents_score       ?? 0) +
+                ($score->dependent_status_score ?? 0) +
+                ($score->illness_score          ?? 0) +
+                ($score->special_cases_score    ?? 0) +
+                ($score->score_addition         ?? 0) -
+                ($score->score_deduction        ?? 0)
+            );
+            $score->total_score = $total;
+            $score->member_id   = $member->id;
+            $score->save();
+            $member->update(['score' => $total, 'estimated_amount' => $total * 500]);
+        }
+
+        $count = count($members);
+        ActivityLogger::log('updated', "تعديل جماعي لنقاط {$count} مستفيد", null);
+
+        return back()->with('success', "تم تعديل نقاط {$count} مستفيد بنجاح.");
+    }
+
+    public function scoreManagerIndex(Request $request)
+    {
+        [
+            'query'           => $query,
+            'search'          => $search,
+            'sortBy'          => $sortBy,
+            'hasScores'       => $hasScores,
+            'scoreFilters'    => $scoreFilters,
+            'scoreComponents' => $scoreComponents,
+        ] = $this->buildScoreManagerQuery($request);
+
+        $allIds          = (clone $query)->pluck('members.id')->toArray();
+        $members         = $query->paginate(50)->withQueryString();
+        $totalScore      = \App\Models\MemberScore::sum('total_score');
+        $totalWithScores = \App\Models\MemberScore::where('total_score', '>', 0)->count();
+
+        return view('members.score-manager', compact(
+            'members', 'search', 'sortBy', 'hasScores',
+            'totalScore', 'totalWithScores', 'scoreFilters', 'scoreComponents', 'allIds'
+        ));
+    }
+
+    public function updateMemberScore(Request $request, Member $member)
+    {
+        $data = $request->validate([
+            'work_score'             => 'required|integer|min:0|max:2',
+            'housing_score'          => 'required|integer|min:0|max:4',
+            'dependents_score'       => 'required|integer|min:0|max:20',
+            'dependent_status_score' => 'required|integer|min:0|max:2',
+            'illness_score'          => 'required|integer|min:0|max:5',
+            'special_cases_score'    => 'required|integer|min:0|max:10',
+            'score_addition'         => 'required|integer|min:0',
+            'score_addition_reason'  => 'nullable|string|max:1000',
+            'score_deduction'        => 'required|integer|min:0',
+            'score_deduction_reason' => 'nullable|string|max:1000',
+        ]);
+
+        $raw   = $data['work_score'] + $data['housing_score'] + $data['dependents_score']
+               + $data['dependent_status_score'] + $data['illness_score'] + $data['special_cases_score'];
+        $total = max(0, $raw + $data['score_addition'] - $data['score_deduction']);
+        $data['total_score'] = $total;
+
+        $member->scores()->updateOrCreate(
+            ['member_id' => $member->id],
+            $data
+        );
+
+        $member->update(['score' => $total, 'estimated_amount' => $total * 500]);
+
+        ActivityLogger::log('updated', "تعديل نقاط المستفيد: {$member->full_name} → {$total} نقطة", $member);
+
+        return back()->with('success', "تم تحديث نقاط {$member->full_name} بنجاح — المجموع: {$total}");
+    }
+
+    public function resetMemberScore(Member $member)
+    {
+        $member->scores()->updateOrCreate(
+            ['member_id' => $member->id],
+            [
+                'work_score'             => 0,
+                'housing_score'          => 0,
+                'dependents_score'       => 0,
+                'dependent_status_score' => 0,
+                'illness_score'          => 0,
+                'special_cases_score'    => 0,
+                'score_addition'         => 0,
+                'score_addition_reason'  => null,
+                'score_deduction'        => 0,
+                'score_deduction_reason' => null,
+                'total_score'            => 0,
+            ]
+        );
+
+        $member->update(['score' => 0, 'estimated_amount' => 0]);
+
+        ActivityLogger::log('updated', "تصفير نقاط المستفيد: {$member->full_name}", $member);
+
+        return back()->with('success', "تم تصفير نقاط {$member->full_name} بنجاح.");
     }
 }

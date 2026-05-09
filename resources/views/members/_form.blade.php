@@ -169,16 +169,49 @@
 
         <div>
             <label class="{{ $labelClass }}">المنطقة</label>
+            @php
+                $selRegionId   = (int) old('region_id', $member->region_id ?? 0);
+                $selRegion     = ($regionsList ?? collect())->firstWhere('id', $selRegionId);
+                $selRegionName = $selRegion?->name ?? '';
+            @endphp
+            <input type="hidden" name="region_id" id="region_id_select" value="{{ $selRegionId ?: '' }}">
             <div class="flex gap-2 items-start">
-                <select id="region_id_select" name="region_id" class="{{ $selectClass }} flex-1">
-                    <option value="">— غير محدد —</option>
-                    @foreach($regionsList ?? [] as $region)
-                        <option value="{{ $region->id }}"
-                            {{ (int)old('region_id', $member->region_id ?? '') === $region->id ? 'selected' : '' }}>
-                            {{ $region->name }}
-                        </option>
-                    @endforeach
-                </select>
+                <div class="relative flex-1" id="form-region-dropdown">
+                    <button type="button" onclick="toggleFormRegionDropdown(event)"
+                            class="w-full flex items-center justify-between gap-2 border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50 hover:border-emerald-400 focus:outline-none transition text-right">
+                        <span id="form-region-label" class="truncate {{ $selRegionName ? 'text-gray-800' : 'text-gray-400' }}">
+                            {{ $selRegionName ?: '— غير محدد —' }}
+                        </span>
+                        <svg class="w-4 h-4 text-gray-400 shrink-0" id="form-region-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div id="form-region-panel" class="hidden absolute z-50 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                        <div class="p-2 border-b border-gray-100">
+                            <input type="text" id="form-region-search" placeholder="ابحث في المناطق..."
+                                   oninput="filterFormRegions(this.value)" autocomplete="off"
+                                   class="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-400 focus:outline-none">
+                        </div>
+                        <ul id="form-region-list" class="max-h-52 overflow-y-auto py-1">
+                            <li class="form-region-item">
+                                <button type="button" onclick="selectFormRegion('', '— غير محدد —')"
+                                        class="w-full text-right px-3 py-2 text-sm text-gray-400 hover:bg-gray-50 transition-colors">
+                                    — غير محدد —
+                                </button>
+                            </li>
+                            @foreach($regionsList ?? [] as $region)
+                            <li class="form-region-item">
+                                <button type="button"
+                                        onclick="selectFormRegion('{{ $region->id }}', '{{ addslashes($region->name) }}')"
+                                        data-name="{{ mb_strtolower($region->name) }}"
+                                        class="w-full text-right px-3 py-2 text-sm transition-colors hover:bg-emerald-50
+                                               {{ $selRegionId === $region->id ? 'bg-emerald-50 text-emerald-700 font-bold' : 'text-gray-700' }}">
+                                    {{ $region->name }}
+                                </button>
+                            </li>
+                            @endforeach
+                        </ul>
+                        <div id="form-region-no-results" class="hidden px-3 py-2 text-xs text-gray-400 text-center">لا توجد نتائج</div>
+                    </div>
+                </div>
                 <button type="button" onclick="toggleAddRegion()"
                         title="إضافة منطقة جديدة"
                         class="shrink-0 w-10 h-10 flex items-center justify-center bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl text-emerald-600 transition-colors">
@@ -202,6 +235,52 @@
                 </button>
             </div>
             <p id="add-region-error" class="hidden text-red-500 text-xs mt-1"></p>
+        </div>
+
+        <div>
+            <label class="{{ $labelClass }}">القطاع</label>
+            @php
+                $selSectorId   = (int) old('sector_id', $member->sector_id ?? 0);
+                $selSector     = ($sectorsList ?? collect())->firstWhere('id', $selSectorId);
+                $selSectorName = $selSector?->name ?? '';
+            @endphp
+            <input type="hidden" name="sector_id" id="sector_id_select" value="{{ $selSectorId ?: '' }}">
+            <div class="relative" id="form-sector-dropdown">
+                <button type="button" onclick="toggleFormSectorDropdown(event)"
+                        class="w-full flex items-center justify-between gap-2 border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50 hover:border-indigo-400 focus:outline-none transition text-right">
+                    <span id="form-sector-label" class="truncate {{ $selSectorName ? 'text-gray-800' : 'text-gray-400' }}">
+                        {{ $selSectorName ?: '— غير محدد —' }}
+                    </span>
+                    <svg class="w-4 h-4 text-gray-400 shrink-0" id="form-sector-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div id="form-sector-panel" class="hidden absolute z-50 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                    <div class="p-2 border-b border-gray-100">
+                        <input type="text" id="form-sector-search" placeholder="ابحث في القطاعات..."
+                               oninput="filterFormSectors(this.value)" autocomplete="off"
+                               class="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none">
+                    </div>
+                    <ul id="form-sector-list" class="max-h-48 overflow-y-auto py-1">
+                        <li class="form-sector-item">
+                            <button type="button" onclick="selectFormSector('', '— غير محدد —')"
+                                    class="w-full text-right px-3 py-2 text-sm text-gray-400 hover:bg-gray-50 transition-colors">
+                                — غير محدد —
+                            </button>
+                        </li>
+                        @foreach($sectorsList ?? [] as $sector)
+                        <li class="form-sector-item">
+                            <button type="button"
+                                    onclick="selectFormSector('{{ $sector->id }}', '{{ addslashes($sector->name) }}')"
+                                    data-name="{{ mb_strtolower($sector->name) }}"
+                                    class="w-full text-right px-3 py-2 text-sm transition-colors hover:bg-indigo-50
+                                           {{ $selSectorId === $sector->id ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-gray-700' }}">
+                                {{ $sector->name }}
+                            </button>
+                        </li>
+                        @endforeach
+                    </ul>
+                    <div id="form-sector-no-results" class="hidden px-3 py-2 text-xs text-gray-400 text-center">لا توجد نتائج</div>
+                </div>
+            </div>
         </div>
 
         <div>
@@ -681,6 +760,63 @@ function toggleAssociations(val) {
     }
 }
 
+function toggleFormRegionDropdown(e) {
+    e.stopPropagation();
+    const panel = document.getElementById('form-region-panel');
+    const isHidden = panel.classList.contains('hidden');
+    panel.classList.toggle('hidden', !isHidden);
+    document.getElementById('form-region-chevron').style.transform = isHidden ? 'rotate(180deg)' : '';
+    if (isHidden) {
+        const s = document.getElementById('form-region-search');
+        s.value = '';
+        filterFormRegions('');
+        setTimeout(() => s.focus(), 50);
+    }
+}
+
+function selectFormRegion(id, name) {
+    document.getElementById('region_id_select').value = id;
+    const lbl = document.getElementById('form-region-label');
+    lbl.textContent = name;
+    lbl.className = id ? 'truncate text-gray-800' : 'truncate text-gray-400';
+    document.getElementById('form-region-panel').classList.add('hidden');
+    document.getElementById('form-region-chevron').style.transform = '';
+}
+
+function filterFormRegions(q) {
+    q = q.toLowerCase().trim();
+    let visible = 0;
+    document.querySelectorAll('#form-region-list .form-region-item').forEach((li, i) => {
+        if (i === 0) { li.style.display = q ? 'none' : ''; return; }
+        const btn = li.querySelector('button');
+        const match = !q || (btn.dataset.name || '').includes(q);
+        li.style.display = match ? '' : 'none';
+        if (match) visible++;
+    });
+    document.getElementById('form-region-no-results').classList.toggle('hidden', visible > 0 || !q);
+}
+
+function addFormRegionOption(id, name) {
+    const list = document.getElementById('form-region-list');
+    const li = document.createElement('li');
+    li.className = 'form-region-item';
+    li.innerHTML = `<button type="button" onclick="selectFormRegion('${id}', '${name.replace(/'/g,"\\'")}'"
+                            data-name="${name.toLowerCase()}"
+                            class="w-full text-right px-3 py-2 text-sm text-gray-700 hover:bg-emerald-50 transition-colors">
+                        ${name}
+                    </button>`;
+    list.appendChild(li);
+}
+
+document.addEventListener('click', function(e) {
+    const dd = document.getElementById('form-region-dropdown');
+    if (dd && !dd.contains(e.target)) {
+        document.getElementById('form-region-panel')?.classList.add('hidden');
+        const ch = document.getElementById('form-region-chevron');
+        if (ch) ch.style.transform = '';
+    }
+});
+
 function toggleAddRegion() {
     const panel = document.getElementById('add-region-panel');
     const input = document.getElementById('new-region-input');
@@ -735,15 +871,58 @@ async function submitNewRegion() {
             return;
         }
 
-        const select = document.getElementById('region_id_select');
-        const option = new Option(data.name, data.id, true, true);
-        select.appendChild(option);
-        select.value = data.id;
+        addFormRegionOption(data.id, data.name);
+        selectFormRegion(String(data.id), data.name);
     } catch {
         err.textContent = 'تعذّر الاتصال بالخادم.';
         err.classList.remove('hidden');
     }
 }
+
+function toggleFormSectorDropdown(e) {
+    e.stopPropagation();
+    const panel = document.getElementById('form-sector-panel');
+    const isHidden = panel.classList.contains('hidden');
+    panel.classList.toggle('hidden', !isHidden);
+    document.getElementById('form-sector-chevron').style.transform = isHidden ? 'rotate(180deg)' : '';
+    if (isHidden) {
+        const s = document.getElementById('form-sector-search');
+        s.value = '';
+        filterFormSectors('');
+        setTimeout(() => s.focus(), 50);
+    }
+}
+
+function selectFormSector(id, name) {
+    document.getElementById('sector_id_select').value = id;
+    const lbl = document.getElementById('form-sector-label');
+    lbl.textContent = name;
+    lbl.className = id ? 'truncate text-gray-800' : 'truncate text-gray-400';
+    document.getElementById('form-sector-panel').classList.add('hidden');
+    document.getElementById('form-sector-chevron').style.transform = '';
+}
+
+function filterFormSectors(q) {
+    q = q.toLowerCase().trim();
+    let visible = 0;
+    document.querySelectorAll('#form-sector-list .form-sector-item').forEach((li, i) => {
+        if (i === 0) { li.style.display = q ? 'none' : ''; return; }
+        const btn = li.querySelector('button');
+        const match = !q || btn.dataset.name.includes(q);
+        li.style.display = match ? '' : 'none';
+        if (match) visible++;
+    });
+    document.getElementById('form-sector-no-results').classList.toggle('hidden', visible > 0 || !q);
+}
+
+document.addEventListener('click', function(e) {
+    const dd = document.getElementById('form-sector-dropdown');
+    if (dd && !dd.contains(e.target)) {
+        document.getElementById('form-sector-panel')?.classList.add('hidden');
+        const ch = document.getElementById('form-sector-chevron');
+        if (ch) ch.style.transform = '';
+    }
+});
 
 function calcTotal() {
     const fields = ['work_score', 'housing_score', 'dependents_score', 'dependent_status_score', 'illness_score', 'special_cases_score'];

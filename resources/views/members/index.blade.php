@@ -86,16 +86,30 @@
 
         {{-- Always visible: search + filter toggle button --}}
         <div class="px-5 pt-4 pb-3 border-b border-gray-100 space-y-2.5">
-            <div class="relative">
-                <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none">
-                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
-                    </svg>
-                </span>
-                <input type="text" name="search" value="{{ $search ?? '' }}"
-                       placeholder="بحث بالاسم، رقم الهوية، الهاتف، أو رقم الملف..."
-                       class="w-full pr-10 pl-4 py-3 text-base border border-gray-200 rounded-xl bg-gray-50
-                              focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:bg-white transition placeholder-gray-300">
+            <div class="flex flex-col sm:flex-row gap-2">
+                <div class="relative flex-1">
+                    <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+                        </svg>
+                    </span>
+                    <input type="text" name="search" value="{{ $search ?? '' }}"
+                           placeholder="بحث بالاسم، رقم الهوية، الهاتف..."
+                           class="w-full pr-10 pl-4 py-3 text-base border border-gray-200 rounded-xl bg-gray-50
+                                  focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:bg-white transition placeholder-gray-300">
+                </div>
+                <div class="relative w-full sm:w-44">
+                    <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </span>
+                    <input type="text" name="dossier_search" value="{{ $dossierSearch ?? '' }}"
+                           placeholder="رقم الاضبارة..."
+                           class="w-full pr-10 pl-4 py-3 text-base border border-gray-200 rounded-xl bg-gray-50
+                                  focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:bg-white transition placeholder-gray-300
+                                  {{ ($dossierSearch ?? '') ? 'border-emerald-400 bg-emerald-50/30' : '' }}">
+                </div>
             </div>
             <div class="flex items-center gap-2">
                 <button type="submit"
@@ -295,6 +309,12 @@
                             {{ $g }}
                         </label>
                     @endforeach
+                    <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-500 border-t border-gray-100">
+                        <input type="checkbox" name="gender[]" value="none"
+                               {{ in_array('none', $genders) ? 'checked' : '' }}
+                               class="ms-check rounded border-gray-300 text-emerald-600 focus:ring-emerald-400">
+                        غير محدد
+                    </label>
                 </div>
             </div>
 
@@ -362,6 +382,46 @@
                             {{ $lbl }}
                         </label>
                     @endforeach
+                </div>
+            </div>
+
+            {{-- Sector filter --}}
+            <div class="ms-dropdown relative">
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">القطاع</label>
+                <button type="button"
+                        class="ms-btn w-full flex items-center justify-between text-base border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
+                               hover:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 transition text-right">
+                    <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                    <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden" style="max-height:260px">
+                    <div class="p-2 border-b border-gray-100 sticky top-0 bg-white">
+                        <input type="text" class="ms-search w-full text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400" placeholder="بحث في القطاعات...">
+                    </div>
+                    <div class="overflow-y-auto" style="max-height:200px">
+                    <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-500 border-b border-gray-100">
+                        <input type="checkbox" name="sector_id[]" value="none"
+                               {{ in_array('none', $sectorIds) ? 'checked' : '' }}
+                               class="ms-check rounded border-gray-300 text-gray-500 focus:ring-gray-400">
+                        <span class="inline-block w-2 h-2 rounded-full flex-shrink-0 bg-gray-300"></span>
+                        بدون
+                    </label>
+                    @forelse($sectorList as $sec)
+                        <label class="ms-option flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
+                            <input type="checkbox" name="sector_id[]" value="{{ $sec->id }}"
+                                   {{ in_array($sec->id, $sectorIds) ? 'checked' : '' }}
+                                   class="ms-check rounded border-gray-300 text-indigo-600 focus:ring-indigo-400">
+                            <svg class="w-3.5 h-3.5 text-indigo-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                            </svg>
+                            {{ $sec->name }}
+                        </label>
+                    @empty
+                        <p class="px-3 py-2 text-sm text-gray-400">لا توجد قطاعات</p>
+                    @endforelse
+                    </div>
                 </div>
             </div>
 
@@ -1154,6 +1214,21 @@
                     </select>
                 </div>
 
+                {{-- Sector --}}
+                <div class="be-field" data-field="sector_id">
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <input type="checkbox" name="apply_fields[]" value="sector_id" class="be-toggle rounded border-gray-300 text-blue-600 focus:ring-blue-400 cursor-pointer" onchange="toggleBulkField(this)">
+                        <label class="text-sm font-semibold text-gray-600 cursor-pointer select-none">القطاع</label>
+                    </div>
+                    <select name="fields[sector_id]" disabled
+                            class="be-input w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-100 text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition">
+                        <option value="">— بدون —</option>
+                        @foreach($sectorList as $sec)
+                            <option value="{{ $sec->id }}">{{ $sec->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
                 {{-- Network --}}
                 <div class="be-field" data-field="network">
                     <div class="flex items-center gap-2 mb-1.5">
@@ -1902,6 +1977,7 @@ function toggleDuplicates() {
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">رقم الهوية</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">الهاتف</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">المنطقة</th>
+                        <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">القطاع</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">المندوب</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">الفرد الثاني</th>
                         <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">وضع السكن</th>
@@ -1954,6 +2030,7 @@ function toggleDuplicates() {
                             <td class="px-4 py-4 text-gray-800 font-mono font-semibold text-sm">{{ $member->national_id ?? '—' }}</td>
                             <td class="px-4 py-4 text-gray-800 font-semibold text-sm">{{ $member->phone ?? '—' }}</td>
                             <td class="px-4 py-4 text-gray-700 text-sm">{{ $member->region?->name ?? '—' }}</td>
+                            <td class="px-4 py-4 text-gray-700 text-sm">{{ $member->sector?->name ?? '—' }}</td>
                             <td class="px-4 py-4 text-gray-700 text-sm">{{ $member->delegate ?? '—' }}</td>
                             <td class="px-4 py-4 text-gray-700 text-sm">{{ $member->second_person ?? '—' }}</td>
                             <td class="px-4 py-4">
