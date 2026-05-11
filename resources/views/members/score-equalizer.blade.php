@@ -363,7 +363,19 @@
 @else
 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-24">
     <div class="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 bg-gray-50/50">
-        <p class="text-sm font-bold text-gray-600">{{ number_format($members->total()) }} عضو</p>
+        <div class="flex items-center gap-3">
+            <p class="text-sm font-bold text-gray-600">{{ number_format($members->total()) }} عضو</p>
+            @if($members->total() > $members->perPage())
+            <button type="button" id="select-all-pages-btn" onclick="eqSelectAllPages()"
+                    class="text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-1 rounded-lg transition-colors">
+                تحديد جميع الصفحات ({{ number_format(count($allIds)) }})
+            </button>
+            <button type="button" id="clear-all-pages-btn" onclick="eqClearAll()" style="display:none"
+                    class="text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 px-3 py-1 rounded-lg transition-colors">
+                إلغاء تحديد الكل
+            </button>
+            @endif
+        </div>
         <p class="text-xs text-gray-400">صفحة {{ $members->currentPage() }} من {{ $members->lastPage() }}</p>
     </div>
 
@@ -521,38 +533,51 @@
 
 <script>
 (function () {
-    let currentTarget = null;
+    const ALL_IDS    = @json($allIds);
+    const TOTAL_ALL  = ALL_IDS.length;
+    let currentTarget   = null;
+    let allPagesSelected = false;
 
     function getChecked() {
         return Array.from(document.querySelectorAll('.eq-cb:checked'));
     }
 
+    function effectiveCount() {
+        return allPagesSelected ? TOTAL_ALL : getChecked().length;
+    }
+
     function eqRefreshBar() {
-        const checked = getChecked();
-        const bar      = document.getElementById('eq-bar');
-        const selCount = document.getElementById('eq-sel-count');
+        const count     = effectiveCount();
+        const bar       = document.getElementById('eq-bar');
+        const selCount  = document.getElementById('eq-sel-count');
         const heroCount = document.getElementById('hero-count');
-        selCount.textContent  = checked.length;
-        heroCount.textContent = checked.length;
+        selCount.textContent  = count;
+        heroCount.textContent = count;
 
-        if (checked.length > 0) {
-            bar.classList.remove('translate-y-full');
-        } else {
-            bar.classList.add('translate-y-full');
-        }
+        bar.classList.toggle('translate-y-full', count === 0);
 
-        // Keep select-all in sync
-        const all = document.querySelectorAll('.eq-cb');
-        const sa  = document.getElementById('eq-select-all');
-        if (sa) {
-            sa.indeterminate = checked.length > 0 && checked.length < all.length;
-            sa.checked       = all.length > 0 && checked.length === all.length;
+        // Keep select-all checkbox in sync (only reflects current page)
+        if (!allPagesSelected) {
+            const all = document.querySelectorAll('.eq-cb');
+            const checked = getChecked();
+            const sa = document.getElementById('eq-select-all');
+            if (sa) {
+                sa.indeterminate = checked.length > 0 && checked.length < all.length;
+                sa.checked       = all.length > 0 && checked.length === all.length;
+            }
         }
 
         eqRefreshPreview();
     }
 
     function eqRefreshPreview() {
+        if (allPagesSelected) {
+            document.getElementById('eq-count-up').textContent   = currentTarget !== null ? TOTAL_ALL : 0;
+            document.getElementById('eq-count-down').textContent = 0;
+            document.getElementById('eq-count-same').textContent = currentTarget !== null ? 0 : TOTAL_ALL;
+            document.getElementById('eq-preview-target').textContent = currentTarget !== null ? currentTarget : '—';
+            return;
+        }
         const checked = getChecked();
         let up = 0, down = 0, same = 0;
         checked.forEach(cb => {
@@ -570,44 +595,39 @@
 
     function eqUpdateRowBadges() {
         document.querySelectorAll('.eq-row').forEach(row => {
-            const cb      = row.querySelector('.eq-cb');
-            const badge   = row.querySelector('.new-score-badge');
-            const score   = parseInt(row.dataset.score) || 0;
+            const cb    = row.querySelector('.eq-cb');
+            const badge = row.querySelector('.new-score-badge');
+            const score = parseInt(row.dataset.score) || 0;
+            const isSelected = allPagesSelected || cb.checked;
 
-            if (!cb.checked || currentTarget === null) {
+            if (!isSelected || currentTarget === null) {
                 badge.textContent = '—';
                 badge.className = 'new-score-badge inline-block px-3 py-1 rounded-lg text-sm font-black text-gray-300';
                 return;
             }
-
             badge.textContent = currentTarget;
-            if (currentTarget > score) {
-                badge.className = 'new-score-badge inline-block px-3 py-1 rounded-lg text-sm font-black bg-emerald-100 text-emerald-700';
-            } else if (currentTarget < score) {
-                badge.className = 'new-score-badge inline-block px-3 py-1 rounded-lg text-sm font-black bg-red-100 text-red-700';
-            } else {
-                badge.className = 'new-score-badge inline-block px-3 py-1 rounded-lg text-sm font-black bg-gray-100 text-gray-500';
-            }
+            if (currentTarget > score)      badge.className = 'new-score-badge inline-block px-3 py-1 rounded-lg text-sm font-black bg-emerald-100 text-emerald-700';
+            else if (currentTarget < score) badge.className = 'new-score-badge inline-block px-3 py-1 rounded-lg text-sm font-black bg-red-100 text-red-700';
+            else                            badge.className = 'new-score-badge inline-block px-3 py-1 rounded-lg text-sm font-black bg-gray-100 text-gray-500';
         });
     }
 
     function eqOnCheck(cb) {
+        if (allPagesSelected) {
+            allPagesSelected = false;
+            toggleAllPagesUI(false);
+        }
         const row   = cb.closest('tr');
         const badge = row.querySelector('.new-score-badge');
         const score = parseInt(row.dataset.score) || 0;
-
         if (!cb.checked) {
             badge.textContent = '—';
             badge.className = 'new-score-badge inline-block px-3 py-1 rounded-lg text-sm font-black text-gray-300';
         } else if (currentTarget !== null) {
             badge.textContent = currentTarget;
-            if (currentTarget > score) {
-                badge.className = 'new-score-badge inline-block px-3 py-1 rounded-lg text-sm font-black bg-emerald-100 text-emerald-700';
-            } else if (currentTarget < score) {
-                badge.className = 'new-score-badge inline-block px-3 py-1 rounded-lg text-sm font-black bg-red-100 text-red-700';
-            } else {
-                badge.className = 'new-score-badge inline-block px-3 py-1 rounded-lg text-sm font-black bg-gray-100 text-gray-500';
-            }
+            if (currentTarget > score)      badge.className = 'new-score-badge inline-block px-3 py-1 rounded-lg text-sm font-black bg-emerald-100 text-emerald-700';
+            else if (currentTarget < score) badge.className = 'new-score-badge inline-block px-3 py-1 rounded-lg text-sm font-black bg-red-100 text-red-700';
+            else                            badge.className = 'new-score-badge inline-block px-3 py-1 rounded-lg text-sm font-black bg-gray-100 text-gray-500';
         }
         eqRefreshBar();
     }
@@ -621,6 +641,8 @@
     }
 
     function eqToggleAll(checked) {
+        allPagesSelected = false;
+        toggleAllPagesUI(false);
         document.querySelectorAll('.eq-cb').forEach(cb => {
             cb.checked = checked;
             const row   = cb.closest('tr');
@@ -631,19 +653,40 @@
                 badge.className = 'new-score-badge inline-block px-3 py-1 rounded-lg text-sm font-black text-gray-300';
             } else if (currentTarget !== null) {
                 badge.textContent = currentTarget;
-                if (currentTarget > score) {
-                    badge.className = 'new-score-badge inline-block px-3 py-1 rounded-lg text-sm font-black bg-emerald-100 text-emerald-700';
-                } else if (currentTarget < score) {
-                    badge.className = 'new-score-badge inline-block px-3 py-1 rounded-lg text-sm font-black bg-red-100 text-red-700';
-                } else {
-                    badge.className = 'new-score-badge inline-block px-3 py-1 rounded-lg text-sm font-black bg-gray-100 text-gray-500';
-                }
+                if (currentTarget > score)      badge.className = 'new-score-badge inline-block px-3 py-1 rounded-lg text-sm font-black bg-emerald-100 text-emerald-700';
+                else if (currentTarget < score) badge.className = 'new-score-badge inline-block px-3 py-1 rounded-lg text-sm font-black bg-red-100 text-red-700';
+                else                            badge.className = 'new-score-badge inline-block px-3 py-1 rounded-lg text-sm font-black bg-gray-100 text-gray-500';
             }
         });
         eqRefreshBar();
     }
 
+    function eqSelectAllPages() {
+        allPagesSelected = true;
+        // Check all visible rows for visual feedback
+        document.querySelectorAll('.eq-cb').forEach(cb => { cb.checked = true; });
+        const sa = document.getElementById('eq-select-all');
+        if (sa) { sa.checked = true; sa.indeterminate = false; }
+        eqUpdateRowBadges();
+        toggleAllPagesUI(true);
+        eqRefreshBar();
+    }
+
+    function toggleAllPagesUI(on) {
+        const btnSelect = document.getElementById('select-all-pages-btn');
+        const btnClear  = document.getElementById('clear-all-pages-btn');
+        if (btnSelect) btnSelect.style.display = on ? 'none' : '';
+        if (btnClear)  btnClear.style.display  = on ? '' : 'none';
+
+        // Highlight the bar when all pages selected
+        const bar = document.getElementById('eq-bar');
+        if (on) bar.querySelector('.bg-gray-900').style.outline = '2px solid #6366f1';
+        else    bar.querySelector('.bg-gray-900').style.outline = '';
+    }
+
     function eqClearAll() {
+        allPagesSelected = false;
+        toggleAllPagesUI(false);
         document.querySelectorAll('.eq-cb').forEach(cb => cb.checked = false);
         document.querySelectorAll('.new-score-badge').forEach(b => {
             b.textContent = '—';
@@ -655,39 +698,49 @@
     }
 
     function eqSubmit() {
-        const checked = getChecked();
-        if (checked.length === 0) {
-            alert('الرجاء تحديد عضو واحد على الأقل');
-            return;
-        }
+        const count = effectiveCount();
+        if (count === 0) { alert('الرجاء تحديد عضو واحد على الأقل'); return; }
         if (currentTarget === null || isNaN(currentTarget)) {
             alert('الرجاء إدخال النقاط المستهدفة');
             document.getElementById('eq-target').focus();
             return;
         }
-        document.getElementById('eq-target-hidden').value = currentTarget;
-        document.getElementById('eq-reason-hidden').value = document.getElementById('eq-reason').value;
 
         const up   = parseInt(document.getElementById('eq-count-up').textContent)   || 0;
         const down = parseInt(document.getElementById('eq-count-down').textContent) || 0;
         const same = parseInt(document.getElementById('eq-count-same').textContent) || 0;
 
-        let msg = `تسوية نقاط ${checked.length} عضو إلى ${currentTarget} نقطة.\n`;
-        if (up)   msg += `↑ سيُزاد: ${up} عضو\n`;
-        if (down) msg += `↓ سيُنقص: ${down} عضو\n`;
-        if (same) msg += `= بدون تغيير: ${same} عضو\n`;
-        msg += '\nهل أنت متأكد؟';
-
+        let msg = `تسوية نقاط ${count} عضو إلى ${currentTarget} نقطة`;
+        if (allPagesSelected) msg += ' (جميع الصفحات)';
+        msg += `.\n↑ سيُزاد: ${up}  ↓ سيُنقص: ${down}  = بدون تغيير: ${same}\n\nهل أنت متأكد؟`;
         if (!confirm(msg)) return;
-        document.getElementById('eq-form').submit();
+
+        const form = document.getElementById('eq-form');
+        document.getElementById('eq-target-hidden').value = currentTarget;
+        document.getElementById('eq-reason-hidden').value = document.getElementById('eq-reason').value;
+
+        if (allPagesSelected) {
+            // Remove existing checkboxes to avoid conflicts, inject all IDs
+            form.querySelectorAll('input[name="member_ids[]"]').forEach(el => el.remove());
+            ALL_IDS.forEach(id => {
+                const inp = document.createElement('input');
+                inp.type  = 'hidden';
+                inp.name  = 'member_ids[]';
+                inp.value = id;
+                form.appendChild(inp);
+            });
+        }
+
+        form.submit();
     }
 
     // Expose globals for inline handlers
-    window.eqToggleAll     = eqToggleAll;
-    window.eqOnCheck       = eqOnCheck;
-    window.eqOnTargetChange = eqOnTargetChange;
-    window.eqClearAll      = eqClearAll;
-    window.eqSubmit        = eqSubmit;
+    window.eqToggleAll       = eqToggleAll;
+    window.eqOnCheck         = eqOnCheck;
+    window.eqOnTargetChange  = eqOnTargetChange;
+    window.eqClearAll        = eqClearAll;
+    window.eqSubmit          = eqSubmit;
+    window.eqSelectAllPages  = eqSelectAllPages;
 })();
 </script>
 

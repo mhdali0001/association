@@ -28,11 +28,14 @@ class EmployeeController extends Controller
         $totalPaidUSD     = EmployeeTransaction::whereIn('type', ['salary', 'addition', 'bonus'])->where('currency', 'USD')->sum('amount');
         $totalDeductedSYP = EmployeeTransaction::where('type', 'deduction')->where('currency', 'SYP')->sum('amount');
         $totalDeductedUSD = EmployeeTransaction::where('type', 'deduction')->where('currency', 'USD')->sum('amount');
+        $totalAdvancesSYP = EmployeeTransaction::where('type', 'advance')->where('currency', 'SYP')->sum('amount');
+        $totalAdvancesUSD = EmployeeTransaction::where('type', 'advance')->where('currency', 'USD')->sum('amount');
 
         return view('employees.index', compact(
             'employees',
             'totalPaidSYP', 'totalPaidUSD',
-            'totalDeductedSYP', 'totalDeductedUSD'
+            'totalDeductedSYP', 'totalDeductedUSD',
+            'totalAdvancesSYP', 'totalAdvancesUSD'
         ));
     }
 

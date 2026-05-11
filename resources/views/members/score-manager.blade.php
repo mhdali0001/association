@@ -193,12 +193,12 @@
                 </div>
                 <div class="w-px h-8 bg-gray-200 self-end mb-0.5 shrink-0"></div>
                 <div class="flex flex-col gap-0.5">
-                    <label class="text-[10px] font-bold text-emerald-600 text-center">إضافة</label>
+                    <label class="text-[10px] font-bold text-emerald-600 text-center">إضافة نقاط</label>
                     <input type="number" name="score_addition" min="0" placeholder="—"
                            class="w-14 text-center text-xs border border-emerald-200 bg-emerald-50 rounded-lg px-1 py-1.5 focus:ring-2 focus:ring-emerald-400 focus:outline-none">
                 </div>
                 <div class="flex flex-col gap-0.5">
-                    <label class="text-[10px] font-bold text-red-500 text-center">انقاص</label>
+                    <label class="text-[10px] font-bold text-red-500 text-center">انقاص نقاط</label>
                     <input type="number" name="score_deduction" min="0" placeholder="—"
                            class="w-14 text-center text-xs border border-red-200 bg-red-50 rounded-lg px-1 py-1.5 focus:ring-2 focus:ring-red-400 focus:outline-none">
                 </div>
@@ -338,8 +338,8 @@
                         <span class="text-purple-500">خاصة</span>
                         <span class="text-gray-300 font-normal">/10</span>
                     </th>
-                    <th class="font-semibold text-center px-3 py-3 whitespace-nowrap text-emerald-500">+ إضافة</th>
-                    <th class="font-semibold text-center px-3 py-3 whitespace-nowrap text-red-400">− انقاص</th>
+                    <th class="font-semibold text-center px-3 py-3 whitespace-nowrap text-emerald-500">+ إضافة نقاط</th>
+                    <th class="font-semibold text-center px-3 py-3 whitespace-nowrap text-red-400">− انقاص نقاط</th>
                     <th class="font-semibold text-center px-3 py-3 whitespace-nowrap bg-violet-50 text-violet-700">الإجمالي</th>
                     <th class="font-semibold text-center px-3 py-3 whitespace-nowrap text-gray-500 col-amount-header">
                         <span id="amount-col-label">المبلغ (ل.س)</span>

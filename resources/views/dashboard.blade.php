@@ -19,7 +19,7 @@
 </div>
 
 {{-- Stats --}}
-<div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
     <a href="{{ route('members.index') }}" class="group relative bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl p-6 shadow-md overflow-hidden hover:shadow-lg transition-shadow">
         <div class="absolute -bottom-4 -left-4 w-20 h-20 bg-white/10 rounded-full"></div>
         <div class="absolute -top-4 -right-4 w-16 h-16 bg-white/10 rounded-full"></div>
@@ -81,7 +81,7 @@
     </a>
 
     @if($allPendingCount)
-    <a href="{{ route('pending-changes.index') }}" class="group relative bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-6 shadow-md overflow-hidden hover:shadow-lg transition-shadow md:col-span-4">
+    <a href="{{ route('pending-changes.index') }}" class="group relative bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-6 shadow-md overflow-hidden hover:shadow-lg transition-shadow col-span-2 md:col-span-4">
         <div class="absolute -bottom-4 -left-4 w-20 h-20 bg-white/10 rounded-full"></div>
         <div class="absolute -top-4 -right-4 w-16 h-16 bg-white/10 rounded-full"></div>
         <div class="relative flex items-center gap-5">
@@ -102,19 +102,19 @@
 
 {{-- Stats summary + link to statistics --}}
 <a href="{{ route('statistics') }}"
-   class="group flex items-center justify-between bg-white border border-indigo-100 rounded-2xl shadow-sm px-5 py-4 mb-8 hover:shadow-md hover:border-indigo-200 transition-all">
-    <div class="flex items-center gap-3">
+   class="group flex items-center justify-between gap-4 bg-white border border-indigo-100 rounded-2xl shadow-sm px-5 py-4 mb-8 hover:shadow-md hover:border-indigo-200 transition-all">
+    <div class="flex items-center gap-3 min-w-0">
         <div class="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
             <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
             </svg>
         </div>
-        <div>
+        <div class="min-w-0">
             <p class="text-sm font-bold text-gray-800">الإحصائيات التفصيلية</p>
-            <p class="text-xs text-gray-400">{{ number_format($totalMembers) }} عضو — {{ number_format((float)$totalEstimatedAmount, 0, '.', ',') }} ل.س مجموع مقدر</p>
+            <p class="text-xs text-gray-400 truncate">{{ number_format($totalMembers) }} عضو — {{ number_format((float)$totalEstimatedAmount) }} ل.س</p>
         </div>
     </div>
-    <span class="text-sm font-semibold text-indigo-600 group-hover:text-indigo-700 transition-colors">عرض الإحصائيات ←</span>
+    <span class="shrink-0 text-sm font-semibold text-indigo-600 group-hover:text-indigo-700 transition-colors">عرض ←</span>
 </a>
 
 {{-- ══ User Monitoring (admin only) ══ --}}
@@ -135,38 +135,38 @@
 <div class="mb-8">
 
     {{-- Section header --}}
-    <div class="flex items-center gap-3 mb-5">
-        <div class="w-8 h-8 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
-            <svg class="w-4 h-4 text-violet-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-            </svg>
+    <div class="flex flex-wrap items-center gap-3 mb-5">
+        <div class="flex items-center gap-3 flex-1 min-w-0">
+            <div class="w-8 h-8 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4 text-violet-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+            </div>
+            <div class="min-w-0">
+                <h2 class="text-base font-black text-gray-800">مراقبة المستخدمين</h2>
+                <p class="text-xs text-gray-400">{{ now()->translatedFormat('l، j F Y') }}</p>
+            </div>
         </div>
-        <div>
-            <h2 class="text-base font-black text-gray-800">مراقبة المستخدمين</h2>
-            <p class="text-xs text-gray-400">{{ now()->translatedFormat('l، j F Y') }}</p>
-        </div>
-        <div class="flex-1 h-px bg-gray-100 mx-2"></div>
 
-        {{-- Summary pills --}}
-        <div class="flex items-center gap-2">
-            <span class="inline-flex items-center gap-1.5 text-xs font-semibold bg-violet-50 text-violet-700 border border-violet-100 px-3 py-1.5 rounded-full">
+        {{-- Summary pills + link --}}
+        <div class="flex items-center gap-2 flex-wrap">
+            <span class="inline-flex items-center gap-1.5 text-xs font-semibold bg-violet-50 text-violet-700 border border-violet-100 px-2.5 py-1.5 rounded-full">
                 <span class="w-1.5 h-1.5 bg-violet-500 rounded-full"></span>
                 {{ $usersActivity->count() }} مستخدم
             </span>
-            <span class="inline-flex items-center gap-1.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1.5 rounded-full">
+            <span class="inline-flex items-center gap-1.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100 px-2.5 py-1.5 rounded-full">
                 <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
                 {{ $totalActiveToday }} نشط اليوم
             </span>
-            <span class="inline-flex items-center gap-1.5 text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100 px-3 py-1.5 rounded-full">
+            <span class="inline-flex items-center gap-1.5 text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100 px-2.5 py-1.5 rounded-full">
                 {{ number_format($totalEditsToday) }} عملية اليوم
             </span>
+            <a href="{{ route('activity-logs.index') }}"
+               class="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-600 hover:text-violet-700 bg-white border border-violet-200 hover:bg-violet-50 px-2.5 py-1.5 rounded-lg transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                سجل النشاط
+            </a>
         </div>
-
-        <a href="{{ route('activity-logs.index') }}"
-           class="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold text-violet-600 hover:text-violet-700 bg-white border border-violet-200 hover:bg-violet-50 px-3 py-1.5 rounded-lg transition-colors">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-            سجل النشاط الكامل
-        </a>
     </div>
 
     {{-- User cards grid --}}
@@ -371,9 +371,9 @@
 
 
 {{-- User Week Activity Modal --}}
-<div id="user-modal" style="display:none" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+<div id="user-modal" style="display:none" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
     <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeUserModal()"></div>
-    <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden">
+    <div class="relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-xl max-h-[90vh] flex flex-col overflow-hidden">
 
         {{-- Modal header --}}
         <div class="flex items-center gap-3 px-6 py-5 border-b border-gray-100">

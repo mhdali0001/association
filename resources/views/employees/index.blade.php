@@ -40,8 +40,13 @@
         </div>
 
         {{-- Stats row --}}
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {{-- Total --}}
+        @php
+            $globalNetSYP  = $totalPaidSYP - $totalDeductedSYP - $totalAdvancesSYP;
+            $globalNetUSD  = $totalPaidUSD - $totalDeductedUSD - $totalAdvancesUSD;
+        @endphp
+        <div class="grid grid-cols-2 lg:grid-cols-3 gap-3">
+
+            {{-- Total employees --}}
             <div class="rounded-2xl border px-5 py-4" style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.08)">
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-[11px] font-bold tracking-widest uppercase" style="color:#64748b">إجمالي</span>
@@ -99,23 +104,73 @@
                 <p class="text-[11px] mt-2" style="color:#475569">خصومات فقط</p>
             </div>
 
-            {{-- Net --}}
-            @php $globalNetSYP = $totalPaidSYP - $totalDeductedSYP; $globalNetUSD = $totalPaidUSD - $totalDeductedUSD; @endphp
+            {{-- Advances --}}
+            <div class="rounded-2xl border px-5 py-4" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.25)">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-[11px] font-bold tracking-widest uppercase" style="color:#92400e">السلف</span>
+                    <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(245,158,11,0.2)">
+                        <svg class="w-3.5 h-3.5" style="color:#fbbf24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                    </div>
+                </div>
+                @if($totalAdvancesSYP > 0)
+                    <p class="text-xl font-black leading-tight" style="color:#fbbf24">{{ number_format($totalAdvancesSYP) }} <span class="text-xs font-normal" style="color:#64748b">ل.س</span></p>
+                @endif
+                @if($totalAdvancesUSD > 0)
+                    <p class="text-xl font-black leading-tight" style="color:#fbbf24">{{ number_format($totalAdvancesUSD, 2) }} <span class="text-xs font-normal" style="color:#64748b">$</span></p>
+                @endif
+                @if($totalAdvancesSYP == 0 && $totalAdvancesUSD == 0)
+                    <p class="text-2xl font-black text-white leading-none">—</p>
+                @endif
+                <p class="text-[11px] mt-2" style="color:#d97706">السلف المدفوعة</p>
+            </div>
+
+            {{-- Net remaining from payments --}}
             <div class="rounded-2xl border px-5 py-4" style="background:rgba(99,102,241,0.12);border-color:rgba(99,102,241,0.25)">
                 <div class="flex items-center justify-between mb-3">
-                    <span class="text-[11px] font-bold tracking-widest uppercase" style="color:#818cf8">الصافي</span>
+                    <span class="text-[11px] font-bold tracking-widest uppercase" style="color:#818cf8">المتبقي</span>
                     <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(99,102,241,0.2)">
                         <svg class="w-3.5 h-3.5" style="color:#818cf8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                     </div>
                 </div>
                 @if($globalNetSYP != 0 || ($totalPaidSYP == 0 && $totalPaidUSD == 0))
-                    <p class="text-xl font-black leading-tight" style="color:#a5b4fc">{{ number_format($globalNetSYP) }} <span class="text-xs font-normal" style="color:#64748b">ل.س</span></p>
+                    <p class="text-xl font-black leading-tight" style="color:{{ $globalNetSYP >= 0 ? '#a5b4fc' : '#f87171' }}">
+                        {{ $globalNetSYP < 0 ? '−' : '' }}{{ number_format(abs($globalNetSYP)) }}
+                        <span class="text-xs font-normal" style="color:#64748b">ل.س</span>
+                    </p>
                 @endif
                 @if($globalNetUSD != 0)
-                    <p class="text-xl font-black leading-tight" style="color:#a5b4fc">{{ number_format($globalNetUSD, 2) }} <span class="text-xs font-normal" style="color:#64748b">$</span></p>
+                    <p class="text-xl font-black leading-tight" style="color:{{ $globalNetUSD >= 0 ? '#a5b4fc' : '#f87171' }}">
+                        {{ $globalNetUSD < 0 ? '−' : '' }}{{ number_format(abs($globalNetUSD), 2) }}
+                        <span class="text-xs font-normal" style="color:#64748b">$</span>
+                    </p>
                 @endif
-                <p class="text-[11px] mt-2" style="color:#6366f1">صافي الإنفاق الكلي</p>
+                <p class="text-[11px] mt-2" style="color:#6366f1">المتبقي من الدفعات</p>
             </div>
+
+            {{-- True net (paid - deductions - advances) per employee avg --}}
+            <div class="rounded-2xl border px-5 py-4" style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.08)">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-[11px] font-bold tracking-widest uppercase" style="color:#64748b">الإنفاق الكلي</span>
+                    <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(255,255,255,0.08)">
+                        <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                    </div>
+                </div>
+                @php
+                    $totalSpentSYP = $totalPaidSYP + $totalAdvancesSYP;
+                    $totalSpentUSD = $totalPaidUSD + $totalAdvancesUSD;
+                @endphp
+                @if($totalSpentSYP > 0)
+                    <p class="text-xl font-black leading-tight text-white">{{ number_format($totalSpentSYP) }} <span class="text-xs font-normal" style="color:#64748b">ل.س</span></p>
+                @endif
+                @if($totalSpentUSD > 0)
+                    <p class="text-xl font-black leading-tight text-white">{{ number_format($totalSpentUSD, 2) }} <span class="text-xs font-normal" style="color:#64748b">$</span></p>
+                @endif
+                @if($totalSpentSYP == 0 && $totalSpentUSD == 0)
+                    <p class="text-2xl font-black text-white leading-none">—</p>
+                @endif
+                <p class="text-[11px] mt-2" style="color:#475569">مدفوع + سلف</p>
+            </div>
+
         </div>
     </div>
 </div>

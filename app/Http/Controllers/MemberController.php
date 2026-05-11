@@ -1494,7 +1494,11 @@ class MemberController extends Controller
 
     public function scoreEqualizerIndex(Request $request)
     {
-        $members = $this->buildFilteredQuery($request)
+        $query = $this->buildFilteredQuery($request);
+
+        $allIds = (clone $query)->pluck('members.id')->toArray();
+
+        $members = $query
             ->with(['verificationStatus', 'scores'])
             ->orderByRaw('CAST(dossier_number AS UNSIGNED)')
             ->paginate(50)
@@ -1510,7 +1514,7 @@ class MemberController extends Controller
         $housingStatusList    = \App\Models\HousingStatus::active()->orderBy('name')->get();
 
         return view('members.score-equalizer', compact(
-            'members',
+            'members', 'allIds',
             'verificationStatuses', 'finalStatusList', 'maritalStatusList',
             'associationList', 'delegateList', 'addressList',
             'regionList', 'housingStatusList'
