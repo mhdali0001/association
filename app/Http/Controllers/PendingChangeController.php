@@ -112,7 +112,15 @@ class PendingChangeController extends Controller
     public function show(PendingChange $pendingChange)
     {
         $pendingChange->load('requester', 'reviewer');
-        return view('pending-changes.show', compact('pendingChange'));
+
+        $memberSnapshots = null;
+        if (str_starts_with($pendingChange->action, 'bulk_')) {
+            $memberSnapshots = $pendingChange->memberSnapshots()
+                ->orderBy('full_name')
+                ->paginate(30, ['*'], 'mpage');
+        }
+
+        return view('pending-changes.show', compact('pendingChange', 'memberSnapshots'));
     }
 
     public function approve(PendingChange $pendingChange)

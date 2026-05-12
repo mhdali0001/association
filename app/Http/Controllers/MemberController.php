@@ -478,7 +478,7 @@ class MemberController extends Controller
 
             if (!$this->isAdmin()) {
                 $memberIds = $query->pluck('id')->all();
-                PendingChange::create([
+                PendingChange::createWithSnapshots([
                     'model_type'   => 'member',
                     'model_id'     => null,
                     'action'       => 'bulk_score_addition',
@@ -492,7 +492,7 @@ class MemberController extends Controller
                     'original'     => null,
                     'requested_by' => Auth::id(),
                     'status'       => 'pending',
-                ]);
+                ], $memberIds);
                 return back()->with('success', "تم إرسال طلب إضافة النقاط ({$label}) وهو بانتظار موافقة المسؤول.");
             }
 
@@ -508,7 +508,7 @@ class MemberController extends Controller
 
         if (!$this->isAdmin()) {
             $memberIds = $query->pluck('id')->all();
-            PendingChange::create([
+            PendingChange::createWithSnapshots([
                 'model_type'   => 'member',
                 'model_id'     => null,
                 'action'       => 'bulk_score_deduction',
@@ -522,7 +522,7 @@ class MemberController extends Controller
                 'original'     => null,
                 'requested_by' => Auth::id(),
                 'status'       => 'pending',
-            ]);
+            ], $memberIds);
             return back()->with('success', "تم إرسال طلب انقاص النقاط ({$label}) وهو بانتظار موافقة المسؤول.");
         }
 
@@ -686,7 +686,7 @@ class MemberController extends Controller
 
         if (!$this->isAdmin()) {
             $memberIds = $query->pluck('id')->all();
-            PendingChange::create([
+            PendingChange::createWithSnapshots([
                 'model_type'   => 'member',
                 'model_id'     => null,
                 'action'       => 'bulk_update',
@@ -694,13 +694,12 @@ class MemberController extends Controller
                     'member_ids'    => $memberIds,
                     'count'         => $count,
                     'fields'        => ['payments_count' => $amount],
-                    'names_preview' => Member::whereIn('id', array_slice($memberIds, 0, 5))->pluck('full_name')->all(),
                     'label'         => $label,
                 ],
                 'original'     => null,
                 'requested_by' => Auth::id(),
                 'status'       => 'pending',
-            ]);
+            ], $memberIds);
             return back()->with('success', "تم إرسال طلب ({$label}) وهو بانتظار موافقة المسؤول.");
         }
 
@@ -1239,6 +1238,7 @@ class MemberController extends Controller
             'dossier_number'             => $data['dossier_number'] ?? null,
             'current_address'            => $data['current_address'] ?? null,
             'region_id'                  => $data['region_id'] ?? null,
+            'sector_id'                  => $data['sector_id'] ?? null,
             'marital_status'             => $data['marital_status'] ?? null,
             'disease_type'               => $data['disease_type'] ?? null,
             'other_association'          => !empty($request->association_ids),
@@ -1355,17 +1355,15 @@ class MemberController extends Controller
             return redirect()->route('members.index')->with('success', "تم حذف {$members->count()} عضو بنجاح.");
         }
 
-        $names = Member::whereIn('id', $ids)->limit(5)->pluck('full_name')->toArray();
-
-        PendingChange::create([
+        PendingChange::createWithSnapshots([
             'model_type'   => 'member',
             'model_id'     => null,
             'action'       => 'bulk_delete',
-            'payload'      => ['member_ids' => $ids, 'count' => count($ids), 'names_preview' => $names],
+            'payload'      => ['member_ids' => $ids, 'count' => count($ids)],
             'original'     => null,
             'requested_by' => Auth::id(),
             'status'       => 'pending',
-        ]);
+        ], $ids);
 
         ActivityLogger::log('requested', 'طلب حذف جماعي لـ ' . count($ids) . ' مستفيد بانتظار موافقة المسؤول');
         return redirect()->route('members.index')->with('pending', 'تم إرسال طلب الحذف الجماعي — بانتظار موافقة المسؤول.');
@@ -1456,17 +1454,15 @@ class MemberController extends Controller
             return redirect()->route('members.index')->with('success', "تم تعديل " . count($ids) . " عضو بنجاح.");
         }
 
-        $names = Member::whereIn('id', $ids)->limit(5)->pluck('full_name')->toArray();
-
-        PendingChange::create([
+        PendingChange::createWithSnapshots([
             'model_type'   => 'member',
             'model_id'     => null,
             'action'       => 'bulk_update',
-            'payload'      => ['member_ids' => $ids, 'count' => count($ids), 'fields' => $data, 'names_preview' => $names],
+            'payload'      => ['member_ids' => $ids, 'count' => count($ids), 'fields' => $data],
             'original'     => null,
             'requested_by' => Auth::id(),
             'status'       => 'pending',
-        ]);
+        ], $ids);
 
         ActivityLogger::log('requested', 'طلب تعديل جماعي لـ ' . count($ids) . ' مستفيد بانتظار موافقة المسؤول');
         return redirect()->route('members.index')->with('pending', 'تم إرسال طلب التعديل الجماعي — بانتظار موافقة المسؤول.');
@@ -1538,16 +1534,15 @@ class MemberController extends Controller
         if ($reason) $label .= " — السبب: {$reason}";
 
         if (!$this->isAdmin()) {
-            $names = Member::whereIn('id', $ids)->limit(5)->pluck('full_name')->toArray();
-            PendingChange::create([
+            PendingChange::createWithSnapshots([
                 'model_type'   => 'member',
                 'model_id'     => null,
                 'action'       => 'bulk_score_equalize',
-                'payload'      => ['member_ids' => $ids, 'target_score' => $target, 'reason' => $reason, 'count' => $count, 'label' => $label, 'names_preview' => $names],
+                'payload'      => ['member_ids' => $ids, 'target_score' => $target, 'reason' => $reason, 'count' => $count, 'label' => $label],
                 'original'     => null,
                 'requested_by' => Auth::id(),
                 'status'       => 'pending',
-            ]);
+            ], $ids);
             ActivityLogger::log('requested', "طلب {$label} — بانتظار موافقة المسؤول");
             return back()->with('pending', "تم إرسال طلب {$label} — بانتظار موافقة المسؤول.");
         }
@@ -1618,13 +1613,12 @@ class MemberController extends Controller
         if ($reason) $label .= " — السبب: {$reason}";
 
         if (!$this->isAdmin()) {
-            $names   = Member::whereIn('id', $ids)->limit(5)->pluck('full_name')->toArray();
             $action  = $mode === 'addition' ? 'bulk_score_addition' : 'bulk_score_deduction';
             $payload = $mode === 'addition'
-                ? ['score_addition'   => $amount, 'score_addition_reason'  => $reason, 'member_ids' => $ids, 'count' => $count, 'label' => $label, 'names_preview' => $names]
-                : ['score_deduction'  => $amount, 'score_deduction_reason' => $reason, 'member_ids' => $ids, 'count' => $count, 'label' => $label, 'names_preview' => $names];
+                ? ['score_addition'   => $amount, 'score_addition_reason'  => $reason, 'member_ids' => $ids, 'count' => $count, 'label' => $label]
+                : ['score_deduction'  => $amount, 'score_deduction_reason' => $reason, 'member_ids' => $ids, 'count' => $count, 'label' => $label];
 
-            PendingChange::create([
+            PendingChange::createWithSnapshots([
                 'model_type'   => 'member',
                 'model_id'     => null,
                 'action'       => $action,
@@ -1632,7 +1626,7 @@ class MemberController extends Controller
                 'original'     => null,
                 'requested_by' => Auth::id(),
                 'status'       => 'pending',
-            ]);
+            ], $ids);
 
             ActivityLogger::log('requested', "طلب {$label} — بانتظار موافقة المسؤول");
             return back()->with('pending', "تم إرسال طلب {$label} — بانتظار موافقة المسؤول.");

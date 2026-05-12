@@ -426,6 +426,145 @@
     </div>
 @endif
 
+{{-- Member Snapshots Table (bulk actions only) --}}
+@if($memberSnapshots !== null)
+@php
+    $isBulkScore  = in_array($pendingChange->action, ['bulk_score_addition','bulk_score_deduction','bulk_score_equalize']);
+    $isBulkUpdate = $pendingChange->action === 'bulk_update';
+    $isBulkDelete = $pendingChange->action === 'bulk_delete';
+    $fieldLabels  = \App\Models\PendingChange::memberFieldLabels();
+@endphp
+<div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-6">
+    <div class="flex items-center justify-between bg-gradient-to-l from-slate-50 to-gray-50 border-b border-gray-100 px-6 py-3.5">
+        <div class="flex items-center gap-2.5">
+            <div class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center">
+                <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+            </div>
+            <h2 class="text-sm font-bold text-slate-800">الأشخاص المشمولون بالطلب</h2>
+            <span class="text-xs text-slate-400">— {{ $memberSnapshots->total() }} شخص</span>
+        </div>
+        <span class="text-xs text-slate-400">صفحة {{ $memberSnapshots->currentPage() }} من {{ $memberSnapshots->lastPage() }}</span>
+    </div>
+
+    @if($memberSnapshots->isEmpty())
+        <div class="px-6 py-8 text-center text-sm text-gray-400">لا توجد بيانات مخزنة لهذا الطلب</div>
+    @else
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-100 text-right">
+                        <th class="px-4 py-3 text-xs font-semibold text-gray-500 whitespace-nowrap">#</th>
+                        <th class="px-4 py-3 text-xs font-semibold text-gray-500 whitespace-nowrap">الاسم</th>
+                        <th class="px-4 py-3 text-xs font-semibold text-gray-500 whitespace-nowrap">رقم الاضبارة</th>
+                        @if($isBulkScore)
+                            <th class="px-4 py-3 text-xs font-semibold text-gray-500 whitespace-nowrap">النقاط قبل</th>
+                            <th class="px-4 py-3 text-xs font-semibold text-gray-500 whitespace-nowrap">النقاط بعد</th>
+                            <th class="px-4 py-3 text-xs font-semibold text-gray-500 whitespace-nowrap">التغيير</th>
+                        @elseif($isBulkUpdate)
+                            @foreach(array_keys($memberSnapshots->first()->after ?? []) as $col)
+                                <th class="px-4 py-3 text-xs font-semibold text-gray-500 whitespace-nowrap">{{ $fieldLabels[$col] ?? $col }} (قبل)</th>
+                                <th class="px-4 py-3 text-xs font-semibold text-gray-500 whitespace-nowrap">{{ $fieldLabels[$col] ?? $col }} (بعد)</th>
+                            @endforeach
+                        @elseif($isBulkDelete)
+                            <th class="px-4 py-3 text-xs font-semibold text-gray-500 whitespace-nowrap">النقاط</th>
+                            <th class="px-4 py-3 text-xs font-semibold text-gray-500 whitespace-nowrap">الهاتف</th>
+                        @endif
+                        <th class="px-4 py-3 text-xs font-semibold text-gray-500 whitespace-nowrap">الملف</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    @foreach($memberSnapshots as $snap)
+                    @php
+                        $before = $snap->before ?? [];
+                        $after  = $snap->after  ?? [];
+                    @endphp
+                    <tr class="hover:bg-gray-50/60 transition-colors">
+                        <td class="px-4 py-3 text-xs text-gray-400">{{ $loop->iteration + ($memberSnapshots->currentPage() - 1) * $memberSnapshots->perPage() }}</td>
+                        <td class="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">{{ $snap->full_name }}</td>
+                        <td class="px-4 py-3 text-gray-500 text-xs font-mono">{{ $snap->dossier_number ?: '—' }}</td>
+
+                        @if($isBulkScore)
+                            @php
+                                $scoreBefore = $before['score'] ?? null;
+                                $scoreAfter  = $after['score']  ?? null;
+                                $diff        = $scoreAfter !== null && $scoreBefore !== null ? ($scoreAfter - $scoreBefore) : null;
+                            @endphp
+                            <td class="px-4 py-3 text-center">
+                                <span class="font-semibold text-gray-700">{{ $scoreBefore ?? '—' }}</span>
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <span class="font-semibold {{ $scoreAfter > $scoreBefore ? 'text-emerald-700' : ($scoreAfter < $scoreBefore ? 'text-red-600' : 'text-gray-700') }}">
+                                    {{ $scoreAfter ?? '—' }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                @if($diff !== null && $diff !== 0)
+                                    <span class="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full
+                                        {{ $diff > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600' }}">
+                                        {{ $diff > 0 ? '+' : '' }}{{ $diff }}
+                                    </span>
+                                @elseif($diff === 0)
+                                    <span class="text-xs text-gray-400">بدون تغيير</span>
+                                @else
+                                    <span class="text-xs text-gray-300">—</span>
+                                @endif
+                            </td>
+
+                        @elseif($isBulkUpdate)
+                            @foreach(array_keys($after) as $col)
+                                <td class="px-4 py-3 text-sm text-red-500 line-through">{{ $before[$col] ?? '—' }}</td>
+                                <td class="px-4 py-3 text-sm font-semibold text-emerald-700">{{ $after[$col] ?? '—' }}</td>
+                            @endforeach
+
+                        @elseif($isBulkDelete)
+                            <td class="px-4 py-3 text-center text-sm font-semibold text-gray-700">{{ $before['score'] ?? '—' }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-500">{{ $before['phone'] ?? '—' }}</td>
+                        @endif
+
+                        <td class="px-4 py-3">
+                            @if($snap->member_id)
+                                <a href="{{ route('members.show', $snap->member_id) }}" target="_blank"
+                                   class="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                    </svg>
+                                    ملف
+                                </a>
+                            @else
+                                <span class="text-xs text-gray-300">محذوف</span>
+                            @endif
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+
+        @if($memberSnapshots->hasPages())
+            <div class="px-6 py-3 border-t border-gray-100 flex items-center justify-between">
+                <span class="text-xs text-gray-400">
+                    عرض {{ $memberSnapshots->firstItem() }}–{{ $memberSnapshots->lastItem() }} من {{ $memberSnapshots->total() }}
+                </span>
+                <div class="flex items-center gap-1">
+                    @if($memberSnapshots->onFirstPage())
+                        <span class="px-3 py-1.5 text-xs text-gray-300 border border-gray-100 rounded-lg">السابق</span>
+                    @else
+                        <a href="{{ $memberSnapshots->previousPageUrl() }}" class="px-3 py-1.5 text-xs text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">السابق</a>
+                    @endif
+                    @if($memberSnapshots->hasMorePages())
+                        <a href="{{ $memberSnapshots->nextPageUrl() }}" class="px-3 py-1.5 text-xs text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">التالي</a>
+                    @else
+                        <span class="px-3 py-1.5 text-xs text-gray-300 border border-gray-100 rounded-lg">التالي</span>
+                    @endif
+                </div>
+            </div>
+        @endif
+    @endif
+</div>
+@endif
+
 {{-- Actions (admin only, pending only) --}}
 @if($pendingChange->isPending())
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">

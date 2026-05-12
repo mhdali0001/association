@@ -9,64 +9,77 @@
 @section('content')
 
 {{-- Hero --}}
-<div class="relative bg-gradient-to-l from-emerald-600 via-emerald-500 to-teal-500 rounded-3xl p-6 mb-6 overflow-hidden shadow-lg">
+<div class="relative bg-gradient-to-l from-emerald-600 via-emerald-500 to-teal-500 rounded-3xl p-5 sm:p-6 mb-6 overflow-hidden shadow-lg">
     <div class="absolute inset-0 opacity-10">
         <div class="absolute -top-6 -left-6 w-36 h-36 bg-white rounded-full"></div>
         <div class="absolute -bottom-10 left-20 w-52 h-52 bg-white rounded-full"></div>
         <div class="absolute top-4 right-10 w-20 h-20 bg-white rounded-full"></div>
     </div>
-    <div class="relative flex items-start justify-between flex-wrap gap-4">
-        <div>
-            <h1 class="text-2xl font-black text-white">الأعضاء</h1>
-            <p class="text-emerald-100 text-sm mt-0.5">إجمالي المسجلين: <span class="font-bold text-white">{{ number_format($members->total()) }}</span> عضو</p>
-        </div>
-        <div class="flex gap-3 flex-wrap">
-            <div class="bg-white/15 border border-white/25 rounded-xl px-4 py-2.5 text-center min-w-[160px]">
-                <p class="text-white font-black text-xl leading-none">{{ number_format((float)$totalAmount, 0, '.', ',') }}</p>
-                <p class="text-emerald-200 text-xs mt-0.5">مجموع المبالغ المقدرة (ل.س)</p>
-            </div>
-            <div class="bg-white/15 border border-white/25 rounded-xl px-4 py-2.5 text-center min-w-[160px]">
-                <p class="text-white font-black text-xl leading-none">{{ number_format((float)$totalFinalAmount, 0, '.', ',') }}</p>
-                <p class="text-purple-200 text-xs mt-0.5">مجموع المبالغ النهائية (ل.س)</p>
+    <div class="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:flex-wrap">
+
+        {{-- Title + stats --}}
+        <div class="flex items-start justify-between gap-3 sm:block">
+            <div>
+                <h1 class="text-xl sm:text-2xl font-black text-white">الأعضاء</h1>
+                <p class="text-emerald-100 text-xs sm:text-sm mt-0.5">إجمالي المسجلين: <span class="font-bold text-white">{{ number_format($members->total()) }}</span> عضو</p>
             </div>
         </div>
-        <div class="flex items-center gap-2 flex-wrap">
-            <a href="{{ route('members.import.show') }}"
-               class="flex items-center gap-2 bg-white/15 hover:bg-white/25 border border-white/30 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors backdrop-blur-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-                استيراد Excel
-            </a>
-            <a href="{{ route('members.export', request()->query()) }}"
-               class="flex items-center gap-2 bg-white/15 hover:bg-white/25 border border-white/30 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors backdrop-blur-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                </svg>
-                تصدير Excel
-            </a>
-            <a href="{{ route('members.duplicates') }}"
-               class="flex items-center gap-2 bg-white/15 hover:bg-white/25 border border-white/30 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors backdrop-blur-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-                </svg>
-                كشف التكرارات
-            </a>
-            <a href="{{ route('members.bulk-amount') }}"
-               class="flex items-center gap-2 bg-white/15 hover:bg-white/25 border border-white/30 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors backdrop-blur-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                تعديل المبالغ
-            </a>
+
+        {{-- Stats --}}
+        <div class="grid grid-cols-2 sm:flex gap-2 sm:gap-3">
+            <div class="bg-white/15 border border-white/25 rounded-xl px-3 sm:px-4 py-2.5 text-center">
+                <p class="text-white font-black text-base sm:text-xl leading-none">{{ number_format((float)$totalAmount, 0, '.', ',') }}</p>
+                <p class="text-emerald-200 text-xs mt-0.5">المبالغ المقدرة (ل.س)</p>
+            </div>
+            <div class="bg-white/15 border border-white/25 rounded-xl px-3 sm:px-4 py-2.5 text-center">
+                <p class="text-white font-black text-base sm:text-xl leading-none">{{ number_format((float)$totalFinalAmount, 0, '.', ',') }}</p>
+                <p class="text-purple-200 text-xs mt-0.5">المبالغ النهائية (ل.س)</p>
+            </div>
+        </div>
+
+        {{-- Actions --}}
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:flex-wrap">
+            {{-- Primary --}}
             <a href="{{ route('members.create') }}"
-               class="flex items-center gap-2 bg-white text-emerald-700 hover:bg-emerald-50 text-sm font-bold px-5 py-2 rounded-xl transition-colors shadow-md">
+               class="flex items-center justify-center gap-2 bg-white text-emerald-700 hover:bg-emerald-50 text-sm font-bold px-5 py-2.5 sm:py-2 rounded-xl transition-colors shadow-md">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
                 </svg>
                 إضافة عضو جديد
             </a>
+            {{-- Secondary --}}
+            <div class="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
+                <a href="{{ route('members.import.show') }}"
+                   class="flex items-center justify-center gap-1.5 bg-white/15 hover:bg-white/25 border border-white/30 text-white text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl transition-colors backdrop-blur-sm">
+                    <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    استيراد
+                </a>
+                <a href="{{ route('members.export', request()->query()) }}"
+                   class="flex items-center justify-center gap-1.5 bg-white/15 hover:bg-white/25 border border-white/30 text-white text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl transition-colors backdrop-blur-sm">
+                    <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    تصدير
+                </a>
+                <a href="{{ route('members.duplicates') }}"
+                   class="flex items-center justify-center gap-1.5 bg-white/15 hover:bg-white/25 border border-white/30 text-white text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl transition-colors backdrop-blur-sm">
+                    <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                    </svg>
+                    التكرارات
+                </a>
+                <a href="{{ route('members.bulk-amount') }}"
+                   class="flex items-center justify-center gap-1.5 bg-white/15 hover:bg-white/25 border border-white/30 text-white text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl transition-colors backdrop-blur-sm">
+                    <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    المبالغ
+                </a>
+            </div>
         </div>
+
     </div>
 </div>
 

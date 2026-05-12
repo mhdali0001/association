@@ -143,7 +143,9 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('regions', \App\Http\Controllers\RegionController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::post('/regions/quick-store', [\App\Http\Controllers\RegionController::class, 'quickStore'])->name('regions.quick-store');
+    Route::post('/sectors/quick-store', [\App\Http\Controllers\SectorController::class, 'quickStore'])->name('sectors.quick-store');
     Route::resource('sectors', \App\Http\Controllers\SectorController::class)->only(['index', 'store', 'update', 'destroy', 'show']);
+    Route::post('/sectors/{sector}/regions', [\App\Http\Controllers\SectorController::class, 'updateRegions'])->name('sectors.update-regions');
     Route::get('/field-visits/with-amounts',                               [\App\Http\Controllers\FieldVisitController::class, 'withAmounts'])->name('field-visits.with-amounts');
     Route::post('/members/{member}/field-visits',                          [\App\Http\Controllers\FieldVisitController::class, 'store'])  ->name('field-visits.store');
     Route::put('/members/{member}/field-visits/{fieldVisit}',             [\App\Http\Controllers\FieldVisitController::class, 'update'])        ->name('field-visits.update');

@@ -42,6 +42,121 @@
     </div>
 </div>
 
+{{-- Regions Management --}}
+<div class="bg-white border border-gray-100 rounded-2xl shadow-sm mb-5 overflow-hidden">
+    <div class="flex items-center justify-between bg-violet-50/60 border-b border-violet-100 px-5 py-3.5">
+        <div class="flex items-center gap-2.5">
+            <div class="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center">
+                <svg class="w-4 h-4 text-violet-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+            </div>
+            <span class="text-sm font-bold text-violet-800">المناطق المرتبطة بالقطاع</span>
+            <span class="text-xs text-violet-400 bg-violet-100 rounded-full px-2 py-0.5">{{ $sectorRegions->count() }} منطقة</span>
+        </div>
+        <button type="button" onclick="toggleRegionsPanel()"
+                class="text-xs font-semibold text-violet-600 hover:text-violet-800 bg-violet-100 hover:bg-violet-200 px-3 py-1.5 rounded-lg transition-colors">
+            تعديل المناطق
+        </button>
+    </div>
+
+    {{-- Current regions display --}}
+    <div class="p-4">
+        @if($sectorRegions->isEmpty())
+            <p class="text-sm text-gray-400 text-center py-3">لا توجد مناطق مرتبطة بهذا القطاع حتى الآن.</p>
+        @else
+            <div class="flex flex-wrap gap-2">
+                @foreach($sectorRegions as $region)
+                    <span class="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200">
+                        <svg class="w-3 h-3 text-violet-400" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3"/></svg>
+                        {{ $region->name }}
+                        <span class="text-xs text-violet-400">({{ $region->members_count ?? 0 }})</span>
+                    </span>
+                @endforeach
+            </div>
+        @endif
+    </div>
+
+    {{-- Edit panel --}}
+    <div id="regions-panel" class="hidden border-t border-violet-100">
+        <form method="POST" action="{{ route('sectors.update-regions', $sector) }}" id="regions-form">
+            @csrf
+            <div class="p-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                    {{-- Assigned regions --}}
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <p class="text-xs font-bold text-violet-700 uppercase tracking-wider">مناطق هذا القطاع</p>
+                            <button type="button" onclick="removeAllRegions()"
+                                    class="text-xs text-red-400 hover:text-red-600 transition-colors">إزالة الكل</button>
+                        </div>
+                        <div id="assigned-list" class="space-y-1.5 min-h-16 p-3 rounded-xl border-2 border-dashed border-violet-200 bg-violet-50/30">
+                            @foreach($sectorRegions as $region)
+                            <div class="assigned-region flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-violet-100 shadow-sm"
+                                 data-id="{{ $region->id }}" data-name="{{ $region->name }}">
+                                <span class="text-sm font-medium text-gray-700">{{ $region->name }}</span>
+                                <button type="button" onclick="moveToAvailable({{ $region->id }}, '{{ $region->name }}')"
+                                        class="text-red-400 hover:text-red-600 transition-colors p-1 rounded">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    {{-- Available regions --}}
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">مناطق غير مرتبطة</p>
+                            <button type="button" onclick="addAllRegions()"
+                                    class="text-xs text-violet-600 hover:text-violet-800 transition-colors">إضافة الكل</button>
+                        </div>
+                        <div class="mb-2">
+                            <input type="text" id="region-search" placeholder="بحث عن منطقة…" oninput="filterAvailable(this.value)"
+                                   class="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-300">
+                        </div>
+                        <div id="available-list" class="space-y-1.5 max-h-64 overflow-y-auto p-3 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/30">
+                            @foreach($availableRegions as $region)
+                            <div class="available-region flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-gray-100 shadow-sm"
+                                 data-id="{{ $region->id }}" data-name="{{ $region->name }}">
+                                <span class="text-sm font-medium text-gray-600">{{ $region->name }}</span>
+                                <button type="button" onclick="moveToAssigned({{ $region->id }}, '{{ $region->name }}')"
+                                        class="text-violet-500 hover:text-violet-700 transition-colors p-1 rounded">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            @endforeach
+                            @if($availableRegions->isEmpty())
+                            <p id="no-available" class="text-center text-xs text-gray-400 py-4">جميع المناطق مرتبطة بقطاعات</p>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Hidden inputs container --}}
+                <div id="region-inputs"></div>
+
+                <div class="flex gap-3 mt-4 pt-4 border-t border-violet-100">
+                    <button type="submit" onclick="return prepareRegionForm()"
+                            class="flex-1 bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold py-2.5 rounded-xl transition-colors">
+                        حفظ المناطق
+                    </button>
+                    <button type="button" onclick="toggleRegionsPanel()"
+                            class="px-5 py-2.5 border border-gray-200 text-gray-500 hover:bg-gray-50 text-sm font-medium rounded-xl transition-colors">
+                        إلغاء
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
 {{-- Bulk reassign form --}}
 <div class="bg-white border border-gray-100 rounded-2xl shadow-sm mb-5 overflow-hidden">
     <div class="flex items-center gap-2 bg-indigo-50/50 border-b border-indigo-100 px-5 py-3">
@@ -83,6 +198,105 @@
     </div>
 </div>
 
+{{-- Search & Filters --}}
+<form method="GET" action="{{ route('sectors.show', $sector) }}" id="filter-form">
+<div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden mb-5">
+    <div class="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
+        <div class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
+            </svg>
+            <span class="text-sm font-bold text-gray-700">بحث وفلترة</span>
+        </div>
+        @if($hasFilters)
+            <a href="{{ route('sectors.show', $sector) }}" class="text-xs font-semibold text-red-500 hover:text-red-700 transition-colors flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                مسح الفلاتر
+            </a>
+        @endif
+    </div>
+    <div class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+
+        {{-- Search --}}
+        <div class="lg:col-span-2 relative">
+            <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z"/>
+            </svg>
+            <input type="text" name="search" value="{{ $search }}"
+                   placeholder="بحث بالاسم، رقم الاضبارة، الهاتف…"
+                   class="w-full border border-gray-200 rounded-xl pr-9 pl-4 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 transition"
+                   oninput="debounceSearch()">
+        </div>
+
+        {{-- Region filter --}}
+        <div>
+            <select name="region_id" onchange="this.form.submit()"
+                    class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition {{ $regionId ? 'border-indigo-400 bg-indigo-50' : '' }}">
+                <option value="">— كل المناطق —</option>
+                @foreach($sectorRegions as $region)
+                    <option value="{{ $region->id }}" {{ $regionId == $region->id ? 'selected' : '' }}>{{ $region->name }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        {{-- Verification status --}}
+        <div>
+            <select name="verification_status_id" onchange="this.form.submit()"
+                    class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition {{ $vsId ? 'border-indigo-400 bg-indigo-50' : '' }}">
+                <option value="">— كل حالات التحقق —</option>
+                @foreach($verificationStatuses as $vs)
+                    <option value="{{ $vs->id }}" {{ $vsId == $vs->id ? 'selected' : '' }}>{{ $vs->name }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        {{-- Final status --}}
+        <div>
+            <select name="final_status_id" onchange="this.form.submit()"
+                    class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition {{ $fsId ? 'border-indigo-400 bg-indigo-50' : '' }}">
+                <option value="">— كل الحالات النهائية —</option>
+                @foreach($finalStatuses as $fs)
+                    <option value="{{ $fs->id }}" {{ $fsId == $fs->id ? 'selected' : '' }}>{{ $fs->name }}</option>
+                @endforeach
+            </select>
+        </div>
+
+    </div>
+
+    @if($hasFilters)
+    <div class="px-4 pb-3 flex flex-wrap gap-2">
+        @if($search !== '')
+            <span class="inline-flex items-center gap-1.5 text-xs font-semibold bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full">
+                بحث: "{{ $search }}"
+                <a href="{{ route('sectors.show', array_merge(['sector' => $sector->id], request()->except(['search','page']))) }}" class="text-indigo-400 hover:text-indigo-700">×</a>
+            </span>
+        @endif
+        @if($regionId !== '')
+            @php $rName = $sectorRegions->firstWhere('id', $regionId)?->name ?? $regionId; @endphp
+            <span class="inline-flex items-center gap-1.5 text-xs font-semibold bg-violet-100 text-violet-700 px-3 py-1 rounded-full">
+                المنطقة: {{ $rName }}
+                <a href="{{ route('sectors.show', array_merge(['sector' => $sector->id], request()->except(['region_id','page']))) }}" class="text-violet-400 hover:text-violet-700">×</a>
+            </span>
+        @endif
+        @if($vsId !== '')
+            @php $vsName = $verificationStatuses->firstWhere('id', $vsId)?->name ?? $vsId; @endphp
+            <span class="inline-flex items-center gap-1.5 text-xs font-semibold bg-blue-100 text-blue-700 px-3 py-1 rounded-full">
+                التحقق: {{ $vsName }}
+                <a href="{{ route('sectors.show', array_merge(['sector' => $sector->id], request()->except(['verification_status_id','page']))) }}" class="text-blue-400 hover:text-blue-700">×</a>
+            </span>
+        @endif
+        @if($fsId !== '')
+            @php $fsName = $finalStatuses->firstWhere('id', $fsId)?->name ?? $fsId; @endphp
+            <span class="inline-flex items-center gap-1.5 text-xs font-semibold bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full">
+                الحالة: {{ $fsName }}
+                <a href="{{ route('sectors.show', array_merge(['sector' => $sector->id], request()->except(['final_status_id','page']))) }}" class="text-emerald-400 hover:text-emerald-700">×</a>
+            </span>
+        @endif
+    </div>
+    @endif
+</div>
+</form>
+
 {{-- Members table --}}
 <div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
     <div class="flex items-center justify-between gap-2 px-5 py-3.5 border-b border-gray-100">
@@ -92,7 +306,13 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
                 </svg>
             </div>
-            <span class="text-sm font-bold text-gray-700">المستفيدون ({{ $members->total() }})</span>
+            <span class="text-sm font-bold text-gray-700">
+                المستفيدون
+                <span class="text-indigo-600">({{ $members->total() }})</span>
+                @if($hasFilters)
+                    <span class="text-xs font-normal text-gray-400 mr-1">— نتائج مفلترة</span>
+                @endif
+            </span>
         </div>
         <span id="selected-count" class="text-xs text-indigo-600 font-semibold hidden">0 محدد</span>
     </div>
@@ -172,6 +392,100 @@
 </div>
 
 <script>
+// ── Regions panel ─────────────────────────────────────────────────────────────
+function toggleRegionsPanel() {
+    const panel = document.getElementById('regions-panel');
+    panel.classList.toggle('hidden');
+    if (!panel.classList.contains('hidden')) {
+        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+function moveToAssigned(id, name) {
+    // Remove from available
+    const avail = document.querySelector(`#available-list .available-region[data-id="${id}"]`);
+    if (avail) avail.remove();
+
+    // Add to assigned
+    const div = document.createElement('div');
+    div.className = 'assigned-region flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-violet-100 shadow-sm';
+    div.dataset.id   = id;
+    div.dataset.name = name;
+    div.innerHTML = `
+        <span class="text-sm font-medium text-gray-700">${name}</span>
+        <button type="button" onclick="moveToAvailable(${id}, '${name}')"
+                class="text-red-400 hover:text-red-600 transition-colors p-1 rounded">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>`;
+    document.getElementById('assigned-list').appendChild(div);
+}
+
+function moveToAvailable(id, name) {
+    // Remove from assigned
+    const assigned = document.querySelector(`#assigned-list .assigned-region[data-id="${id}"]`);
+    if (assigned) assigned.remove();
+
+    // Add to available
+    const noMsg = document.getElementById('no-available');
+    if (noMsg) noMsg.remove();
+
+    const div = document.createElement('div');
+    div.className = 'available-region flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-gray-100 shadow-sm';
+    div.dataset.id   = id;
+    div.dataset.name = name;
+    div.innerHTML = `
+        <span class="text-sm font-medium text-gray-600">${name}</span>
+        <button type="button" onclick="moveToAssigned(${id}, '${name}')"
+                class="text-violet-500 hover:text-violet-700 transition-colors p-1 rounded">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+            </svg>
+        </button>`;
+    document.getElementById('available-list').appendChild(div);
+}
+
+function addAllRegions() {
+    document.querySelectorAll('#available-list .available-region').forEach(el => {
+        moveToAssigned(el.dataset.id, el.dataset.name);
+    });
+}
+
+function removeAllRegions() {
+    document.querySelectorAll('#assigned-list .assigned-region').forEach(el => {
+        moveToAvailable(el.dataset.id, el.dataset.name);
+    });
+}
+
+function filterAvailable(q) {
+    const term = q.trim().toLowerCase();
+    document.querySelectorAll('#available-list .available-region').forEach(el => {
+        el.style.display = el.dataset.name.toLowerCase().includes(term) ? '' : 'none';
+    });
+}
+
+function prepareRegionForm() {
+    const container = document.getElementById('region-inputs');
+    container.innerHTML = '';
+    document.querySelectorAll('#assigned-list .assigned-region').forEach(el => {
+        const inp = document.createElement('input');
+        inp.type  = 'hidden';
+        inp.name  = 'region_ids[]';
+        inp.value = el.dataset.id;
+        container.appendChild(inp);
+    });
+    return true;
+}
+
+// ── Search debounce ───────────────────────────────────────────────────────────
+let _searchTimer = null;
+function debounceSearch() {
+    clearTimeout(_searchTimer);
+    _searchTimer = setTimeout(() => document.getElementById('filter-form').submit(), 450);
+}
+
+// ── Members bulk ──────────────────────────────────────────────────────────────
 function getChecked() {
     return [...document.querySelectorAll('.member-check:checked')].map(c => c.value);
 }

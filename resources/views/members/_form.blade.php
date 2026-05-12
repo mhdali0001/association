@@ -245,7 +245,8 @@
                 $selSectorName = $selSector?->name ?? '';
             @endphp
             <input type="hidden" name="sector_id" id="sector_id_select" value="{{ $selSectorId ?: '' }}">
-            <div class="relative" id="form-sector-dropdown">
+            <div class="flex gap-2">
+            <div class="relative flex-1" id="form-sector-dropdown">
                 <button type="button" onclick="toggleFormSectorDropdown(event)"
                         class="w-full flex items-center justify-between gap-2 border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50 hover:border-indigo-400 focus:outline-none transition text-right">
                     <span id="form-sector-label" class="truncate {{ $selSectorName ? 'text-gray-800' : 'text-gray-400' }}">
@@ -281,6 +282,29 @@
                     <div id="form-sector-no-results" class="hidden px-3 py-2 text-xs text-gray-400 text-center">لا توجد نتائج</div>
                 </div>
             </div>
+            <button type="button" onclick="toggleAddSector()"
+                    title="إضافة قطاع جديد"
+                    class="shrink-0 w-10 h-10 flex items-center justify-center bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl text-indigo-600 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                </svg>
+            </button>
+            </div>
+            {{-- Inline add sector --}}
+            <div id="add-sector-panel" class="hidden mt-2 flex gap-2 items-center">
+                <input type="text" id="new-sector-input" placeholder="اسم القطاع الجديد..."
+                       class="flex-1 border border-indigo-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+                       onkeydown="if(event.key==='Enter'){event.preventDefault();submitNewSector();}">
+                <button type="button" onclick="submitNewSector()"
+                        class="shrink-0 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl transition-colors">
+                    حفظ
+                </button>
+                <button type="button" onclick="toggleAddSector()"
+                        class="shrink-0 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-bold rounded-xl transition-colors">
+                    إلغاء
+                </button>
+            </div>
+            <p id="add-sector-error" class="hidden text-red-500 text-xs mt-1"></p>
         </div>
 
         <div>
@@ -923,6 +947,80 @@ document.addEventListener('click', function(e) {
         if (ch) ch.style.transform = '';
     }
 });
+
+function addFormSectorOption(id, name) {
+    const list = document.getElementById('form-sector-list');
+    const li = document.createElement('li');
+    li.className = 'form-sector-item';
+    li.innerHTML = `<button type="button" onclick="selectFormSector('${id}', '${name.replace(/'/g,"\\'")}'"
+                            data-name="${name.toLowerCase()}"
+                            class="w-full text-right px-3 py-2 text-sm text-gray-700 hover:bg-indigo-50 transition-colors">
+                        ${name}
+                    </button>`;
+    list.appendChild(li);
+}
+
+function toggleAddSector() {
+    const panel = document.getElementById('add-sector-panel');
+    const input = document.getElementById('new-sector-input');
+    const err   = document.getElementById('add-sector-error');
+    panel.classList.toggle('hidden');
+    err.classList.add('hidden');
+    if (!panel.classList.contains('hidden')) {
+        input.value = '';
+        input.focus();
+    }
+}
+
+async function submitNewSector() {
+    const input = document.getElementById('new-sector-input');
+    const err   = document.getElementById('add-sector-error');
+    const name  = input.value.trim();
+    err.classList.add('hidden');
+
+    if (!name) {
+        err.textContent = 'يرجى إدخال اسم القطاع.';
+        err.classList.remove('hidden');
+        input.focus();
+        return;
+    }
+
+    try {
+        const res = await fetch('{{ route("sectors.quick-store") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                             || '{{ csrf_token() }}',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({ name }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            err.textContent = data.errors?.name?.[0] ?? data.message ?? 'حدث خطأ.';
+            err.classList.remove('hidden');
+            return;
+        }
+
+        document.getElementById('add-sector-panel').classList.add('hidden');
+
+        if (data.pending) {
+            err.textContent = data.message;
+            err.classList.remove('hidden');
+            err.classList.replace('text-red-500', 'text-amber-600');
+            return;
+        }
+
+        addFormSectorOption(data.id, data.name);
+        selectFormSector(String(data.id), data.name);
+    } catch {
+        err.textContent = 'تعذّر الاتصال بالخادم.';
+        err.classList.remove('hidden');
+    }
+}
 
 function calcTotal() {
     const fields = ['work_score', 'housing_score', 'dependents_score', 'dependent_status_score', 'illness_score', 'special_cases_score'];

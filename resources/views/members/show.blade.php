@@ -12,7 +12,7 @@
 @section('content')
 
 {{-- ── Hero header ── --}}
-<div class="relative bg-gradient-to-l from-emerald-600 via-emerald-500 to-teal-500 rounded-3xl p-6 mb-6 overflow-hidden shadow-lg">
+<div class="relative bg-gradient-to-l from-emerald-600 via-emerald-500 to-teal-500 rounded-3xl p-5 sm:p-6 mb-6 overflow-hidden shadow-lg">
     {{-- Background decoration --}}
     <div class="absolute inset-0 opacity-10">
         <div class="absolute -top-6 -left-6 w-40 h-40 bg-white rounded-full"></div>
@@ -20,38 +20,39 @@
         <div class="absolute top-4 right-10 w-20 h-20 bg-white rounded-full"></div>
     </div>
 
-    <div class="relative flex items-start justify-between">
-        <div class="flex items-center gap-4">
+    <div class="relative flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        {{-- Info row --}}
+        <div class="flex items-center gap-3 sm:gap-4 min-w-0">
             {{-- Avatar --}}
-            <div class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur border-2 border-white/40 flex items-center justify-center shadow-lg shrink-0">
-                <span class="text-white font-black text-2xl drop-shadow">{{ mb_substr($member->full_name, 0, 1) }}</span>
+            <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-white/20 backdrop-blur border-2 border-white/40 flex items-center justify-center shadow-lg shrink-0">
+                <span class="text-white font-black text-xl sm:text-2xl drop-shadow">{{ mb_substr($member->full_name, 0, 1) }}</span>
             </div>
-            <div>
-                <h1 class="text-2xl font-black text-white drop-shadow-sm">{{ $member->full_name }}</h1>
+            <div class="min-w-0">
+                <h1 class="text-lg sm:text-2xl font-black text-white drop-shadow-sm leading-tight">{{ $member->full_name }}</h1>
                 @if($member->dossier_number)
-                    <div class="mt-1 flex items-center gap-1.5">
-                        <span class="text-white/70 text-sm">رقم الملف:</span>
-                        <span class="text-white font-bold text-lg tracking-wide drop-shadow">{{ $member->dossier_number }}</span>
+                    <div class="mt-0.5 flex items-center gap-1.5">
+                        <span class="text-white/70 text-xs sm:text-sm">رقم الملف:</span>
+                        <span class="text-white font-bold text-sm sm:text-lg tracking-wide drop-shadow">{{ $member->dossier_number }}</span>
                     </div>
                 @endif
-                <div class="flex items-center gap-2 mt-1.5 flex-wrap">
+                <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
                     @if($member->verificationStatus)
-                        <span class="text-xs bg-white/20 text-white border border-white/30 rounded-full px-2.5 py-0.5 font-medium backdrop-blur-sm">
+                        <span class="text-xs bg-white/20 text-white border border-white/30 rounded-full px-2 py-0.5 font-medium backdrop-blur-sm">
                             {{ $member->verificationStatus->name }}
                         </span>
                     @endif
                     @if($member->marital_status)
-                        <span class="text-xs bg-white/20 text-white border border-white/30 rounded-full px-2.5 py-0.5 font-medium backdrop-blur-sm">
+                        <span class="text-xs bg-white/20 text-white border border-white/30 rounded-full px-2 py-0.5 font-medium backdrop-blur-sm">
                             {{ $member->marital_status }}
                         </span>
                     @endif
                     @if($member->gender)
-                        <span class="text-xs bg-white/20 text-white border border-white/30 rounded-full px-2.5 py-0.5 font-medium backdrop-blur-sm">
+                        <span class="text-xs bg-white/20 text-white border border-white/30 rounded-full px-2 py-0.5 font-medium backdrop-blur-sm">
                             {{ $member->gender }}
                         </span>
                     @endif
                     @if($member->finalStatus)
-                        <span class="text-xs rounded-full px-2.5 py-0.5 font-medium border border-white/30 backdrop-blur-sm"
+                        <span class="text-xs rounded-full px-2 py-0.5 font-medium border border-white/30 backdrop-blur-sm"
                               style="background:{{ $member->finalStatus->color }}40; color:white;">
                             {{ $member->finalStatus->name }}
                         </span>
@@ -59,16 +60,18 @@
                 </div>
             </div>
         </div>
+
+        {{-- Action buttons --}}
         <div class="flex items-center gap-2 shrink-0">
             <a href="{{ route('members.edit', $member) }}"
-               class="flex items-center gap-2 bg-white text-emerald-700 hover:bg-emerald-50 text-sm font-semibold px-4 py-2 rounded-xl transition-colors shadow-md">
+               class="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white text-emerald-700 hover:bg-emerald-50 text-sm font-semibold px-4 py-2.5 sm:py-2 rounded-xl transition-colors shadow-md">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                 </svg>
                 تعديل
             </a>
             <a href="{{ route('members.index') }}"
-               class="text-sm text-white/80 hover:text-white bg-white/10 hover:bg-white/20 border border-white/30 px-4 py-2 rounded-xl transition-colors backdrop-blur-sm">
+               class="flex-1 sm:flex-none flex items-center justify-center text-sm text-white/90 hover:text-white bg-white/15 hover:bg-white/25 border border-white/30 px-4 py-2.5 sm:py-2 rounded-xl transition-colors backdrop-blur-sm font-medium">
                 رجوع
             </a>
         </div>
@@ -127,8 +130,8 @@
     <div class="lg:col-span-2 space-y-5">
 
         {{-- البيانات الشخصية --}}
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div class="flex items-center gap-2.5 bg-gradient-to-l from-blue-50 to-indigo-50 border-b border-blue-100 px-6 py-3.5">
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm">
+            <div class="flex items-center gap-2.5 bg-gradient-to-l from-blue-50 to-indigo-50 border-b border-blue-100 px-6 py-3.5 rounded-t-2xl">
                 <div class="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center">
                     <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
@@ -286,13 +289,50 @@
                           method="POST" action="{{ route('members.sector.update', $member) }}">
                         @csrf @method('PATCH')
                         @php $allSectors = \App\Models\Sector::active()->orderBy('name')->get(); @endphp
-                        <select name="sector_id"
-                                class="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm bg-indigo-50/30 focus:ring-2 focus:ring-indigo-400 focus:outline-none mb-2">
-                            <option value="">— بدون قطاع —</option>
-                            @foreach($allSectors as $sec)
-                                <option value="{{ $sec->id }}" {{ $member->sector_id == $sec->id ? 'selected' : '' }}>{{ $sec->name }}</option>
-                            @endforeach
-                        </select>
+
+                        {{-- Searchable sector picker --}}
+                        <input type="hidden" name="sector_id" id="sector-hidden-val" value="{{ $member->sector_id ?? '' }}">
+                        <div class="relative mb-2" id="sector-picker">
+                            <div class="flex items-center border border-indigo-200 rounded-lg bg-indigo-50/30 focus-within:ring-2 focus-within:ring-indigo-400 overflow-hidden">
+                                <svg class="w-3.5 h-3.5 text-gray-400 mr-2 shrink-0 me-0 ms-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z"/>
+                                </svg>
+                                <input type="text" id="sector-search-input"
+                                       placeholder="بحث عن قطاع…"
+                                       autocomplete="off"
+                                       value="{{ $member->sector?->name ?? '' }}"
+                                       class="w-full bg-transparent px-2 py-2 text-sm focus:outline-none"
+                                       oninput="filterSectors(this.value)"
+                                       onfocus="openSectorDrop()"
+                                       onblur="closeSectorDrop()">
+                                @if($member->sector_id)
+                                <button type="button" onclick="clearSector()" class="px-2 text-gray-300 hover:text-red-400 transition-colors shrink-0" tabindex="-1">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                                @endif
+                            </div>
+                            <div id="sector-drop"
+                                 class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-52 overflow-y-auto">
+                                <div id="sector-no-result" class="hidden px-4 py-3 text-sm text-gray-400 text-center">لا توجد نتائج</div>
+                                <div class="py-1">
+                                    <button type="button" data-id="" data-name="— بدون قطاع —"
+                                            onmousedown="selectSector('', '— بدون قطاع —')"
+                                            class="sector-opt w-full text-right px-4 py-2 text-sm text-gray-400 hover:bg-gray-50 transition-colors">
+                                        — بدون قطاع —
+                                    </button>
+                                    @foreach($allSectors as $sec)
+                                    <button type="button"
+                                            data-id="{{ $sec->id }}"
+                                            data-name="{{ $sec->name }}"
+                                            onmousedown="selectSector('{{ $sec->id }}', '{{ $sec->name }}')"
+                                            class="sector-opt w-full text-right px-4 py-2 text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors {{ $member->sector_id == $sec->id ? 'bg-indigo-50 text-indigo-700 font-bold' : '' }}">
+                                        {{ $sec->name }}
+                                    </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="flex gap-2">
                             <button type="submit"
                                     class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors shrink-0">
@@ -871,8 +911,8 @@
         {{-- Add new visit form --}}
         <div class="border-t border-dashed border-gray-200 pt-4">
             <button onclick="toggleAddVisit()" id="add-visit-btn"
-                    class="flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    class="w-full flex items-center justify-center gap-3 font-bold text-indigo-600 hover:text-indigo-800 md:w-auto md:justify-start bg-indigo-50 hover:bg-indigo-100 md:bg-transparent md:hover:bg-transparent border-2 border-indigo-200 border-dashed md:border-0 rounded-2xl px-4 py-4 md:px-0 md:py-0 transition-colors text-base md:text-sm md:font-semibold md:gap-2">
+                <svg class="w-6 h-6 md:w-4 md:h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                 إضافة جولة ميدانية
             </button>
             <div id="add-visit-form" class="hidden mt-4">
@@ -1135,8 +1175,43 @@ function toggleRegionEdit() {
 }
 
 function toggleSectorEdit() {
-    document.getElementById('sector-form').classList.toggle('hidden');
-    document.getElementById('sector-display').classList.toggle('hidden');
+    const form = document.getElementById('sector-form');
+    const disp = document.getElementById('sector-display');
+    form.classList.toggle('hidden');
+    disp.classList.toggle('hidden');
+    if (!form.classList.contains('hidden')) {
+        setTimeout(() => document.getElementById('sector-search-input')?.focus(), 50);
+    }
+}
+
+function openSectorDrop() {
+    document.getElementById('sector-drop').classList.remove('hidden');
+}
+function closeSectorDrop() {
+    setTimeout(() => document.getElementById('sector-drop')?.classList.add('hidden'), 150);
+}
+function selectSector(id, name) {
+    document.getElementById('sector-hidden-val').value = id;
+    document.getElementById('sector-search-input').value = name === '— بدون قطاع —' ? '' : name;
+    document.getElementById('sector-drop').classList.add('hidden');
+}
+function clearSector() {
+    document.getElementById('sector-hidden-val').value = '';
+    document.getElementById('sector-search-input').value = '';
+    filterSectors('');
+}
+function filterSectors(q) {
+    const term = q.trim().toLowerCase();
+    let visible = 0;
+    document.querySelectorAll('#sector-drop .sector-opt').forEach(btn => {
+        const name = (btn.dataset.name || '').toLowerCase();
+        const show = !term || name.includes(term);
+        btn.style.display = show ? '' : 'none';
+        if (show && btn.dataset.id) visible++;
+    });
+    const noResult = document.getElementById('sector-no-result');
+    noResult.classList.toggle('hidden', visible > 0 || !term);
+    openSectorDrop();
 }
 
 function toggleRegionDropdown(e) {

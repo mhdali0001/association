@@ -11,6 +11,7 @@ use App\Models\PaymentInfoAI;
 use App\Models\VerificationStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class PendingChange extends Model
@@ -34,6 +35,129 @@ class PendingChange extends Model
     public function reviewer()
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function memberSnapshots()
+    {
+        return $this->hasMany(PendingChangeMember::class);
+    }
+
+    /**
+     * Create a bulk PendingChange and populate per-member snapshots.
+     */
+    public static function createWithSnapshots(array $data, array $memberIds): self
+    {
+        $change = self::create($data);
+        $change->populateMemberSnapshots($memberIds);
+        return $change;
+    }
+
+    public function populateMemberSnapshots(array $memberIds): void
+    {
+        if (empty($memberIds)) return;
+
+        $action  = $this->action;
+        $payload = $this->payload ?? [];
+
+        // Fields needed from members table beyond the basics
+        $selectFields = ['id', 'full_name', 'dossier_number', 'score', 'phone'];
+        $withScores   = false;
+
+        if ($action === 'bulk_update') {
+            $changedFields = array_keys($payload['fields'] ?? []);
+            $memberTableFields = array_intersect($changedFields, [
+                'network', 'marital_status', 'current_address', 'region_id',
+                'housing_status_id', 'verification_status_id', 'estimated_amount',
+                'payments_count', 'delegate', 'final_status_id', 'sham_cash_account',
+            ]);
+            $selectFields = array_unique(array_merge($selectFields, $memberTableFields));
+        } elseif (in_array($action, ['bulk_score_addition', 'bulk_score_deduction', 'bulk_score_equalize'])) {
+            $withScores = true;
+        }
+
+        $query = Member::whereIn('id', $memberIds)->select($selectFields);
+        if ($withScores) $query->with('scores');
+
+        $now  = now()->toDateTimeString();
+        $rows = [];
+
+        foreach ($query->cursor() as $member) {
+            [$before, $after] = self::buildSnapshots($member, $action, $payload);
+            $rows[] = [
+                'pending_change_id' => $this->id,
+                'member_id'         => $member->id,
+                'full_name'         => $member->full_name,
+                'dossier_number'    => $member->dossier_number,
+                'before'            => json_encode($before),
+                'after'             => json_encode($after),
+                'created_at'        => $now,
+                'updated_at'        => $now,
+            ];
+
+            if (count($rows) >= 300) {
+                DB::table('pending_change_members')->insert($rows);
+                $rows = [];
+            }
+        }
+
+        if (!empty($rows)) {
+            DB::table('pending_change_members')->insert($rows);
+        }
+    }
+
+    private static function buildSnapshots(Member $member, string $action, array $payload): array
+    {
+        $scores = $member->relationLoaded('scores') ? $member->scores : null;
+
+        $rawScore = $scores
+            ? ((int)($scores->work_score ?? 0) + (int)($scores->housing_score ?? 0)
+               + (int)($scores->dependents_score ?? 0) + (int)($scores->dependent_status_score ?? 0)
+               + (int)($scores->illness_score ?? 0) + (int)($scores->special_cases_score ?? 0))
+            : (int)($member->score ?? 0);
+
+        switch ($action) {
+            case 'bulk_delete':
+                return [
+                    ['score' => $member->score, 'phone' => $member->phone],
+                    null,
+                ];
+
+            case 'bulk_update':
+                $fields = $payload['fields'] ?? [];
+                $before = [];
+                foreach ($fields as $field => $newVal) {
+                    $before[$field] = $member->{$field} ?? null;
+                }
+                return [$before, $fields];
+
+            case 'bulk_score_addition':
+                $addition  = (int)($payload['score_addition'] ?? 0);
+                $deduction = (int)($scores?->score_deduction ?? 0);
+                $newTotal  = max(0, $rawScore + $addition - $deduction);
+                return [
+                    ['score' => (int)$member->score, 'score_addition' => (int)($scores?->score_addition ?? 0)],
+                    ['score' => $newTotal,            'score_addition' => $addition],
+                ];
+
+            case 'bulk_score_deduction':
+                $deduction = (int)($payload['score_deduction'] ?? 0);
+                $addition  = (int)($scores?->score_addition ?? 0);
+                $newTotal  = max(0, $rawScore + $addition - $deduction);
+                return [
+                    ['score' => (int)$member->score, 'score_deduction' => (int)($scores?->score_deduction ?? 0)],
+                    ['score' => $newTotal,            'score_deduction' => $deduction],
+                ];
+
+            case 'bulk_score_equalize':
+                $target = (int)($payload['target_score'] ?? 0);
+                return [
+                    ['score' => (int)$member->score],
+                    ['score' => $target],
+                ];
+
+            default:
+                return [null, null];
+        }
     }
 
     public function isPending(): bool  { return $this->status === 'pending'; }

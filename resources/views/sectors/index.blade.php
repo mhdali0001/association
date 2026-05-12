@@ -78,7 +78,14 @@
                                     <span class="text-xs text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">معطّل</span>
                                 @endif
                             </div>
-                            <span class="text-xs text-indigo-400 group-hover/link:text-indigo-600 transition-colors">{{ number_format($sector->members_count) }} مستفيد ←</span>
+                            <div class="flex items-center gap-3 mt-0.5">
+                                <span class="text-xs text-indigo-400 group-hover/link:text-indigo-600 transition-colors">{{ number_format($sector->members_count) }} مستفيد</span>
+                                <span class="text-gray-200">·</span>
+                                <span class="text-xs text-violet-400 group-hover/link:text-violet-600 transition-colors">
+                                    {{ $sector->regions_count }} منطقة
+                                </span>
+                                <span class="text-xs text-gray-300">←</span>
+                            </div>
                         </a>
                         <div class="flex gap-1 shrink-0">
                             <button type="button" onclick="toggleEdit({{ $sector->id }})"
