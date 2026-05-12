@@ -200,11 +200,16 @@
                             @foreach($regionsList ?? [] as $region)
                             <li class="form-region-item">
                                 <button type="button"
-                                        onclick="selectFormRegion('{{ $region->id }}', '{{ addslashes($region->name) }}')"
+                                        onclick="selectFormRegion('{{ $region->id }}', '{{ addslashes($region->name) }}', '{{ $region->sector_id ?? '' }}', '{{ addslashes($region->sector?->name ?? '') }}')"
                                         data-name="{{ mb_strtolower($region->name) }}"
+                                        data-sector-id="{{ $region->sector_id ?? '' }}"
+                                        data-sector-name="{{ $region->sector?->name ?? '' }}"
                                         class="w-full text-right px-3 py-2 text-sm transition-colors hover:bg-emerald-50
                                                {{ $selRegionId === $region->id ? 'bg-emerald-50 text-emerald-700 font-bold' : 'text-gray-700' }}">
                                     {{ $region->name }}
+                                    @if($region->sector)
+                                        <span class="text-xs text-gray-400 mr-1">({{ $region->sector->name }})</span>
+                                    @endif
                                 </button>
                             </li>
                             @endforeach
@@ -243,68 +248,84 @@
                 $selSectorId   = (int) old('sector_id', $member->sector_id ?? 0);
                 $selSector     = ($sectorsList ?? collect())->firstWhere('id', $selSectorId);
                 $selSectorName = $selSector?->name ?? '';
+                $isAdmin       = auth()->user()?->role === 'admin';
             @endphp
             <input type="hidden" name="sector_id" id="sector_id_select" value="{{ $selSectorId ?: '' }}">
-            <div class="flex gap-2">
-            <div class="relative flex-1" id="form-sector-dropdown">
-                <button type="button" onclick="toggleFormSectorDropdown(event)"
-                        class="w-full flex items-center justify-between gap-2 border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50 hover:border-indigo-400 focus:outline-none transition text-right">
-                    <span id="form-sector-label" class="truncate {{ $selSectorName ? 'text-gray-800' : 'text-gray-400' }}">
-                        {{ $selSectorName ?: '— غير محدد —' }}
-                    </span>
-                    <svg class="w-4 h-4 text-gray-400 shrink-0" id="form-sector-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                </button>
-                <div id="form-sector-panel" class="hidden absolute z-50 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
-                    <div class="p-2 border-b border-gray-100">
-                        <input type="text" id="form-sector-search" placeholder="ابحث في القطاعات..."
-                               oninput="filterFormSectors(this.value)" autocomplete="off"
-                               class="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none">
+
+            @if($isAdmin)
+                {{-- Admin: full editable dropdown + add button --}}
+                <div class="flex gap-2">
+                <div class="relative flex-1" id="form-sector-dropdown">
+                    <button type="button" onclick="toggleFormSectorDropdown(event)"
+                            class="w-full flex items-center justify-between gap-2 border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50 hover:border-indigo-400 focus:outline-none transition text-right">
+                        <span id="form-sector-label" class="truncate {{ $selSectorName ? 'text-gray-800' : 'text-gray-400' }}">
+                            {{ $selSectorName ?: '— غير محدد —' }}
+                        </span>
+                        <svg class="w-4 h-4 text-gray-400 shrink-0" id="form-sector-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div id="form-sector-panel" class="hidden absolute z-50 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                        <div class="p-2 border-b border-gray-100">
+                            <input type="text" id="form-sector-search" placeholder="ابحث في القطاعات..."
+                                   oninput="filterFormSectors(this.value)" autocomplete="off"
+                                   class="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none">
+                        </div>
+                        <ul id="form-sector-list" class="max-h-48 overflow-y-auto py-1">
+                            <li class="form-sector-item">
+                                <button type="button" onclick="selectFormSector('', '— غير محدد —')"
+                                        class="w-full text-right px-3 py-2 text-sm text-gray-400 hover:bg-gray-50 transition-colors">
+                                    — غير محدد —
+                                </button>
+                            </li>
+                            @foreach($sectorsList ?? [] as $sector)
+                            <li class="form-sector-item">
+                                <button type="button"
+                                        onclick="selectFormSector('{{ $sector->id }}', '{{ addslashes($sector->name) }}')"
+                                        data-name="{{ mb_strtolower($sector->name) }}"
+                                        class="w-full text-right px-3 py-2 text-sm transition-colors hover:bg-indigo-50
+                                               {{ $selSectorId === $sector->id ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-gray-700' }}">
+                                    {{ $sector->name }}
+                                </button>
+                            </li>
+                            @endforeach
+                        </ul>
+                        <div id="form-sector-no-results" class="hidden px-3 py-2 text-xs text-gray-400 text-center">لا توجد نتائج</div>
                     </div>
-                    <ul id="form-sector-list" class="max-h-48 overflow-y-auto py-1">
-                        <li class="form-sector-item">
-                            <button type="button" onclick="selectFormSector('', '— غير محدد —')"
-                                    class="w-full text-right px-3 py-2 text-sm text-gray-400 hover:bg-gray-50 transition-colors">
-                                — غير محدد —
-                            </button>
-                        </li>
-                        @foreach($sectorsList ?? [] as $sector)
-                        <li class="form-sector-item">
-                            <button type="button"
-                                    onclick="selectFormSector('{{ $sector->id }}', '{{ addslashes($sector->name) }}')"
-                                    data-name="{{ mb_strtolower($sector->name) }}"
-                                    class="w-full text-right px-3 py-2 text-sm transition-colors hover:bg-indigo-50
-                                           {{ $selSectorId === $sector->id ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-gray-700' }}">
-                                {{ $sector->name }}
-                            </button>
-                        </li>
-                        @endforeach
-                    </ul>
-                    <div id="form-sector-no-results" class="hidden px-3 py-2 text-xs text-gray-400 text-center">لا توجد نتائج</div>
                 </div>
-            </div>
-            <button type="button" onclick="toggleAddSector()"
-                    title="إضافة قطاع جديد"
-                    class="shrink-0 w-10 h-10 flex items-center justify-center bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl text-indigo-600 transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-                </svg>
-            </button>
-            </div>
-            {{-- Inline add sector --}}
-            <div id="add-sector-panel" class="hidden mt-2 flex gap-2 items-center">
-                <input type="text" id="new-sector-input" placeholder="اسم القطاع الجديد..."
-                       class="flex-1 border border-indigo-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
-                       onkeydown="if(event.key==='Enter'){event.preventDefault();submitNewSector();}">
-                <button type="button" onclick="submitNewSector()"
-                        class="shrink-0 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl transition-colors">
-                    حفظ
-                </button>
                 <button type="button" onclick="toggleAddSector()"
-                        class="shrink-0 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-bold rounded-xl transition-colors">
-                    إلغاء
+                        title="إضافة قطاع جديد"
+                        class="shrink-0 w-10 h-10 flex items-center justify-center bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl text-indigo-600 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                    </svg>
                 </button>
-            </div>
-            <p id="add-sector-error" class="hidden text-red-500 text-xs mt-1"></p>
+                </div>
+                {{-- Inline add sector --}}
+                <div id="add-sector-panel" class="hidden mt-2 flex gap-2 items-center">
+                    <input type="text" id="new-sector-input" placeholder="اسم القطاع الجديد..."
+                           class="flex-1 border border-indigo-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+                           onkeydown="if(event.key==='Enter'){event.preventDefault();submitNewSector();}">
+                    <button type="button" onclick="submitNewSector()"
+                            class="shrink-0 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl transition-colors">
+                        حفظ
+                    </button>
+                    <button type="button" onclick="toggleAddSector()"
+                            class="shrink-0 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-bold rounded-xl transition-colors">
+                        إلغاء
+                    </button>
+                </div>
+                <p id="add-sector-error" class="hidden text-red-500 text-xs mt-1"></p>
+            @else
+                {{-- Non-admin: read-only display, set automatically from region --}}
+                <div id="form-sector-dropdown" class="w-full flex items-center gap-2 border border-gray-100 rounded-xl px-4 py-2.5 text-sm bg-gray-50/60 text-right">
+                    <svg class="w-4 h-4 text-indigo-300 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                    <span id="form-sector-label" class="truncate flex-1 {{ $selSectorName ? 'text-gray-700' : 'text-gray-400' }}">
+                        {{ $selSectorName ?: '— يُحدَّد تلقائياً من المنطقة —' }}
+                    </span>
+                </div>
+                <p class="text-xs text-gray-400 mt-1">يُعيَّن القطاع تلقائياً عند اختيار المنطقة</p>
+            @endif
         </div>
 
         <div>
@@ -798,13 +819,18 @@ function toggleFormRegionDropdown(e) {
     }
 }
 
-function selectFormRegion(id, name) {
+function selectFormRegion(id, name, sectorId, sectorName) {
     document.getElementById('region_id_select').value = id;
     const lbl = document.getElementById('form-region-label');
     lbl.textContent = name;
     lbl.className = id ? 'truncate text-gray-800' : 'truncate text-gray-400';
     document.getElementById('form-region-panel').classList.add('hidden');
     document.getElementById('form-region-chevron').style.transform = '';
+
+    // Auto-select sector based on region
+    if (sectorId) {
+        selectFormSector(String(sectorId), sectorName);
+    }
 }
 
 function filterFormRegions(q) {
@@ -920,10 +946,13 @@ function toggleFormSectorDropdown(e) {
 function selectFormSector(id, name) {
     document.getElementById('sector_id_select').value = id;
     const lbl = document.getElementById('form-sector-label');
-    lbl.textContent = name;
-    lbl.className = id ? 'truncate text-gray-800' : 'truncate text-gray-400';
-    document.getElementById('form-sector-panel').classList.add('hidden');
-    document.getElementById('form-sector-chevron').style.transform = '';
+    if (lbl) {
+        lbl.textContent = name || '— يُحدَّد تلقائياً من المنطقة —';
+        lbl.className = id ? 'truncate flex-1 text-gray-700' : 'truncate flex-1 text-gray-400';
+    }
+    document.getElementById('form-sector-panel')?.classList.add('hidden');
+    const ch = document.getElementById('form-sector-chevron');
+    if (ch) ch.style.transform = '';
 }
 
 function filterFormSectors(q) {

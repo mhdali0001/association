@@ -31,7 +31,7 @@ class MemberController extends Controller
             'maritalStatuses'      => MaritalStatus::active()->orderBy('id')->get(),
             'associations'         => Association::active()->orderBy('id')->get(),
             'representatives'      => User::orderBy('name')->get(),
-            'regionsList'          => \App\Models\Region::active()->orderBy('name')->get(),
+            'regionsList'          => \App\Models\Region::active()->with('sector')->orderBy('name')->get(),
             'housingStatuses'      => \App\Models\HousingStatus::active()->orderBy('name')->get(),
             'sectorsList'          => \App\Models\Sector::active()->orderBy('name')->get(),
         ];
