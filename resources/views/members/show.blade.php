@@ -525,7 +525,7 @@
                     $scoreItems = [
                         ['label' => 'نقاط حالة المعيل',    'value' => $member->scores->dependent_status_score, 'max' => 2,  'color' => '#8b5cf6'],
                         ['label' => 'نقاط العمل',           'value' => $member->scores->work_score,             'max' => 2,  'color' => '#f59e0b'],
-                        ['label' => 'نقاط السكن',           'value' => $member->scores->housing_score,          'max' => 4,  'color' => '#3b82f6'],
+                        ['label' => 'نقاط السكن', 'frozen' => true, 'value' => $member->scores->housing_score, 'max' => 4, 'color' => '#94a3b8'],
                         ['label' => 'نقاط عدد الأفراد',    'value' => $member->scores->dependents_score,       'max' => 20, 'color' => '#06b6d4'],
                         ['label' => 'نقاط المرض',           'value' => $member->scores->illness_score,          'max' => 5,  'color' => '#ef4444'],
                         ['label' => 'نقاط الحالات الخاصة', 'value' => $member->scores->special_cases_score,   'max' => 10, 'color' => '#f97316'],
@@ -533,9 +533,14 @@
                 @endphp
                 @foreach($scoreItems as $item)
                     @php $pct = $item['max'] > 0 ? ($item['value'] / $item['max']) * 100 : 0; @endphp
-                    <div>
+                    <div class="{{ ($item['frozen'] ?? false) ? 'opacity-60' : '' }}">
                         <div class="flex justify-between text-xs mb-1.5">
-                            <span class="text-gray-600 font-medium">{{ $item['label'] }}</span>
+                            <span class="text-gray-600 font-medium flex items-center gap-1.5">
+                                {{ $item['label'] }}
+                                @if($item['frozen'] ?? false)
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-200 text-gray-500">مجمّد</span>
+                                @endif
+                            </span>
                             <span class="font-bold text-gray-700">{{ $item['value'] }} <span class="text-gray-400 font-normal">/ {{ $item['max'] }}</span></span>
                         </div>
                         <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -939,7 +944,7 @@
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">تاريخ الزيارة</label>
-                            <input type="date" name="visit_date"
+                            <input type="date" name="visit_date" value="{{ now()->format('Y-m-d') }}"
                                    class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400">
                         </div>
                         <div>

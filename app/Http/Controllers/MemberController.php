@@ -540,7 +540,6 @@ class MemberController extends Controller
             $scores = $member->scores ?? new MemberScore(['member_id' => $memberId]);
 
             $rawScore = ($scores->work_score            ?? 0)
-                      + ($scores->housing_score          ?? 0)
                       + ($scores->dependents_score       ?? 0)
                       + ($scores->dependent_status_score ?? 0)
                       + ($scores->illness_score          ?? 0)
@@ -572,7 +571,6 @@ class MemberController extends Controller
             $scores = $member->scores ?? new MemberScore(['member_id' => $memberId]);
 
             $rawScore = ($scores->work_score            ?? 0)
-                      + ($scores->housing_score          ?? 0)
                       + ($scores->dependents_score       ?? 0)
                       + ($scores->dependent_status_score ?? 0)
                       + ($scores->illness_score          ?? 0)
@@ -858,7 +856,6 @@ class MemberController extends Controller
     private function buildMemberPayload(Request $request, ?Member $member = null): array
     {
         $rawScorePayload = min(2,  (int)($request->work_score ?? 0))
-                         + min(4,  (int)($request->housing_score ?? 0))
                          + min(20, (int)($request->dependents_score ?? 0))
                          + min(2,  (int)($request->dependent_status_score ?? 0))
                          + min(5,  (int)($request->illness_score ?? 0))
@@ -1050,7 +1047,7 @@ class MemberController extends Controller
         // store region_id / sector_id in data array for use below
         $data['region_id']  = $request->input('region_id') ?: null;
         $data['sector_id']  = $request->input('sector_id') ?: null;
-        $rawScore               = $workScore + $housingScore + $dependentsScore + $dependentStatusScore + $illnessScore + $specialScore;
+        $rawScore               = $workScore + $dependentsScore + $dependentStatusScore + $illnessScore + $specialScore;
         $totalScore             = max(0, $rawScore + $scoreAddition - $scoreDeduction);
 
         $member = Member::create([
@@ -1224,7 +1221,7 @@ class MemberController extends Controller
         $scoreDeductionReason = $request->score_deduction_reason ?? null;
         $scoreAddition        = max(0,  (int)($request->score_addition ?? 0));
         $scoreAdditionReason  = $request->score_addition_reason ?? null;
-        $rawScore             = $workScore + $housingScore + $dependentsScore + $dependentStatusScore + $illnessScore + $specialScore;
+        $rawScore             = $workScore + $dependentsScore + $dependentStatusScore + $illnessScore + $specialScore;
         $totalScore           = max(0, $rawScore + $scoreAddition - $scoreDeduction);
 
         $member->update([
@@ -1562,7 +1559,6 @@ class MemberController extends Controller
             $scores = $member->scores ?? new MemberScore(['member_id' => $memberId]);
 
             $rawScore = ($scores->work_score            ?? 0)
-                      + ($scores->housing_score          ?? 0)
                       + ($scores->dependents_score       ?? 0)
                       + ($scores->dependent_status_score ?? 0)
                       + ($scores->illness_score          ?? 0)
@@ -1678,6 +1674,22 @@ class MemberController extends Controller
             ->with(['verificationStatus'])
             ->select('members.*', 'member_scores.score_addition', 'member_scores.score_addition_reason', 'member_scores.total_score');
 
+        // Recalculate query — members with selected component > 0, shows current vs correct total
+        $validComponents = ['housing_score', 'work_score', 'dependents_score', 'dependent_status_score', 'illness_score', 'special_cases_score'];
+        $recalcComponent = $request->get('component', 'housing_score');
+        if (!in_array($recalcComponent, $validComponents)) {
+            $recalcComponent = 'housing_score';
+        }
+
+        $correctTotalExpr = 'GREATEST(0, COALESCE(member_scores.work_score,0) + COALESCE(member_scores.dependents_score,0) + COALESCE(member_scores.dependent_status_score,0) + COALESCE(member_scores.illness_score,0) + COALESCE(member_scores.special_cases_score,0) + COALESCE(member_scores.score_addition,0) - COALESCE(member_scores.score_deduction,0))';
+
+        $recalcQuery = Member::query()
+            ->join('member_scores', 'member_scores.member_id', '=', 'members.id')
+            ->where("member_scores.{$recalcComponent}", '>', 0)
+            ->whereRaw("COALESCE(member_scores.total_score,0) != {$correctTotalExpr}")
+            ->with(['verificationStatus'])
+            ->selectRaw("members.*, member_scores.housing_score, member_scores.work_score, member_scores.dependents_score, member_scores.dependent_status_score, member_scores.illness_score, member_scores.special_cases_score, member_scores.score_addition, member_scores.score_deduction, member_scores.total_score, {$correctTotalExpr} as correct_total");
+
         if ($search !== '') {
             $searchFn = function ($q) use ($search) {
                 $q->where('members.full_name', 'like', "%{$search}%")
@@ -1686,6 +1698,7 @@ class MemberController extends Controller
             };
             $deductQuery->where($searchFn);
             $addQuery->where($searchFn);
+            $recalcQuery->where($searchFn);
         }
 
         if ($reasonFilter !== '') {
@@ -1715,22 +1728,89 @@ class MemberController extends Controller
                  ->when($sortBy === 'name',           fn($q) => $q->orderBy('members.full_name'))
                  ->when($sortBy === 'dossier',        fn($q) => $q->orderByRaw('CAST(members.dossier_number AS UNSIGNED)'));
 
-        $members = ($tab === 'additions' ? $addQuery : $deductQuery)->paginate(50)->withQueryString();
+        $recalcQuery->when($sortBy === 'housing_desc', fn($q) => $q->orderByDesc('member_scores.housing_score'))
+                    ->when($sortBy === 'housing_asc',  fn($q) => $q->orderBy('member_scores.housing_score'))
+                    ->when($sortBy === 'diff_desc',    fn($q) => $q->orderByRaw("(COALESCE(member_scores.total_score,0) - ({$correctTotalExpr})) DESC"))
+                    ->when($sortBy === 'name',         fn($q) => $q->orderBy('members.full_name'))
+                    ->when(!in_array($sortBy, ['housing_desc', 'housing_asc', 'diff_desc', 'name']),
+                                                       fn($q) => $q->orderByRaw('CAST(members.dossier_number AS UNSIGNED)'));
 
-        $totalDeductCount  = Member::join('member_scores', 'member_scores.member_id', '=', 'members.id')->where('member_scores.score_deduction', '>', 0)->count();
-        $totalAddCount     = Member::join('member_scores', 'member_scores.member_id', '=', 'members.id')->where('member_scores.score_addition', '>', 0)->count();
-        $totalDeduction    = \App\Models\MemberScore::where('score_deduction', '>', 0)->sum('score_deduction');
-        $totalAddition     = \App\Models\MemberScore::where('score_addition',  '>', 0)->sum('score_addition');
+        $members = match ($tab) {
+            'additions'   => $addQuery->paginate(50)->withQueryString(),
+            'recalculate' => $recalcQuery->paginate(50)->withQueryString(),
+            default       => $deductQuery->paginate(50)->withQueryString(),
+        };
 
-        $reasonList = $tab === 'additions'
-            ? \App\Models\MemberScore::where('score_addition', '>', 0)->whereNotNull('score_addition_reason')->where('score_addition_reason', '!=', '')->distinct()->orderBy('score_addition_reason')->pluck('score_addition_reason')
-            : \App\Models\MemberScore::where('score_deduction', '>', 0)->whereNotNull('score_deduction_reason')->where('score_deduction_reason', '!=', '')->distinct()->orderBy('score_deduction_reason')->pluck('score_deduction_reason');
+        $totalDeductCount = Member::join('member_scores', 'member_scores.member_id', '=', 'members.id')->where('member_scores.score_deduction', '>', 0)->count();
+        $totalAddCount    = Member::join('member_scores', 'member_scores.member_id', '=', 'members.id')->where('member_scores.score_addition',  '>', 0)->count();
+        $recalcCount      = Member::join('member_scores', 'member_scores.member_id', '=', 'members.id')
+            ->where('member_scores.housing_score', '>', 0)
+            ->whereRaw("COALESCE(member_scores.total_score,0) != {$correctTotalExpr}")
+            ->count();
+        $totalDeduction   = \App\Models\MemberScore::where('score_deduction', '>', 0)->sum('score_deduction');
+        $totalAddition    = \App\Models\MemberScore::where('score_addition',  '>', 0)->sum('score_addition');
+
+        $reasonList = match ($tab) {
+            'additions'   => \App\Models\MemberScore::where('score_addition', '>', 0)->whereNotNull('score_addition_reason')->where('score_addition_reason', '!=', '')->distinct()->orderBy('score_addition_reason')->pluck('score_addition_reason'),
+            'recalculate' => collect(),
+            default       => \App\Models\MemberScore::where('score_deduction', '>', 0)->whereNotNull('score_deduction_reason')->where('score_deduction_reason', '!=', '')->distinct()->orderBy('score_deduction_reason')->pluck('score_deduction_reason'),
+        };
 
         return view('members.score-adjustments', compact(
             'members', 'tab', 'search', 'reasonFilter', 'sortBy', 'reasonList',
             'dateFrom', 'dateTo',
-            'totalDeductCount', 'totalAddCount', 'totalDeduction', 'totalAddition'
+            'totalDeductCount', 'totalAddCount', 'totalDeduction', 'totalAddition',
+            'recalcCount', 'recalcComponent'
         ));
+    }
+
+    public function bulkRecalculateScore(Request $request)
+    {
+        $validComponents = ['housing_score', 'work_score', 'dependents_score', 'dependent_status_score', 'illness_score', 'special_cases_score'];
+        $component       = $request->get('component', 'housing_score');
+        if (!in_array($component, $validComponents)) $component = 'housing_score';
+
+        if ($request->boolean('recalc_all')) {
+            $search = trim($request->get('search', ''));
+            $query  = Member::join('member_scores', 'member_scores.member_id', '=', 'members.id')
+                ->where("member_scores.{$component}", '>', 0)
+                ->select('members.id');
+            if ($search !== '') {
+                $query->where(function ($q) use ($search) {
+                    $q->where('members.full_name', 'like', "%{$search}%")
+                      ->orWhere('members.dossier_number', 'like', "%{$search}%")
+                      ->orWhere('members.national_id', 'like', "%{$search}%");
+                });
+            }
+            $ids = $query->pluck('members.id')->toArray();
+        } else {
+            $ids = $request->input('member_ids', []);
+        }
+
+        if (empty($ids)) {
+            return back()->with('error', 'لم يتم تحديد أي عضو.');
+        }
+
+        $correctExpr = 'GREATEST(0, COALESCE(work_score,0) + COALESCE(dependents_score,0) + COALESCE(dependent_status_score,0) + COALESCE(illness_score,0) + COALESCE(special_cases_score,0) + COALESCE(score_addition,0) - COALESCE(score_deduction,0))';
+
+        \DB::table('member_scores')
+            ->whereIn('member_id', $ids)
+            ->update(['total_score' => \DB::raw($correctExpr)]);
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        \DB::statement("
+            UPDATE members
+            JOIN member_scores ON member_scores.member_id = members.id
+            SET members.score = member_scores.total_score,
+                members.estimated_amount = member_scores.total_score * 500
+            WHERE members.id IN ({$placeholders})
+        ", array_values($ids));
+
+        $count = count($ids);
+
+        return redirect()
+            ->route('members.score-adjustments', ['tab' => 'recalculate', 'component' => $component])
+            ->with('success', "تمت إعادة حساب نقاط {$count} عضو بنجاح.");
     }
 
     private function buildScoreManagerQuery(Request $request): array
@@ -1832,7 +1912,6 @@ class MemberController extends Controller
             'ids'                    => 'required|array|min:1',
             'ids.*'                  => 'integer|exists:members,id',
             'work_score'             => 'nullable|integer|min:0|max:2',
-            'housing_score'          => 'nullable|integer|min:0|max:4',
             'dependents_score'       => 'nullable|integer|min:0|max:20',
             'dependent_status_score' => 'nullable|integer|min:0|max:2',
             'illness_score'          => 'nullable|integer|min:0|max:5',
@@ -1841,7 +1920,7 @@ class MemberController extends Controller
             'score_deduction'        => 'nullable|integer|min:0',
         ]);
 
-        $scoreFields = ['work_score','housing_score','dependents_score','dependent_status_score','illness_score','special_cases_score','score_addition','score_deduction'];
+        $scoreFields = ['work_score','dependents_score','dependent_status_score','illness_score','special_cases_score','score_addition','score_deduction'];
 
         $fields = [];
         foreach ($scoreFields as $field) {
@@ -1863,7 +1942,6 @@ class MemberController extends Controller
             }
             $total = max(0,
                 ($score->work_score             ?? 0) +
-                ($score->housing_score          ?? 0) +
                 ($score->dependents_score       ?? 0) +
                 ($score->dependent_status_score ?? 0) +
                 ($score->illness_score          ?? 0) +
@@ -1909,7 +1987,6 @@ class MemberController extends Controller
     {
         $data = $request->validate([
             'work_score'             => 'required|integer|min:0|max:2',
-            'housing_score'          => 'required|integer|min:0|max:4',
             'dependents_score'       => 'required|integer|min:0|max:20',
             'dependent_status_score' => 'required|integer|min:0|max:2',
             'illness_score'          => 'required|integer|min:0|max:5',
@@ -1920,7 +1997,7 @@ class MemberController extends Controller
             'score_deduction_reason' => 'nullable|string|max:1000',
         ]);
 
-        $raw   = $data['work_score'] + $data['housing_score'] + $data['dependents_score']
+        $raw   = $data['work_score'] + $data['dependents_score']
                + $data['dependent_status_score'] + $data['illness_score'] + $data['special_cases_score'];
         $total = max(0, $raw + $data['score_addition'] - $data['score_deduction']);
         $data['total_score'] = $total;

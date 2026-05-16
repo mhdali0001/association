@@ -110,7 +110,7 @@ class PendingChange extends Model
         $scores = $member->relationLoaded('scores') ? $member->scores : null;
 
         $rawScore = $scores
-            ? ((int)($scores->work_score ?? 0) + (int)($scores->housing_score ?? 0)
+            ? ((int)($scores->work_score ?? 0)
                + (int)($scores->dependents_score ?? 0) + (int)($scores->dependent_status_score ?? 0)
                + (int)($scores->illness_score ?? 0) + (int)($scores->special_cases_score ?? 0))
             : (int)($member->score ?? 0);
@@ -365,7 +365,6 @@ class PendingChange extends Model
             $scores = $member->scores ?? new MemberScore(['member_id' => $memberId]);
 
             $rawScore = ($scores->work_score            ?? 0)
-                      + ($scores->housing_score          ?? 0)
                       + ($scores->dependents_score       ?? 0)
                       + ($scores->dependent_status_score ?? 0)
                       + ($scores->illness_score          ?? 0)
@@ -404,7 +403,6 @@ class PendingChange extends Model
             $scores = $member->scores ?? new MemberScore(['member_id' => $memberId]);
 
             $rawScore = ($scores->work_score            ?? 0)
-                      + ($scores->housing_score          ?? 0)
                       + ($scores->dependents_score       ?? 0)
                       + ($scores->dependent_status_score ?? 0)
                       + ($scores->illness_score          ?? 0)
@@ -443,7 +441,6 @@ class PendingChange extends Model
             $scores = $member->scores ?? new MemberScore(['member_id' => $memberId]);
 
             $rawScore = ($scores->work_score            ?? 0)
-                      + ($scores->housing_score          ?? 0)
                       + ($scores->dependents_score       ?? 0)
                       + ($scores->dependent_status_score ?? 0)
                       + ($scores->illness_score          ?? 0)
@@ -650,7 +647,7 @@ class PendingChange extends Model
         $scoreDeductionReason = $scores['score_deduction_reason']       ?? null;
         $scoreAddition        = max(0, (int)($scores['score_addition']  ?? 0));
         $scoreAdditionReason  = $scores['score_addition_reason']        ?? null;
-        $rawScore             = $workScore + $housingScore + $dependentsScore + $dependentStatusScore + $illnessScore + $specialScore;
+        $rawScore             = $workScore + $dependentsScore + $dependentStatusScore + $illnessScore + $specialScore;
         $totalScore           = max(0, $rawScore + $scoreAddition - $scoreDeduction);
 
         $memberData = [

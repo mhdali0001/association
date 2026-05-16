@@ -99,7 +99,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/members/score-deductions',  [MemberController::class, 'scoreDeductionsIndex']) ->name('members.score-deductions');
     Route::get('/members/score-additions',   [MemberController::class, 'scoreAdditionsIndex'])  ->name('members.score-additions');
     Route::get('/members/score-adjustments',  [MemberController::class, 'scoreAdjustmentsIndex']) ->name('members.score-adjustments');
-    Route::post('/members/bulk-set-score',    [MemberController::class, 'bulkSetScoreAdjustment'])->name('members.bulk-set-score');
+    Route::post('/members/bulk-set-score',         [MemberController::class, 'bulkSetScoreAdjustment']) ->name('members.bulk-set-score');
+    Route::post('/members/bulk-recalculate-score', [MemberController::class, 'bulkRecalculateScore'])   ->name('members.bulk-recalculate-score');
     Route::get('/members/score-equalizer',    [MemberController::class, 'scoreEqualizerIndex'])   ->name('members.score-equalizer');
     Route::post('/members/score-equalizer',   [MemberController::class, 'scoreEqualizerApply'])   ->name('members.score-equalizer.apply');
     Route::get('/members/score-manager',        [MemberController::class, 'scoreManagerIndex'])  ->name('members.score-manager');

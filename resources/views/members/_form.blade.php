@@ -614,15 +614,20 @@
         @php
             $c = $sf['color'];
             $val = old($sf['name'], $scores ? $scores->{$sf['name']} : 0);
+            $frozen = $sf['name'] === 'housing_score';
         @endphp
         <div>
-            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
+            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
                 {{ $sf['label'] }}
                 <span class="{{ $colorLabel[$c] }} normal-case font-medium">(أقصى {{ $sf['max'] }})</span>
+                @if($frozen)
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-200 text-gray-500 normal-case tracking-normal">مجمّد</span>
+                @endif
             </label>
-            <input type="number" name="{{ $sf['name'] }}" min="0" max="{{ $sf['max'] }}" oninput="calcTotal()"
+            <input type="number" name="{{ $sf['name'] }}" min="0" max="{{ $sf['max'] }}"
+                   {{ $frozen ? 'readonly' : 'oninput="calcTotal()"' }}
                    value="{{ $val }}"
-                   class="w-full border {{ $colorBorder[$c] }} {{ $colorBg[$c] }} {{ $colorText[$c] }} font-bold rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-{{ $c }}-400 transition text-center">
+                   class="w-full border {{ $colorBorder[$c] }} {{ $frozen ? 'opacity-60 cursor-not-allowed' : '' }} {{ $colorBg[$c] }} {{ $colorText[$c] }} font-bold rounded-xl px-4 py-2.5 text-sm focus:outline-none {{ $frozen ? '' : 'focus:ring-2 focus:ring-'.$c.'-400' }} transition text-center">
         </div>
         @endforeach
 
@@ -1052,7 +1057,7 @@ async function submitNewSector() {
 }
 
 function calcTotal() {
-    const fields = ['work_score', 'housing_score', 'dependents_score', 'dependent_status_score', 'illness_score', 'special_cases_score'];
+    const fields = ['work_score', 'dependents_score', 'dependent_status_score', 'illness_score', 'special_cases_score'];
     let total = 0;
     fields.forEach(f => {
         const el = document.querySelector('[name="' + f + '"]');

@@ -166,10 +166,10 @@
                     <input type="number" name="work_score" min="0" max="2" placeholder="—"
                            class="w-14 text-center text-xs border border-blue-200 bg-blue-50 rounded-lg px-1 py-1.5 focus:ring-2 focus:ring-blue-400 focus:outline-none">
                 </div>
-                <div class="flex flex-col gap-0.5">
-                    <label class="text-[10px] font-bold text-teal-600 text-center">سكن /4</label>
-                    <input type="number" name="housing_score" min="0" max="4" placeholder="—"
-                           class="w-14 text-center text-xs border border-teal-200 bg-teal-50 rounded-lg px-1 py-1.5 focus:ring-2 focus:ring-teal-400 focus:outline-none">
+                <div class="flex flex-col gap-0.5 opacity-50 cursor-not-allowed" title="نقاط السكن مجمّدة ولا يمكن تعديلها">
+                    <label class="text-[10px] font-bold text-teal-600 text-center cursor-not-allowed">سكن /4 <span class="text-gray-400">(مجمّد)</span></label>
+                    <input type="number" name="housing_score" min="0" max="4" placeholder="—" disabled
+                           class="w-14 text-center text-xs border border-teal-200 bg-teal-50 rounded-lg px-1 py-1.5 cursor-not-allowed">
                 </div>
                 <div class="flex flex-col gap-0.5">
                     <label class="text-[10px] font-bold text-amber-600 text-center">معالون /20</label>
@@ -560,10 +560,13 @@
                         <input type="number" name="work_score" id="f-work" min="0" max="2"
                                class="w-full border border-blue-200 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-400 focus:outline-none" oninput="calcPreview()">
                     </div>
-                    <div class="bg-teal-50/50 border border-teal-100 rounded-xl p-3">
-                        <label class="block text-xs font-bold text-teal-600 mb-1.5">السكن <span class="text-teal-300 font-normal">(0 – 4)</span></label>
-                        <input type="number" name="housing_score" id="f-housing" min="0" max="4"
-                               class="w-full border border-teal-200 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-teal-400 focus:outline-none" oninput="calcPreview()">
+                    <div class="bg-teal-50/50 border border-teal-100 rounded-xl p-3 opacity-60 cursor-not-allowed" title="نقاط السكن مجمّدة ولا يمكن تعديلها">
+                        <label class="block text-xs font-bold text-teal-600 mb-1.5 flex items-center gap-1.5 cursor-not-allowed">
+                            السكن <span class="text-teal-300 font-normal">(0 – 4)</span>
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-200 text-gray-500">مجمّد</span>
+                        </label>
+                        <input type="number" name="housing_score" id="f-housing" min="0" max="4" readonly
+                               class="w-full border border-teal-200 rounded-lg px-3 py-2 text-sm bg-gray-50 cursor-not-allowed focus:outline-none">
                     </div>
                     <div class="bg-amber-50/50 border border-amber-100 rounded-xl p-3">
                         <label class="block text-xs font-bold text-amber-600 mb-1.5">المعالون <span class="text-amber-300 font-normal">(0 – 20)</span></label>
@@ -805,7 +808,7 @@ function calcPreview() {
     const ss  = clamp(document.getElementById('f-special').value, 10);
     const add = Math.max(0, parseInt(document.getElementById('f-addition').value) || 0);
     const ded = Math.max(0, parseInt(document.getElementById('f-deduction').value) || 0);
-    const total = Math.max(0, ws + hs + ds + dss + is_ + ss + add - ded);
+    const total = Math.max(0, ws + ds + dss + is_ + ss + add - ded);
     document.getElementById('preview-total').textContent  = total;
     document.getElementById('preview-amount').textContent = total > 0
         ? 'المبلغ المقدر: ' + (total * 500).toLocaleString('ar-SY') + ' ل.س'

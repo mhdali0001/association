@@ -333,97 +333,263 @@
         @endif
     </div>
 
-{{-- UPDATE case — diff table --}}
+{{-- UPDATE case — precise diff --}}
 @elseif($action === 'update')
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-6">
-        <div class="flex items-center gap-2.5 bg-gradient-to-l from-blue-50 to-indigo-50 border-b border-blue-100 px-6 py-3.5">
+@php
+    $changedFields   = [];
+    $unchangedFields = [];
+    // score & estimated_amount are server-computed on approve — not present in payload
+    $skipTopFields = ['score', 'estimated_amount'];
+    foreach ($topFields as $field) {
+        if (in_array($field, $skipTopFields)) continue;
+        $o = $original[$field] ?? null;
+        $n = $payload[$field]  ?? null;
+        if ($o != $n) { $changedFields[]   = $field; }
+        elseif (isset($original[$field]) || isset($payload[$field])) { $unchangedFields[] = $field; }
+    }
+    $changedScores   = [];
+    $unchangedScores = [];
+    $hasScores = !empty($original['scores']) || !empty($payload['scores']);
+    foreach ($scoreFields as $sf) {
+        $o = $original['scores'][$sf] ?? null;
+        $n = $payload['scores'][$sf]  ?? null;
+        if ($o != $n) { $changedScores[]   = $sf; }
+        elseif ($o !== null || $n !== null) { $unchangedScores[] = $sf; }
+    }
+    $changedPayments   = [];
+    $unchangedPayments = [];
+    $hasPayment = !empty($original['payment']) || !empty($payload['payment']);
+    foreach ($paymentFields as $pf) {
+        $o = $original['payment'][$pf] ?? null;
+        $n = $payload['payment'][$pf]  ?? null;
+        if ($o != $n) { $changedPayments[]   = $pf; }
+        elseif ($o !== null || $n !== null) { $unchangedPayments[] = $pf; }
+    }
+    $totalChanged   = count($changedFields) + count($changedScores) + count($changedPayments);
+    $totalUnchanged = count($unchangedFields) + count($unchangedScores) + count($unchangedPayments);
+@endphp
+
+<div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-6">
+    {{-- Header --}}
+    <div class="flex items-center justify-between bg-gradient-to-l from-blue-50 to-indigo-50 border-b border-blue-100 px-6 py-3.5">
+        <div class="flex items-center gap-2.5">
             <div class="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center">
                 <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                 </svg>
             </div>
             <h2 class="text-sm font-bold text-blue-800">التغييرات المقترحة</h2>
-            <span class="text-xs text-blue-400">— الصفوف المظلّلة تحتوي تغييرات</span>
         </div>
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead>
-                    <tr class="bg-gray-50 border-b border-gray-100">
-                        <th class="text-right font-semibold text-gray-500 px-5 py-3">الحقل</th>
-                        <th class="text-right font-semibold text-gray-500 px-5 py-3">قبل التعديل</th>
-                        <th class="text-right font-semibold text-gray-500 px-5 py-3">بعد التعديل</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-50">
-                    @foreach($topFields as $field)
-                        @php
-                            $oldVal = $original[$field] ?? null;
-                            $newVal = $payload[$field]  ?? null;
-                            $changed = $oldVal != $newVal;
-                            $displayOld = $resolveId($field, $oldVal);
-                            $displayNew = $resolveId($field, $newVal);
-                        @endphp
-                        @if($changed || isset($original[$field]) || isset($payload[$field]))
-                            <tr class="{{ $changed ? 'bg-blue-50/60' : '' }}">
-                                <td class="px-5 py-2.5 text-gray-500 text-xs font-medium whitespace-nowrap">
-                                    {{ $labels[$field] ?? $field }}
-                                    @if($changed)
-                                        <span class="mr-1 w-1.5 h-1.5 bg-blue-500 rounded-full inline-block"></span>
-                                    @endif
-                                </td>
-                                <td class="px-5 py-2.5 {{ $changed ? 'text-red-600 line-through' : 'text-gray-500' }} text-sm">
-                                    @if(is_bool($oldVal)) {{ $oldVal ? 'نعم' : 'لا' }}
-                                    @else {{ $displayOld ?: '—' }} @endif
-                                </td>
-                                <td class="px-5 py-2.5 {{ $changed ? 'text-emerald-700 font-semibold' : 'text-gray-600' }} text-sm">
-                                    @if(is_bool($newVal)) {{ $newVal ? 'نعم' : 'لا' }}
-                                    @else {{ $displayNew ?: '—' }} @endif
-                                </td>
-                            </tr>
-                        @endif
-                    @endforeach
-
-                    {{-- Scores diff --}}
-                    @foreach($scoreFields as $sf)
-                        @php
-                            $oldVal = $original['scores'][$sf] ?? null;
-                            $newVal = $payload['scores'][$sf]  ?? null;
-                            $changed = $oldVal != $newVal;
-                        @endphp
-                        @if($changed)
-                            <tr class="bg-violet-50/60">
-                                <td class="px-5 py-2.5 text-gray-500 text-xs font-medium">
-                                    {{ $labels['scores.'.$sf] ?? $sf }}
-                                    <span class="mr-1 w-1.5 h-1.5 bg-violet-500 rounded-full inline-block"></span>
-                                </td>
-                                <td class="px-5 py-2.5 text-red-600 line-through text-sm">{{ $oldVal ?? '—' }}</td>
-                                <td class="px-5 py-2.5 text-emerald-700 font-semibold text-sm">{{ $newVal ?? '—' }}</td>
-                            </tr>
-                        @endif
-                    @endforeach
-
-                    {{-- Payment diff --}}
-                    @foreach($paymentFields as $pf)
-                        @php
-                            $oldVal = $original['payment'][$pf] ?? null;
-                            $newVal = $payload['payment'][$pf]  ?? null;
-                            $changed = $oldVal != $newVal;
-                        @endphp
-                        @if($changed)
-                            <tr class="bg-amber-50/60">
-                                <td class="px-5 py-2.5 text-gray-500 text-xs font-medium">
-                                    {{ $labels['payment.'.$pf] ?? $pf }}
-                                    <span class="mr-1 w-1.5 h-1.5 bg-amber-500 rounded-full inline-block"></span>
-                                </td>
-                                <td class="px-5 py-2.5 text-red-600 line-through text-sm">{{ $oldVal ?: '—' }}</td>
-                                <td class="px-5 py-2.5 text-emerald-700 font-semibold text-sm">{{ $newVal ?: '—' }}</td>
-                            </tr>
-                        @endif
-                    @endforeach
-                </tbody>
-            </table>
+        <div class="flex items-center gap-2">
+            @if($totalChanged > 0)
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-600 text-white">
+                    {{ $totalChanged }} {{ $totalChanged === 1 ? 'حقل تغيّر' : 'حقول تغيّرت' }}
+                </span>
+            @else
+                <span class="text-xs text-gray-400">لا توجد تغييرات</span>
+            @endif
+            @if($totalUnchanged > 0)
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">
+                    {{ $totalUnchanged }} بدون تغيير
+                </span>
+            @endif
         </div>
     </div>
+
+    @if($totalChanged === 0)
+        <div class="p-8 text-center text-sm text-gray-400">لا توجد تغييرات مسجّلة في هذا الطلب</div>
+    @else
+
+    {{-- ── Changed top-level fields ── --}}
+    @if(!empty($changedFields))
+    <div class="p-5 space-y-2.5">
+        @foreach($changedFields as $field)
+            @php
+                $oldVal    = $original[$field] ?? null;
+                $newVal    = $payload[$field]  ?? null;
+                $dispOld   = $resolveId($field, $oldVal);
+                $dispNew   = $resolveId($field, $newVal);
+            @endphp
+            <div class="flex items-start gap-3 bg-blue-50 rounded-xl px-4 py-3 border border-blue-100">
+                <span class="mt-1.5 w-2 h-2 rounded-full bg-blue-500 shrink-0"></span>
+                <div class="flex-1 min-w-0">
+                    <p class="text-xs font-bold text-blue-700 mb-1.5">{{ $labels[$field] ?? $field }}</p>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="inline-block px-2.5 py-1 rounded-lg bg-red-100 text-red-700 text-sm line-through break-all">
+                            @if(is_bool($oldVal)){{ $oldVal ? 'نعم' : 'لا' }}@elseif($dispOld !== null && $dispOld !== ''){{ $dispOld }}@else—@endif
+                        </span>
+                        <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                        </svg>
+                        <span class="inline-block px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-700 text-sm font-bold break-all">
+                            @if(is_bool($newVal)){{ $newVal ? 'نعم' : 'لا' }}@elseif($dispNew !== null && $dispNew !== ''){{ $dispNew }}@else—@endif
+                        </span>
+                    </div>
+                </div>
+            </div>
+        @endforeach
+    </div>
+    @endif
+
+    {{-- ── Scores section (full breakdown) ── --}}
+    @if($hasScores)
+    <div class="px-5 pb-5 {{ !empty($changedFields) ? '' : 'pt-5' }}">
+        <div class="bg-violet-50 rounded-xl border border-violet-200 overflow-hidden">
+            <div class="flex items-center justify-between px-4 py-2.5 border-b border-violet-200 bg-violet-100/60">
+                <p class="text-xs font-bold text-violet-800">النقاط</p>
+                @if(!empty($changedScores))
+                    <span class="text-xs font-bold text-violet-600">{{ count($changedScores) }} نقطة تغيّرت</span>
+                @endif
+            </div>
+            <div class="p-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                @foreach($scoreFields as $sf)
+                    @php
+                        $oldScore    = $original['scores'][$sf] ?? null;
+                        $newScore    = $payload['scores'][$sf]  ?? null;
+                        $scoreChg    = $oldScore != $newScore;
+                        if ($oldScore === null && $newScore === null) continue;
+                    @endphp
+                    <div class="rounded-xl px-3 py-2.5 {{ $scoreChg ? 'bg-white border-2 border-violet-400 shadow-sm' : 'bg-violet-50/70 border border-violet-100' }}">
+                        <p class="text-xs text-gray-500 mb-1.5">{{ $labels['scores.'.$sf] ?? $sf }}</p>
+                        @if($scoreChg)
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="text-sm font-bold text-red-500 line-through">{{ $oldScore ?? '—' }}</span>
+                                <svg class="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                                </svg>
+                                <span class="text-base font-black text-emerald-600">{{ $newScore ?? '—' }}</span>
+                            </div>
+                        @else
+                            <p class="text-sm font-semibold text-gray-600">{{ $oldScore ?? '—' }}</p>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+            {{-- Total score + estimated amount rows --}}
+            @php
+                // Use nested scores.total_score (set by buildMemberPayload) not the flat member.score column
+                $oldTotal     = $original['scores']['total_score'] ?? $original['score'] ?? null;
+                $newTotal     = $payload['scores']['total_score']  ?? null;
+                $totalChg     = $oldTotal != $newTotal;
+                $oldEstimated = $original['estimated_amount'] ?? ($oldTotal !== null ? $oldTotal * 500 : null);
+                $newEstimated = $newTotal !== null ? $newTotal * 500 : null;
+                $estimatedChg = $oldEstimated != $newEstimated;
+            @endphp
+            @if($oldTotal !== null || $newTotal !== null)
+            <div class="px-4 py-3 border-t border-violet-200 bg-violet-100/40 flex items-center justify-between">
+                <p class="text-xs font-bold text-violet-800">مجموع النقاط</p>
+                @if($totalChg)
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-bold text-red-500 line-through">{{ $oldTotal ?? '—' }}</span>
+                        <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                        </svg>
+                        <span class="text-xl font-black text-emerald-600">{{ $newTotal ?? '—' }}</span>
+                        @if($oldTotal !== null && $newTotal !== null)
+                            @php $diff = $newTotal - $oldTotal; @endphp
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold {{ $diff > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600' }}">
+                                {{ $diff > 0 ? '+' : '' }}{{ $diff }}
+                            </span>
+                        @endif
+                    </div>
+                @else
+                    <span class="text-base font-black text-gray-700">{{ $oldTotal ?? '—' }}</span>
+                @endif
+            </div>
+            @if($oldEstimated !== null || $newEstimated !== null)
+            <div class="px-4 py-2.5 border-t border-violet-100 bg-violet-50/50 flex items-center justify-between">
+                <p class="text-xs font-semibold text-violet-600">المبلغ المقدر</p>
+                @if($estimatedChg)
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-red-400 line-through">{{ $oldEstimated !== null ? number_format($oldEstimated) . ' ل.س' : '—' }}</span>
+                        <svg class="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                        </svg>
+                        <span class="text-sm font-bold text-emerald-600">{{ $newEstimated !== null ? number_format($newEstimated) . ' ل.س' : '—' }}</span>
+                    </div>
+                @else
+                    <span class="text-sm font-semibold text-gray-600">{{ $oldEstimated !== null ? number_format($oldEstimated) . ' ل.س' : '—' }}</span>
+                @endif
+            </div>
+            @endif
+            @endif
+        </div>
+    </div>
+    @endif
+
+    {{-- ── Payment section ── --}}
+    @if($hasPayment && !empty($changedPayments))
+    <div class="px-5 pb-5">
+        <div class="bg-amber-50 rounded-xl border border-amber-200 overflow-hidden">
+            <div class="px-4 py-2.5 border-b border-amber-200 bg-amber-100/60">
+                <p class="text-xs font-bold text-amber-800">بيانات الدفع</p>
+            </div>
+            <div class="p-3 space-y-2">
+                @foreach($changedPayments as $pf)
+                    @php
+                        $oldVal = $original['payment'][$pf] ?? null;
+                        $newVal = $payload['payment'][$pf]  ?? null;
+                    @endphp
+                    <div class="bg-white rounded-xl px-3 py-2.5 border border-amber-100">
+                        <p class="text-xs font-bold text-amber-700 mb-1.5">{{ $labels['payment.'.$pf] ?? $pf }}</p>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="px-2 py-1 rounded bg-red-100 text-red-700 text-xs font-mono line-through break-all">{{ $oldVal ?: '—' }}</span>
+                            <svg class="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                            </svg>
+                            <span class="px-2 py-1 rounded bg-emerald-100 text-emerald-700 text-xs font-bold font-mono break-all">{{ $newVal ?: '—' }}</span>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+    @endif
+
+    @endif {{-- end totalChanged > 0 --}}
+
+    {{-- ── Unchanged fields (collapsible) ── --}}
+    @if($totalUnchanged > 0)
+    <div class="border-t border-gray-100">
+        <button type="button"
+                onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.chev').classList.toggle('rotate-180')"
+                class="w-full flex items-center justify-between px-5 py-3 text-xs font-semibold text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors">
+            <span>الحقول غير المُعدَّلة ({{ $totalUnchanged }})</span>
+            <svg class="chev w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+            </svg>
+        </button>
+        <div class="hidden px-5 pb-5 grid grid-cols-2 sm:grid-cols-3 gap-2">
+            @foreach($unchangedFields as $field)
+                @php
+                    $val     = $original[$field] ?? $payload[$field] ?? null;
+                    $dispVal = $resolveId($field, $val);
+                @endphp
+                <div class="rounded-xl px-3 py-2.5 bg-gray-50 border border-gray-100">
+                    <p class="text-xs text-gray-400 mb-0.5">{{ $labels[$field] ?? $field }}</p>
+                    <p class="text-sm text-gray-600">
+                        @if(is_bool($val)){{ $val ? 'نعم' : 'لا' }}@elseif($dispVal !== null && $dispVal !== ''){{ $dispVal }}@else—@endif
+                    </p>
+                </div>
+            @endforeach
+            @foreach($unchangedScores as $sf)
+                @php $val = $original['scores'][$sf] ?? $payload['scores'][$sf] ?? null; @endphp
+                <div class="rounded-xl px-3 py-2.5 bg-gray-50 border border-gray-100">
+                    <p class="text-xs text-gray-400 mb-0.5">{{ $labels['scores.'.$sf] ?? $sf }}</p>
+                    <p class="text-sm text-gray-600">{{ $val ?? '—' }}</p>
+                </div>
+            @endforeach
+            @foreach($unchangedPayments as $pf)
+                @php $val = $original['payment'][$pf] ?? $payload['payment'][$pf] ?? null; @endphp
+                <div class="rounded-xl px-3 py-2.5 bg-gray-50 border border-gray-100">
+                    <p class="text-xs text-gray-400 mb-0.5">{{ $labels['payment.'.$pf] ?? $pf }}</p>
+                    <p class="text-sm text-gray-600 font-mono">{{ $val ?: '—' }}</p>
+                </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+</div>
 @endif
 
 {{-- Member Snapshots Table (bulk actions only) --}}

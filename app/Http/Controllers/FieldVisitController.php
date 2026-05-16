@@ -32,6 +32,7 @@ class FieldVisitController extends Controller
         ]);
         $data['has_video']        = $request->boolean('has_video');
         $data['has_special_case'] = $request->boolean('has_special_case');
+        $data['visit_date']       = $data['visit_date'] ?? now()->toDateString();
 
         if (isset($data['estimated_amount']) && ($data['amount_operation'] ?? 'add') === 'subtract') {
             $data['estimated_amount'] = -abs($data['estimated_amount']);
