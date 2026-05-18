@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Sector;
+use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -23,7 +24,12 @@ use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
 class SectorSheetExport extends DefaultValueBinder implements FromCollection, WithHeadings, WithMapping, WithTitle, ShouldAutoSize, WithStyles, WithEvents, WithColumnFormatting, WithCustomValueBinder
 {
-    public function __construct(protected Sector $sector) {}
+    use Exportable;
+
+    public function __construct(
+        protected Sector $sector,
+        protected ?\Illuminate\Support\Collection $filteredMembers = null,
+    ) {}
 
     public function bindValue(Cell $cell, $value): bool
     {
@@ -36,7 +42,8 @@ class SectorSheetExport extends DefaultValueBinder implements FromCollection, Wi
 
     public function collection()
     {
-        return $this->sector->members->filter(fn($m) => $m->estimated_amount > 0);
+        $members = $this->filteredMembers ?? $this->sector->members;
+        return $members->filter(fn($m) => $m->estimated_amount > 0);
     }
 
     public function title(): string

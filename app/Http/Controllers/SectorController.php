@@ -90,10 +90,16 @@ class SectorController extends Controller
         return (new \App\Exports\SectorsMembersExport($ids))->download($filename);
     }
 
-    public function show(Request $request, Sector $sector)
+    public function exportSingle(Sector $sector)
     {
         $this->adminOnly();
+        $sector->load(['members' => fn($q) => $q->with('paymentInfo')->orderByRaw('CAST(dossier_number AS UNSIGNED)')]);
+        $filename = $sector->name . '_' . now()->format('Y-m-d') . '.xlsx';
+        return (new \App\Exports\SectorSheetExport($sector))->download($filename);
+    }
 
+    private function buildMembersQuery(Request $request, Sector $sector): \Illuminate\Database\Eloquent\Builder
+    {
         $search              = trim($request->get('search', ''));
         $dossierSearch       = trim($request->get('dossier_search', ''));
         $dossierFrom         = trim($request->get('dossier_from', ''));
@@ -207,7 +213,6 @@ class SectorController extends Controller
             || $fvDateFrom !== '' || $fvDateTo !== ''
             || $fvAmountFrom !== '' || $fvAmountTo !== ''
             || $fvNotes !== '' || $fvHasVideo !== '' || $fvHasSpecialCase !== '';
-        $hasFvFilters = $includeNoVisit || !empty($realStatusIds) || $hasOtherFvFilters;
 
         $applyFvFilters = function ($q) use ($realStatusIds, $fvHouseTypeIds, $fvHouseConditionIds, $fvVisitors, $fvCreatedByIds, $fvDateFrom, $fvDateTo, $fvAmountFrom, $fvAmountTo, $fvNotes, $fvHasVideo, $fvHasSpecialCase) {
             $this->applyNoneFilter($q, 'field_visit_status_id', $realStatusIds);
@@ -238,9 +243,53 @@ class SectorController extends Controller
             else                  $query->has('fieldVisits', '>=', (int) $fvCount);
         }
 
-        $members = $query->orderByRaw('CAST(dossier_number AS UNSIGNED) ASC')
-                         ->paginate(50)
-                         ->withQueryString();
+        return $query->orderByRaw('CAST(dossier_number AS UNSIGNED) ASC');
+    }
+
+    public function show(Request $request, Sector $sector)
+    {
+        $this->adminOnly();
+
+        $search              = trim($request->get('search', ''));
+        $dossierSearch       = trim($request->get('dossier_search', ''));
+        $dossierFrom         = trim($request->get('dossier_from', ''));
+        $dossierTo           = trim($request->get('dossier_to', ''));
+        $verificationIds     = array_filter((array) $request->get('verification_status_id', []));
+        $finalStatusIds      = array_filter((array) $request->get('final_status_id', []));
+        $maritalStatuses     = array_filter((array) $request->get('marital_status', []));
+        $genders             = array_filter((array) $request->get('gender', []));
+        $delegates           = array_filter((array) $request->get('delegate', []));
+        $secondPersons       = array_filter((array) $request->get('second_person', []));
+        $specialCases        = $request->get('special_cases', '');
+        $specialDescriptions = array_filter((array) $request->get('special_cases_description', []));
+        $addresses           = array_filter((array) $request->get('current_address', []));
+        $associationIds      = array_filter((array) $request->get('association_id', []));
+        $networks            = array_filter((array) $request->get('network', []));
+        $shamCash            = array_filter((array) $request->get('sham_cash', []));
+        $regionIds           = array_filter((array) $request->get('region_id', []));
+        $housingStatusIds    = array_filter((array) $request->get('housing_status_id', []));
+        $estimatedFrom       = trim($request->get('estimated_from', ''));
+        $estimatedTo         = trim($request->get('estimated_to', ''));
+        $paymentsCountFrom   = trim($request->get('payments_count_from', ''));
+        $paymentsCountTo     = trim($request->get('payments_count_to', ''));
+        $paymentDataEntries  = array_filter((array) $request->get('payment_data_entry', []));
+        $fieldVisitStatusIds = array_filter((array) $request->get('field_visit_status_id', []));
+        $fvHouseTypeIds      = array_filter((array) $request->get('fv_house_type_id', []));
+        $fvVisitors          = array_filter((array) $request->get('fv_visitors', []));
+        $fvCreatedByIds      = array_filter((array) $request->get('fv_created_by', []));
+        $fvDateFrom          = trim($request->get('fv_date_from', ''));
+        $fvDateTo            = trim($request->get('fv_date_to', ''));
+        $fvAmountFrom        = trim($request->get('fv_amount_from', ''));
+        $fvAmountTo          = trim($request->get('fv_amount_to', ''));
+        $fvHouseConditionIds = array_filter((array) $request->get('fv_house_condition_id', []));
+        $fvNotes             = trim($request->get('fv_notes', ''));
+        $fvHasVideo          = $request->get('fv_has_video', '');
+        $fvHasSpecialCase    = $request->get('fv_has_special_case', '');
+        $fvCount             = trim($request->get('fv_count', ''));
+
+        $members = $this->buildMembersQuery($request, $sector)
+                        ->paginate(50)
+                        ->withQueryString();
 
         $allSectors             = Sector::active()->orderBy('name')->get();
         $sectorRegions          = $sector->regions()->withCount('members')->orderBy('name')->get();
@@ -260,6 +309,12 @@ class SectorController extends Controller
         $fvVisitorList          = FieldVisit::whereNotNull('visitor')->where('visitor', '!=', '')->distinct()->orderBy('visitor')->pluck('visitor');
         $fvCreatedByList        = User::whereIn('id', FieldVisit::whereNotNull('created_by')->distinct()->pluck('created_by'))->orderBy('name')->get(['id', 'name']);
         $paymentDataEntryList   = PaymentInfo::whereNotNull('data_entry_name')->where('data_entry_name', '!=', '')->distinct()->orderBy('data_entry_name')->pluck('data_entry_name');
+
+        $hasFvFilters = !empty($fieldVisitStatusIds) || !empty($fvHouseTypeIds) || !empty($fvHouseConditionIds)
+            || !empty($fvVisitors) || !empty($fvCreatedByIds)
+            || $fvDateFrom !== '' || $fvDateTo !== ''
+            || $fvAmountFrom !== '' || $fvAmountTo !== ''
+            || $fvNotes !== '' || $fvHasVideo !== '' || $fvHasSpecialCase !== '';
 
         $hasFilters = $search !== '' || $dossierSearch !== '' || $dossierFrom !== '' || $dossierTo !== ''
             || !empty($verificationIds) || !empty($finalStatusIds) || !empty($maritalStatuses) || !empty($genders)
@@ -310,6 +365,14 @@ class SectorController extends Controller
 
         ActivityLogger::log('updated', "تحديث مناطق القطاع: {$sector->name}");
         return redirect()->route('sectors.show', $sector)->with('success', 'تم تحديث مناطق القطاع بنجاح.');
+    }
+
+    public function exportSingle(Request $request, Sector $sector)
+    {
+        $this->adminOnly();
+        $members  = $this->buildMembersQuery($request, $sector)->with('paymentInfo')->get();
+        $filename = $sector->name . '_' . now()->format('Y-m-d') . '.xlsx';
+        return (new \App\Exports\SectorSheetExport($sector, $members))->download($filename);
     }
 
     public function store(Request $request)
