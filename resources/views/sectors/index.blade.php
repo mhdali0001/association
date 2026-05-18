@@ -52,9 +52,25 @@
 
     {{-- List --}}
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div class="bg-gray-50 border-b border-gray-100 px-5 py-3 flex items-center justify-between">
-            <h2 class="text-sm font-semibold text-gray-700">قائمة القطاعات</h2>
-            <span class="text-xs text-gray-400 bg-gray-100 rounded-full px-2.5 py-0.5">{{ $sectors->count() }} قطاع</span>
+        <div class="bg-gray-50 border-b border-gray-100 px-5 py-3 flex items-center justify-between gap-2 flex-wrap">
+            <div class="flex items-center gap-2">
+                <input type="checkbox" id="select-all-sectors" class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-400 cursor-pointer">
+                <h2 class="text-sm font-semibold text-gray-700">قائمة القطاعات</h2>
+                <span class="text-xs text-gray-400 bg-gray-100 rounded-full px-2.5 py-0.5">{{ $sectors->count() }} قطاع</span>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+                <span id="selected-count" class="hidden text-xs text-indigo-600 font-medium"></span>
+                <button id="export-selected-btn" type="button" onclick="exportSelected()"
+                        class="hidden inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-lg transition-colors">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    تصدير المحدد
+                </button>
+                <a href="{{ route('sectors.export') }}"
+                   class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg transition-colors">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    تصدير الكل
+                </a>
+            </div>
         </div>
 
         @if($sectors->isEmpty())
@@ -66,6 +82,8 @@
                 @foreach($sectors as $sector)
                 <div class="px-5 py-4">
                     <div class="flex items-center gap-3">
+                        <input type="checkbox" class="sector-check w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-400 cursor-pointer shrink-0"
+                               value="{{ $sector->id }}" onchange="updateSelection()">
                         <div class="w-8 h-8 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
                             <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
@@ -140,6 +158,39 @@
 <script>
 function toggleEdit(id) {
     document.getElementById('edit-' + id).classList.toggle('hidden');
+}
+
+function updateSelection() {
+    const checks   = document.querySelectorAll('.sector-check');
+    const checked  = [...checks].filter(c => c.checked);
+    const countEl  = document.getElementById('selected-count');
+    const btnEl    = document.getElementById('export-selected-btn');
+    const selectAll = document.getElementById('select-all-sectors');
+
+    if (checked.length > 0) {
+        countEl.textContent = checked.length + ' محدد';
+        countEl.classList.remove('hidden');
+        btnEl.classList.remove('hidden');
+    } else {
+        countEl.classList.add('hidden');
+        btnEl.classList.add('hidden');
+    }
+
+    selectAll.indeterminate = checked.length > 0 && checked.length < checks.length;
+    selectAll.checked = checks.length > 0 && checked.length === checks.length;
+}
+
+document.getElementById('select-all-sectors').addEventListener('change', function () {
+    document.querySelectorAll('.sector-check').forEach(c => c.checked = this.checked);
+    updateSelection();
+});
+
+function exportSelected() {
+    const ids = [...document.querySelectorAll('.sector-check:checked')].map(c => c.value);
+    if (!ids.length) return;
+    const url = new URL('{{ route('sectors.export') }}', window.location.origin);
+    ids.forEach(id => url.searchParams.append('ids[]', id));
+    window.location.href = url.toString();
 }
 </script>
 

@@ -1,11 +1,11 @@
 @extends('layouts.app')
 
-@section('title', 'انقاص النقاط — مسالك النور')
+@section('title', 'إضافة وانقاص النقاط — مسالك النور')
 
 @section('breadcrumb')
     <a href="{{ route('members.index') }}" class="text-emerald-600 hover:underline">الأعضاء</a>
     <span class="mx-2 text-gray-400">/</span>
-    <span class="text-gray-700">انقاص النقاط</span>
+    <span class="text-gray-700">إضافة وانقاص النقاط</span>
 @endsection
 
 @section('content')
@@ -28,8 +28,8 @@
     </div>
     <div class="relative flex items-start justify-between gap-4 flex-wrap">
         <div>
-            <h1 class="text-2xl font-black text-white">انقاص النقاط</h1>
-            <p class="text-purple-100 text-sm mt-0.5">انقاص جماعي لنقاط المستفيدين مع تحديث المبلغ المقدر تلقائياً</p>
+            <h1 class="text-2xl font-black text-white">إضافة وانقاص النقاط</h1>
+            <p class="text-purple-100 text-sm mt-0.5">إضافة وانقاص جماعي لنقاط المستفيدين مع تحديث المبلغ المقدر تلقائياً</p>
         </div>
         <div class="flex gap-3 flex-wrap">
             <div class="bg-white/15 border border-white/25 rounded-xl px-4 py-2.5 text-center min-w-[90px]">

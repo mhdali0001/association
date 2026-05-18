@@ -130,7 +130,7 @@
                         <option value="0" {{ $current === '0' ? 'selected' : '' }}>بدون نقاط</option>
                         @for($i = 1; $i <= $meta['max']; $i++)
                             <option value="{{ $i }}" {{ (string)$current === (string)$i ? 'selected' : '' }}>
-                                {{ $i }}+
+                                {{ $i }}
                             </option>
                         @endfor
                     </select>
@@ -225,9 +225,11 @@
                     class="excl-chip inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 transition-all hover:opacity-80 select-none">
                 <span class="w-2 h-2 rounded-full bg-blue-400 inline-block"></span>العمل
             </button>
-            <button type="button" data-key="hs"  onclick="toggleExclude(this)"
-                    class="excl-chip inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border border-teal-200 bg-teal-50 text-teal-700 transition-all hover:opacity-80 select-none">
-                <span class="w-2 h-2 rounded-full bg-teal-400 inline-block"></span>السكن
+            <button type="button" data-key="hs" disabled
+                    class="excl-chip chip-off inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border cursor-not-allowed select-none"
+                    title="نقاط السكن مجمّدة — مستثناة دائماً من الحساب المخصص">
+                <span class="w-2 h-2 rounded-full bg-gray-400 inline-block"></span>السكن
+                <span class="text-[10px] bg-gray-200 text-gray-500 px-1 py-0.5 rounded font-bold">مجمّد</span>
             </button>
             <button type="button" data-key="ds"  onclick="toggleExclude(this)"
                     class="excl-chip inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-700 transition-all hover:opacity-80 select-none">
@@ -661,7 +663,7 @@
 const allPageIds = @json($allIds);
 let allPagesSelected = false;
 
-const excluded = { ws: false, hs: false, ds: false, dss: false, is: false, ss: false, add: false, fv: false };
+const excluded = { ws: false, hs: true, ds: false, dss: false, is: false, ss: false, add: false, fv: false };
 
 function toggleExclude(btn) {
     const key = btn.dataset.key;
@@ -671,8 +673,8 @@ function toggleExclude(btn) {
 }
 
 function resetExclusions() {
-    Object.keys(excluded).forEach(k => excluded[k] = false);
-    document.querySelectorAll('.excl-chip').forEach(btn => btn.classList.remove('chip-off'));
+    Object.keys(excluded).forEach(k => { if (k !== 'hs') excluded[k] = false; });
+    document.querySelectorAll('.excl-chip:not([disabled])').forEach(btn => btn.classList.remove('chip-off'));
     recalcAll();
 }
 
@@ -816,6 +818,7 @@ function calcPreview() {
 }
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+recalcAll();
 
 /* ── Bulk selection ── */
 function getCheckedIds() {

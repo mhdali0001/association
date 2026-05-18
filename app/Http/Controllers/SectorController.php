@@ -82,6 +82,14 @@ class SectorController extends Controller
         return view('sectors.index', compact('sectors'));
     }
 
+    public function export(Request $request)
+    {
+        $this->adminOnly();
+        $ids      = array_filter(array_map('intval', (array) $request->get('ids', [])));
+        $filename = 'قوائم_الدفع_' . now()->format('Y-m-d') . '.xlsx';
+        return (new \App\Exports\SectorsMembersExport($ids))->download($filename);
+    }
+
     public function show(Request $request, Sector $sector)
     {
         $this->adminOnly();
@@ -192,32 +200,38 @@ class SectorController extends Controller
             });
         }
 
-        $hasFvFilters = !empty($fieldVisitStatusIds) || !empty($fvHouseTypeIds) || !empty($fvHouseConditionIds)
+        $includeNoVisit    = in_array('none', $fieldVisitStatusIds);
+        $realStatusIds     = array_values(array_filter($fieldVisitStatusIds, fn($id) => $id !== 'none'));
+        $hasOtherFvFilters = !empty($fvHouseTypeIds) || !empty($fvHouseConditionIds)
             || !empty($fvVisitors) || !empty($fvCreatedByIds)
             || $fvDateFrom !== '' || $fvDateTo !== ''
             || $fvAmountFrom !== '' || $fvAmountTo !== ''
             || $fvNotes !== '' || $fvHasVideo !== '' || $fvHasSpecialCase !== '';
+        $hasFvFilters = $includeNoVisit || !empty($realStatusIds) || $hasOtherFvFilters;
 
-        if ($hasFvFilters) {
-            $query->whereHas('fieldVisits', function ($q) use (
-                $fieldVisitStatusIds, $fvHouseTypeIds, $fvHouseConditionIds, $fvVisitors, $fvCreatedByIds,
-                $fvDateFrom, $fvDateTo, $fvAmountFrom, $fvAmountTo, $fvNotes, $fvHasVideo, $fvHasSpecialCase
-            ) {
-                $this->applyNoneFilter($q, 'field_visit_status_id', $fieldVisitStatusIds);
-                $this->applyNoneFilter($q, 'house_type_id', $fvHouseTypeIds);
-                $this->applyNoneFilter($q, 'house_condition_id', $fvHouseConditionIds);
-                if (!empty($fvVisitors))     $q->whereIn('visitor', $fvVisitors);
-                if (!empty($fvCreatedByIds)) $q->whereIn('created_by', $fvCreatedByIds);
-                if ($fvDateFrom !== '')      $q->where('visit_date', '>=', $fvDateFrom);
-                if ($fvDateTo   !== '')      $q->where('visit_date', '<=', $fvDateTo);
-                if ($fvAmountFrom !== '')    $q->where('estimated_amount', '>=', (float) $fvAmountFrom);
-                if ($fvAmountTo   !== '')    $q->where('estimated_amount', '<=', (float) $fvAmountTo);
-                if ($fvNotes !== '')         $q->where('notes', 'like', "%{$fvNotes}%");
-                if ($fvHasVideo === '1')     $q->where('has_video', true);
-                elseif ($fvHasVideo === '0') $q->where(fn($s) => $s->where('has_video', false)->orWhereNull('has_video'));
-                if ($fvHasSpecialCase === '1')     $q->where('has_special_case', true);
-                elseif ($fvHasSpecialCase === '0') $q->where(fn($s) => $s->where('has_special_case', false)->orWhereNull('has_special_case'));
-            });
+        $applyFvFilters = function ($q) use ($realStatusIds, $fvHouseTypeIds, $fvHouseConditionIds, $fvVisitors, $fvCreatedByIds, $fvDateFrom, $fvDateTo, $fvAmountFrom, $fvAmountTo, $fvNotes, $fvHasVideo, $fvHasSpecialCase) {
+            $this->applyNoneFilter($q, 'field_visit_status_id', $realStatusIds);
+            $this->applyNoneFilter($q, 'house_type_id', $fvHouseTypeIds);
+            $this->applyNoneFilter($q, 'house_condition_id', $fvHouseConditionIds);
+            if (!empty($fvVisitors))     $q->whereIn('visitor', $fvVisitors);
+            if (!empty($fvCreatedByIds)) $q->whereIn('created_by', $fvCreatedByIds);
+            if ($fvDateFrom !== '')      $q->where('visit_date', '>=', $fvDateFrom);
+            if ($fvDateTo   !== '')      $q->where('visit_date', '<=', $fvDateTo);
+            if ($fvAmountFrom !== '')    $q->where('estimated_amount', '>=', (float) $fvAmountFrom);
+            if ($fvAmountTo   !== '')    $q->where('estimated_amount', '<=', (float) $fvAmountTo);
+            if ($fvNotes !== '')         $q->where('notes', 'like', "%{$fvNotes}%");
+            if ($fvHasVideo === '1')     $q->where('has_video', true);
+            elseif ($fvHasVideo === '0') $q->where(fn($s) => $s->where('has_video', false)->orWhereNull('has_video'));
+            if ($fvHasSpecialCase === '1')     $q->where('has_special_case', true);
+            elseif ($fvHasSpecialCase === '0') $q->where(fn($s) => $s->where('has_special_case', false)->orWhereNull('has_special_case'));
+        };
+
+        if ($includeNoVisit && (!empty($realStatusIds) || $hasOtherFvFilters)) {
+            $query->where(fn($q) => $q->doesntHave('fieldVisits')->orWhereHas('fieldVisits', $applyFvFilters));
+        } elseif ($includeNoVisit) {
+            $query->doesntHave('fieldVisits');
+        } elseif (!empty($realStatusIds) || $hasOtherFvFilters) {
+            $query->whereHas('fieldVisits', $applyFvFilters);
         }
         if ($fvCount !== '') {
             if ($fvCount === '0') $query->doesntHave('fieldVisits');
@@ -229,7 +243,7 @@ class SectorController extends Controller
                          ->withQueryString();
 
         $allSectors             = Sector::active()->orderBy('name')->get();
-        $sectorRegions          = $sector->regions()->orderBy('name')->get();
+        $sectorRegions          = $sector->regions()->withCount('members')->orderBy('name')->get();
         $availableRegions       = Region::whereNull('sector_id')->orderBy('name')->get();
         $verificationStatuses   = VerificationStatus::active()->orderBy('name')->get();
         $finalStatuses          = FinalStatus::active()->orderBy('name')->get();

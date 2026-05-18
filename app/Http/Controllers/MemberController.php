@@ -137,31 +137,35 @@ class MemberController extends Controller
                 if (in_array('none',   $shamCash)) $q->orWhereNull('sham_cash_account');
             });
         }
-        if (!empty($fieldVisitStatusIds) || !empty($fvHouseTypeIds) || !empty($fvHouseConditionIds) || !empty($fvVisitors)
+        $includeNoVisit    = in_array('none', $fieldVisitStatusIds);
+        $realStatusIds     = array_values(array_filter($fieldVisitStatusIds, fn($id) => $id !== 'none'));
+        $hasOtherFvFilters = !empty($fvHouseTypeIds) || !empty($fvHouseConditionIds) || !empty($fvVisitors)
             || !empty($fvCreatedByIds)
             || $fvDateFrom !== '' || $fvDateTo !== ''
             || $fvAmountFrom !== '' || $fvAmountTo !== ''
-            || $fvNotes !== '' || $fvHasVideo !== '' || $fvHasSpecialCase !== '') {
-            $query->whereHas('fieldVisits', function ($q) use (
-                $fieldVisitStatusIds, $fvHouseTypeIds, $fvHouseConditionIds, $fvVisitors, $fvCreatedByIds,
-                $fvDateFrom, $fvDateTo, $fvAmountFrom, $fvAmountTo, $fvNotes,
-                $fvHasVideo, $fvHasSpecialCase
-            ) {
-                $this->applyNoneFilter($q, 'field_visit_status_id', $fieldVisitStatusIds);
-                $this->applyNoneFilter($q, 'house_type_id', $fvHouseTypeIds);
-                $this->applyNoneFilter($q, 'house_condition_id', $fvHouseConditionIds);
-                if (!empty($fvVisitors))            $q->whereIn('visitor', $fvVisitors);
-                if (!empty($fvCreatedByIds))        $q->whereIn('created_by', $fvCreatedByIds);
-                if ($fvDateFrom !== '')             $q->where('visit_date', '>=', $fvDateFrom);
-                if ($fvDateTo !== '')               $q->where('visit_date', '<=', $fvDateTo);
-                if ($fvAmountFrom !== '')           $q->where('estimated_amount', '>=', (float) $fvAmountFrom);
-                if ($fvAmountTo !== '')             $q->where('estimated_amount', '<=', (float) $fvAmountTo);
-                if ($fvNotes !== '')               $q->where('notes', 'like', "%{$fvNotes}%");
-                if ($fvHasVideo === '1')           $q->where('has_video', true);
-                elseif ($fvHasVideo === '0')       $q->where(fn($s) => $s->where('has_video', false)->orWhereNull('has_video'));
-                if ($fvHasSpecialCase === '1')     $q->where('has_special_case', true);
-                elseif ($fvHasSpecialCase === '0') $q->where(fn($s) => $s->where('has_special_case', false)->orWhereNull('has_special_case'));
-            });
+            || $fvNotes !== '' || $fvHasVideo !== '' || $fvHasSpecialCase !== '';
+        $applyFvFilters = function ($q) use ($realStatusIds, $fvHouseTypeIds, $fvHouseConditionIds, $fvVisitors, $fvCreatedByIds, $fvDateFrom, $fvDateTo, $fvAmountFrom, $fvAmountTo, $fvNotes, $fvHasVideo, $fvHasSpecialCase) {
+            $this->applyNoneFilter($q, 'field_visit_status_id', $realStatusIds);
+            $this->applyNoneFilter($q, 'house_type_id', $fvHouseTypeIds);
+            $this->applyNoneFilter($q, 'house_condition_id', $fvHouseConditionIds);
+            if (!empty($fvVisitors))            $q->whereIn('visitor', $fvVisitors);
+            if (!empty($fvCreatedByIds))        $q->whereIn('created_by', $fvCreatedByIds);
+            if ($fvDateFrom !== '')             $q->where('visit_date', '>=', $fvDateFrom);
+            if ($fvDateTo !== '')               $q->where('visit_date', '<=', $fvDateTo);
+            if ($fvAmountFrom !== '')           $q->where('estimated_amount', '>=', (float) $fvAmountFrom);
+            if ($fvAmountTo !== '')             $q->where('estimated_amount', '<=', (float) $fvAmountTo);
+            if ($fvNotes !== '')               $q->where('notes', 'like', "%{$fvNotes}%");
+            if ($fvHasVideo === '1')           $q->where('has_video', true);
+            elseif ($fvHasVideo === '0')       $q->where(fn($s) => $s->where('has_video', false)->orWhereNull('has_video'));
+            if ($fvHasSpecialCase === '1')     $q->where('has_special_case', true);
+            elseif ($fvHasSpecialCase === '0') $q->where(fn($s) => $s->where('has_special_case', false)->orWhereNull('has_special_case'));
+        };
+        if ($includeNoVisit && (!empty($realStatusIds) || $hasOtherFvFilters)) {
+            $query->where(fn($q) => $q->doesntHave('fieldVisits')->orWhereHas('fieldVisits', $applyFvFilters));
+        } elseif ($includeNoVisit) {
+            $query->doesntHave('fieldVisits');
+        } elseif (!empty($realStatusIds) || $hasOtherFvFilters) {
+            $query->whereHas('fieldVisits', $applyFvFilters);
         }
         if ($fvCount !== '') {
             if ($fvCount === '0') {
@@ -1061,6 +1065,7 @@ class MemberController extends Controller
             'dossier_number'             => $data['dossier_number'] ?? null,
             'current_address'            => $data['current_address'] ?? null,
             'region_id'                  => $data['region_id'] ?? null,
+            'sector_id'                  => $data['sector_id'] ?? null,
             'marital_status'             => $data['marital_status'] ?? null,
             'disease_type'               => $data['disease_type'] ?? null,
             'other_association'          => !empty($request->association_ids),
@@ -1876,7 +1881,7 @@ class MemberController extends Controller
                       ->orWhere("member_scores.{$col}", 0);
                 });
             } elseif ($val !== '') {
-                $query->where("member_scores.{$col}", '>=', (int) $val);
+                $query->where("member_scores.{$col}", '=', (int) $val);
             }
         }
 

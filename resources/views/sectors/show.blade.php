@@ -81,9 +81,14 @@
                 @foreach($sectorRegions as $region)
                     @php
                         $isActive = in_array($region->id, $regionIds);
-                        $filterQuery = array_merge($baseQuery, ['region_id' => [$region->id]]);
+                        $newRegionIds = $isActive
+                            ? array_values(array_filter($regionIds, fn($id) => $id != $region->id))
+                            : array_merge($regionIds, [$region->id]);
+                        $filterQuery = $newRegionIds
+                            ? array_merge($baseQuery, ['region_id' => $newRegionIds])
+                            : $baseQuery;
                     @endphp
-                    <a href="{{ route('sectors.show', $sector) }}?{{ http_build_query($filterQuery) }}"
+                    <a href="{{ route('sectors.show', $sector) }}{{ $filterQuery ? '?' . http_build_query($filterQuery) : '' }}"
                        class="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full border transition-colors
                               {{ $isActive
                                   ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
@@ -249,7 +254,7 @@
                               {{ $dossierSearch ? 'border-indigo-400 bg-indigo-50/30' : '' }}">
             </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
             <button type="submit"
                     class="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -725,6 +730,11 @@
                         <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                     </button>
                     <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-indigo-100 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                        <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-indigo-50 cursor-pointer text-sm text-gray-700">
+                            <input type="checkbox" name="field_visit_status_id[]" value="none" {{ in_array('none', $fieldVisitStatusIds) ? 'checked' : '' }} class="ms-check rounded border-gray-300 text-indigo-600 focus:ring-indigo-400">
+                            <span class="w-2.5 h-2.5 rounded-full shrink-0 bg-gray-300"></span>
+                            بدون جولة ميدانية
+                        </label>
                         @forelse($fieldVisitStatuses as $fvs)
                             <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-indigo-50 cursor-pointer text-sm text-gray-700">
                                 <input type="checkbox" name="field_visit_status_id[]" value="{{ $fvs->id }}" {{ in_array($fvs->id, $fieldVisitStatusIds) ? 'checked' : '' }} class="ms-check rounded border-gray-300 text-indigo-600 focus:ring-indigo-400">
@@ -909,7 +919,52 @@
             <p class="text-gray-400 font-semibold">لا يوجد مستفيدون في هذا القطاع</p>
         </div>
     @else
-        <div class="overflow-x-auto">
+        {{-- Mobile cards --}}
+        <div class="block sm:hidden divide-y divide-gray-100">
+            @foreach($members as $member)
+            <div class="member-row px-4 py-3.5 flex items-start gap-3" data-id="{{ $member->id }}">
+                <input type="checkbox" value="{{ $member->id }}" class="member-check mt-1 rounded border-gray-300 text-indigo-600 focus:ring-indigo-400 cursor-pointer" onchange="updateCount()">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between gap-2 mb-1">
+                        <span class="font-bold text-gray-800 text-sm leading-snug">{{ $member->full_name }}</span>
+                        <a href="{{ route('members.show', $member) }}"
+                           class="shrink-0 text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg px-2.5 py-1">
+                            عرض
+                        </a>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                        <span class="font-mono">{{ $member->dossier_number ?? '—' }}</span>
+                        @if($member->region)
+                            <span class="flex items-center gap-1">
+                                <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
+                                {{ $member->region->name }}
+                            </span>
+                        @endif
+                        @if($member->estimated_amount)
+                            <span class="font-semibold text-gray-700">{{ number_format($member->estimated_amount, 0) }} ل.س</span>
+                        @endif
+                    </div>
+                    <div class="flex flex-wrap gap-1.5 mt-1.5">
+                        @if($member->verificationStatus)
+                            <span class="text-xs font-semibold px-2 py-0.5 rounded-full border"
+                                  style="color:{{ $member->verificationStatus->color }};border-color:{{ $member->verificationStatus->color }}40;background:{{ $member->verificationStatus->color }}15">
+                                {{ $member->verificationStatus->name }}
+                            </span>
+                        @endif
+                        @if($member->finalStatus)
+                            <span class="text-xs font-semibold px-2 py-0.5 rounded-full border"
+                                  style="color:{{ $member->finalStatus->color }};border-color:{{ $member->finalStatus->color }}40;background:{{ $member->finalStatus->color }}15">
+                                {{ $member->finalStatus->name }}
+                            </span>
+                        @endif
+                    </div>
+                </div>
+            </div>
+            @endforeach
+        </div>
+
+        {{-- Desktop table --}}
+        <div class="hidden sm:block overflow-x-auto">
             <table class="w-full text-right text-sm">
                 <thead>
                     <tr class="bg-gray-50 border-b border-gray-100">
@@ -1081,8 +1136,12 @@ function toggleFvFilters() {
 }
 
 function removeEmptyFilters(form) {
-    form.querySelectorAll('input[type=checkbox]:not(:checked)').forEach(function(cb) {
-        cb.disabled = true;
+    form.querySelectorAll('input[type=checkbox]:not(:checked)').forEach(cb => cb.disabled = true);
+    form.querySelectorAll('input[type=text], input[type=number], input[type=date]').forEach(inp => {
+        if (inp.value.trim() === '') inp.disabled = true;
+    });
+    form.querySelectorAll('select').forEach(sel => {
+        if (sel.value === '') sel.disabled = true;
     });
     return true;
 }
@@ -1210,18 +1269,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // ── Members bulk ──────────────────────────────────────────────────────────────
 function getChecked() {
-    return [...document.querySelectorAll('.member-check:checked')].map(c => c.value);
+    return [...new Set([...document.querySelectorAll('.member-check:checked')].map(c => c.value))];
+}
+
+function uniqueTotal() {
+    return new Set([...document.querySelectorAll('.member-check')].map(c => c.value)).size;
 }
 
 function updateCount() {
     const ids = getChecked();
+    const total = uniqueTotal();
     const el = document.getElementById('selected-count');
     el.textContent = ids.length + ' محدد';
     el.classList.toggle('hidden', ids.length === 0);
-    document.getElementById('check-all').indeterminate =
-        ids.length > 0 && ids.length < document.querySelectorAll('.member-check').length;
-    document.getElementById('check-all').checked =
-        ids.length === document.querySelectorAll('.member-check').length;
+    const ca = document.getElementById('check-all');
+    if (ca) {
+        ca.indeterminate = ids.length > 0 && ids.length < total;
+        ca.checked = ids.length > 0 && ids.length === total;
+    }
 }
 
 function toggleAll(master) {
@@ -1231,7 +1296,8 @@ function toggleAll(master) {
 
 function selectAll() {
     document.querySelectorAll('.member-check').forEach(c => c.checked = true);
-    document.getElementById('check-all').checked = true;
+    const ca = document.getElementById('check-all');
+    if (ca) ca.checked = true;
     updateCount();
 }
 

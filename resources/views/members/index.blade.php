@@ -757,6 +757,13 @@
                             </svg>
                         </button>
                         <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-indigo-100 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                            <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-indigo-50 cursor-pointer text-sm text-gray-700">
+                                <input type="checkbox" name="field_visit_status_id[]" value="none"
+                                       {{ in_array('none', $fieldVisitStatusIds) ? 'checked' : '' }}
+                                       class="ms-check rounded border-gray-300 text-indigo-600 focus:ring-indigo-400">
+                                <span class="w-2.5 h-2.5 rounded-full shrink-0 bg-gray-300"></span>
+                                بدون جولة ميدانية
+                            </label>
                             @forelse($fieldVisitStatuses as $fvs)
                                 <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-indigo-50 cursor-pointer text-sm text-gray-700">
                                     <input type="checkbox" name="field_visit_status_id[]" value="{{ $fvs->id }}"
@@ -1090,7 +1097,7 @@
                 @foreach($fieldVisitStatusIds as $fvsId)
                     <a href="{{ badgeRemoveUrl('field_visit_status_id', $fvsId) }}" class="inline-flex items-center gap-1 text-sm bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full px-3 py-1 font-medium hover:bg-indigo-100 transition-colors">
                         <svg class="w-3 h-3 opacity-70" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
-                        {{ $fieldVisitStatuses->firstWhere('id', $fvsId)?->name }}
+                        {{ $fvsId === 'none' ? 'بدون جولة ميدانية' : $fieldVisitStatuses->firstWhere('id', $fvsId)?->name }}
                         <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                     </a>
                 @endforeach
