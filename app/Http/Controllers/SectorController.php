@@ -132,7 +132,7 @@ class SectorController extends Controller
         $fvHasSpecialCase    = $request->get('fv_has_special_case', '');
         $fvCount             = trim($request->get('fv_count', ''));
 
-        $query = $sector->members()->with(['verificationStatus', 'finalStatus', 'region']);
+        $query = Member::where('sector_id', $sector->id)->with(['verificationStatus', 'finalStatus', 'region']);
 
         if ($search !== '') {
             $query->where(fn($q) => $q->where('full_name', 'like', "%{$search}%")

@@ -929,42 +929,89 @@
         {{-- Mobile cards --}}
         <div class="block sm:hidden divide-y divide-gray-100">
             @foreach($members as $member)
-            <div class="member-row px-4 py-3.5 flex items-start gap-3" data-id="{{ $member->id }}">
-                <input type="checkbox" value="{{ $member->id }}" class="member-check mt-1 rounded border-gray-300 text-indigo-600 focus:ring-indigo-400 cursor-pointer" onchange="updateCount()">
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center justify-between gap-2 mb-1">
-                        <span class="font-bold text-gray-800 text-sm leading-snug">{{ $member->full_name }}</span>
+            @php
+                $sn   = $member->verificationStatus?->name ?? '';
+                $cash = $member->sham_cash_account;
+                if (str_contains($sn, 'رفض')) {
+                    $cardBg = 'bg-rose-100';
+                } elseif (str_contains($sn, 'طلب إلغاء')) {
+                    $cardBg = 'bg-orange-100';
+                } elseif (str_contains($sn, 'تقييد')) {
+                    $cardBg = 'bg-violet-100';
+                } elseif (str_contains($sn, 'تكرار')) {
+                    $cardBg = 'bg-red-50';
+                } elseif (str_contains($sn, 'تم') && $cash) {
+                    $cardBg = 'bg-emerald-50';
+                } elseif (str_contains($sn, 'تم') && !$cash) {
+                    $cardBg = 'bg-blue-50';
+                } elseif (str_contains($sn, 'نقص')) {
+                    $cardBg = 'bg-amber-50';
+                } else {
+                    $cardBg = '';
+                }
+                $latestVisit  = $member->fieldVisits->first();
+                $memberFinal  = ($member->estimated_amount ?? 0) + ($latestVisit?->estimated_amount ?? 0);
+                $memberIban     = trim($member->paymentInfo?->iban ?? '');
+                $ibanDuplicated = $memberIban !== '' && isset($duplicateIbans[$memberIban]);
+                $shamLabel      = $cash === 'manual' ? 'يدوي' : 'نعم';
+                $shamBadgeClass = $cash === 'manual'
+                    ? 'text-amber-700 bg-amber-50 border-amber-300'
+                    : 'text-emerald-700 bg-emerald-50 border-emerald-200';
+            @endphp
+            <div class="member-row px-4 py-3.5 {{ $cardBg }}" data-id="{{ $member->id }}">
+
+                {{-- Header: checkbox + name + view button --}}
+                <div class="flex items-start gap-3 mb-2.5">
+                    <input type="checkbox" value="{{ $member->id }}" class="member-check mt-1 rounded border-gray-300 text-indigo-600 focus:ring-indigo-400 cursor-pointer shrink-0" onchange="updateCount()">
+                    <div class="flex-1 min-w-0 flex items-center justify-between gap-2">
+                        <span class="font-bold text-gray-900 text-sm leading-snug">{{ $member->full_name }}</span>
                         <a href="{{ route('members.show', $member) }}"
                            class="shrink-0 text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg px-2.5 py-1">
                             عرض
                         </a>
                     </div>
+                </div>
+
+                <div class="mr-7 space-y-2">
+
+                    {{-- IDs + phone --}}
                     <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
-                        <span class="font-mono">{{ $member->dossier_number ?? '—' }}</span>
-                        <span>{{ $member->national_id ?? '' }}</span>
-                        <span>{{ $member->phone ?? '' }}</span>
-                        @if($member->region)
-                            <span class="flex items-center gap-1">
-                                <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
-                                {{ $member->region->name }}
-                            </span>
+                        @if($member->dossier_number)
+                            <span class="font-mono font-semibold text-gray-700">{{ $member->dossier_number }}</span>
                         @endif
-                        @if($member->estimated_amount)
-                            <span class="font-semibold text-emerald-700">{{ number_format($member->estimated_amount, 0) }} ل.س</span>
+                        @if($member->national_id)
+                            <span class="font-mono">{{ $member->national_id }}</span>
+                        @endif
+                        @if($member->phone)
+                            <span>{{ $member->phone }}</span>
                         @endif
                     </div>
-                    <div class="flex flex-wrap gap-1.5 mt-1.5">
-                        @if($member->verificationStatus)
-                            <span class="text-xs font-semibold px-2 py-0.5 rounded-full border"
-                                  style="color:{{ $member->verificationStatus->color }};border-color:{{ $member->verificationStatus->color }}40;background:{{ $member->verificationStatus->color }}15">
-                                {{ $member->verificationStatus->name }}
+
+                    {{-- Region / Delegate / Second person --}}
+                    @if($member->region || $member->delegate || $member->second_person)
+                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                        @if($member->region)
+                            <span class="flex items-center gap-1">
+                                <svg class="w-3 h-3 text-violet-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
+                                <span class="font-medium text-gray-700">{{ $member->region->name }}</span>
                             </span>
                         @endif
-                        @if($member->finalStatus)
-                            <span class="text-xs font-semibold px-2 py-0.5 rounded-full border"
-                                  style="color:{{ $member->finalStatus->color }};border-color:{{ $member->finalStatus->color }}40;background:{{ $member->finalStatus->color }}15">
-                                {{ $member->finalStatus->name }}
-                            </span>
+                        @if($member->delegate)
+                            <span class="text-gray-500">مندوب: <span class="font-medium text-gray-700">{{ $member->delegate }}</span></span>
+                        @endif
+                        @if($member->second_person)
+                            <span class="text-gray-500">فرد 2: <span class="font-medium text-gray-700">{{ $member->second_person }}</span></span>
+                        @endif
+                    </div>
+                    @endif
+
+                    {{-- Marital status / Network / Housing --}}
+                    <div class="flex flex-wrap gap-1.5">
+                        @if($member->marital_status)
+                            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-100">{{ $member->marital_status }}</span>
+                        @endif
+                        @if($member->network)
+                            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-cyan-50 text-cyan-700 border border-cyan-100">{{ $member->network }}</span>
                         @endif
                         @if($member->housingStatus)
                             <span class="text-xs font-semibold px-2 py-0.5 rounded-full border"
@@ -973,6 +1020,93 @@
                             </span>
                         @endif
                     </div>
+
+                    {{-- Sham cash --}}
+                    @if($cash)
+                    <div>
+                        @if($ibanDuplicated)
+                            <a href="{{ route('payment-review.duplicate-ibans', ['search' => $memberIban]) }}"
+                               title="آيبان مكرر: {{ $memberIban }}"
+                               class="inline-flex items-center gap-1 text-xs font-semibold text-red-700 bg-red-50 border border-red-300 rounded-full px-2.5 py-0.5">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                                شام كاش: {{ $shamLabel }}
+                            </a>
+                        @else
+                            <span class="inline-flex items-center gap-1 text-xs font-semibold {{ $shamBadgeClass }} border rounded-full px-2.5 py-0.5">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                شام كاش: {{ $shamLabel }}
+                            </span>
+                        @endif
+                    </div>
+                    @endif
+
+                    {{-- Verification + Final status --}}
+                    <div class="flex flex-wrap gap-1.5 items-center">
+                        @if($member->verificationStatus)
+                            <span class="text-xs font-semibold px-2 py-0.5 rounded-full border"
+                                  style="color:{{ $member->verificationStatus->color }};border-color:{{ $member->verificationStatus->color }}40;background:{{ $member->verificationStatus->color }}15">
+                                {{ $member->verificationStatus->name }}
+                            </span>
+                        @endif
+                        @if(auth()->user()?->role === 'admin')
+                            <form method="POST" action="{{ route('members.final-status.update', $member) }}" class="inline-block">
+                                @csrf @method('PATCH')
+                                <select name="final_status_id" onchange="this.form.submit()"
+                                        class="text-xs font-semibold rounded-full px-2 py-0.5 border cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all"
+                                        style="@if($member->finalStatus) background:{{ $member->finalStatus->color }}18;color:{{ $member->finalStatus->color }};border-color:{{ $member->finalStatus->color }}40 @else background:#f9fafb;color:#9ca3af;border-color:#e5e7eb @endif">
+                                    <option value="">— بدون —</option>
+                                    @foreach($finalStatusList as $fs)
+                                        <option value="{{ $fs->id }}" {{ $member->final_status_id == $fs->id ? 'selected' : '' }}>{{ $fs->name }}</option>
+                                    @endforeach
+                                </select>
+                            </form>
+                        @elseif($member->finalStatus)
+                            <span class="text-xs font-semibold px-2 py-0.5 rounded-full border"
+                                  style="color:{{ $member->finalStatus->color }};border-color:{{ $member->finalStatus->color }}40;background:{{ $member->finalStatus->color }}15">
+                                {{ $member->finalStatus->name }}
+                            </span>
+                        @endif
+                    </div>
+
+                    {{-- Field visit --}}
+                    @if($latestVisit)
+                    <div class="flex flex-wrap items-center gap-2 text-xs">
+                        @if($latestVisit->status)
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold text-white"
+                                  style="background:{{ $latestVisit->status->color }}">
+                                {{ $latestVisit->status->name }}
+                            </span>
+                        @else
+                            <span class="text-gray-400">جولة بدون حالة</span>
+                        @endif
+                        @if($latestVisit->visit_date)
+                            <span class="text-gray-400">{{ $latestVisit->visit_date->format('Y/m/d') }}</span>
+                        @endif
+                        @if($latestVisit->visitor)
+                            <span class="text-gray-500">{{ $latestVisit->visitor }}</span>
+                        @endif
+                    </div>
+                    @endif
+
+                    {{-- Amounts + payments --}}
+                    <div class="flex flex-wrap items-center gap-2">
+                        @if($member->estimated_amount)
+                            <span class="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-0.5">
+                                مقدر: {{ number_format($member->estimated_amount, 0) }}
+                            </span>
+                        @endif
+                        @if($memberFinal > 0)
+                            <span class="inline-flex items-center gap-1 text-xs font-bold text-purple-700 bg-purple-50 border border-purple-100 rounded-lg px-2 py-0.5">
+                                نهائي: {{ number_format($memberFinal, 0) }}
+                            </span>
+                        @endif
+                        @if($member->payments_count !== null)
+                            <span class="inline-flex items-center gap-1 text-xs font-bold text-sky-700 bg-sky-50 border border-sky-100 rounded-lg px-2 py-0.5">
+                                {{ $member->payments_count }} دفعة
+                            </span>
+                        @endif
+                    </div>
+
                 </div>
             </div>
             @endforeach
