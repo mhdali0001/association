@@ -36,6 +36,7 @@ class PendingChangeController extends Controller
         $dateFrom    = trim($request->get('date_from', ''));
         $dateTo      = trim($request->get('date_to', ''));
         $requestedBy = trim($request->get('requested_by', ''));
+        $visitorName = trim($request->get('visitor_name', ''));
 
         $orderBy = ($status === 'rejected' || $status === 'approved') ? 'reviewed_at' : 'created_at';
         $query = PendingChange::with('requester', 'reviewer')->orderBy($orderBy, 'desc');
@@ -46,11 +47,12 @@ class PendingChangeController extends Controller
         if ($requestedBy !== '') $query->where('requested_by', $requestedBy);
         if ($dateFrom    !== '') $query->whereDate('created_at', '>=', $dateFrom);
         if ($dateTo      !== '') $query->whereDate('created_at', '<=', $dateTo);
+        if ($visitorName !== '') $query->where('payload->visitor', 'like', "%{$visitorName}%");
 
         $changes = $query->paginate(20)->withQueryString();
 
         // Base query for counts — applies same filters except status
-        $hasFilters = $modelType !== '' || $requestedBy !== '' || $dateFrom !== '' || $dateTo !== '';
+        $hasFilters = $modelType !== '' || $requestedBy !== '' || $dateFrom !== '' || $dateTo !== '' || $visitorName !== '';
         if ($hasFilters) {
             $countBase = PendingChange::query();
             if ($type)           $countBase->where('model_type', $type);
@@ -58,6 +60,7 @@ class PendingChangeController extends Controller
             if ($requestedBy !== '') $countBase->where('requested_by', $requestedBy);
             if ($dateFrom    !== '') $countBase->whereDate('created_at', '>=', $dateFrom);
             if ($dateTo      !== '') $countBase->whereDate('created_at', '<=', $dateTo);
+            if ($visitorName !== '') $countBase->where('payload->visitor', 'like', "%{$visitorName}%");
             $pendingCount  = (clone $countBase)->where('status', 'pending')->count();
             $approvedCount = (clone $countBase)->where('status', 'approved')->count();
             $rejectedCount = (clone $countBase)->where('status', 'rejected')->count();
@@ -106,7 +109,7 @@ class PendingChangeController extends Controller
             }
         }
 
-        return view('pending-changes.index', compact('changes', 'status', 'pendingCount', 'approvedCount', 'rejectedCount', 'totalCount', 'dossierMap', 'visitDossierMap', 'dateFrom', 'dateTo', 'modelType', 'requestedBy', 'usersList'));
+        return view('pending-changes.index', compact('changes', 'status', 'pendingCount', 'approvedCount', 'rejectedCount', 'totalCount', 'dossierMap', 'visitDossierMap', 'dateFrom', 'dateTo', 'modelType', 'requestedBy', 'visitorName', 'usersList'));
     }
 
     public function show(PendingChange $pendingChange)

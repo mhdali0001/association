@@ -52,7 +52,7 @@
         'illness_score'          => ['label' => 'المرض',    'max' => 5,  'labelActive' => 'text-rose-600',   'active' => 'bg-rose-50 text-rose-700 border-rose-300'],
         'special_cases_score'    => ['label' => 'الخاصة',   'max' => 10, 'labelActive' => 'text-purple-600', 'active' => 'bg-purple-50 text-purple-700 border-purple-300'],
     ];
-    $hasActiveScoreFilter = collect($scoreFilters)->contains(fn($v) => $v !== '');
+    $hasActiveScoreFilter = collect($scoreFilters)->contains(fn($v) => !empty($v));
     $hasAnyFilter = $search || $hasScores !== '' || $hasActiveScoreFilter;
 @endphp
 
@@ -117,23 +117,32 @@
             </div>
             <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
                 @foreach($componentMeta as $col => $meta)
-                @php $current = $scoreFilters[$col] ?? ''; @endphp
+                @php $current = (array)($scoreFilters[$col] ?? []); @endphp
                 <div>
-                    <label class="block text-xs font-semibold mb-1 {{ $current !== '' ? $meta['labelActive'] : 'text-gray-500' }}">
+                    <label class="block text-xs font-semibold mb-1 {{ !empty($current) ? $meta['labelActive'] : 'text-gray-500' }}">
                         {{ $meta['label'] }}
                         <span class="font-normal text-gray-300">/{{ $meta['max'] }}</span>
                     </label>
-                    <select name="sf_{{ $col }}"
-                            class="w-full text-xs border rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-violet-400 transition
-                                {{ $current !== '' ? $meta['active'] : 'bg-white border-gray-200 text-gray-700' }}">
-                        <option value="">الكل</option>
-                        <option value="0" {{ $current === '0' ? 'selected' : '' }}>بدون نقاط</option>
-                        @for($i = 1; $i <= $meta['max']; $i++)
-                            <option value="{{ $i }}" {{ (string)$current === (string)$i ? 'selected' : '' }}>
-                                {{ $i }}
-                            </option>
+                    <div class="sf-chips flex flex-wrap gap-0.5" data-col="{{ $col }}">
+                        @for($i = 0; $i <= $meta['max']; $i++)
+                            @php $isActive = in_array((string)$i, $current); @endphp
+                            <button type="button"
+                                    class="sf-chip text-[10px] font-semibold px-1.5 py-0.5 rounded border transition-all select-none
+                                           {{ $isActive ? $meta['active'] : 'bg-white border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600' }}"
+                                    data-active="{{ $isActive ? 'true' : 'false' }}"
+                                    data-active-class="{{ $meta['active'] }}"
+                                    data-inactive-class="bg-white border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600"
+                                    data-val="{{ $i }}"
+                                    onclick="toggleScoreChip(this, '{{ $col }}')">
+                                {{ $i === 0 ? '—' : $i }}
+                            </button>
                         @endfor
-                    </select>
+                    </div>
+                    <div id="sf-inputs-{{ $col }}">
+                        @foreach($current as $v)
+                            <input type="hidden" name="sf_{{ $col }}[]" value="{{ $v }}">
+                        @endforeach
+                    </div>
                 </div>
                 @endforeach
             </div>
@@ -166,10 +175,10 @@
                     <input type="number" name="work_score" min="0" max="2" placeholder="—"
                            class="w-14 text-center text-xs border border-blue-200 bg-blue-50 rounded-lg px-1 py-1.5 focus:ring-2 focus:ring-blue-400 focus:outline-none">
                 </div>
-                <div class="flex flex-col gap-0.5 opacity-50 cursor-not-allowed" title="نقاط السكن مجمّدة ولا يمكن تعديلها">
-                    <label class="text-[10px] font-bold text-teal-600 text-center cursor-not-allowed">سكن /4 <span class="text-gray-400">(مجمّد)</span></label>
-                    <input type="number" name="housing_score" min="0" max="4" placeholder="—" disabled
-                           class="w-14 text-center text-xs border border-teal-200 bg-teal-50 rounded-lg px-1 py-1.5 cursor-not-allowed">
+                <div class="flex flex-col gap-0.5">
+                    <label class="text-[10px] font-bold text-teal-600 text-center">سكن /4</label>
+                    <input type="number" name="housing_score" min="0" max="4" placeholder="—"
+                           class="w-14 text-center text-xs border border-teal-200 bg-teal-50 rounded-lg px-1 py-1.5 focus:ring-2 focus:ring-teal-400 focus:outline-none">
                 </div>
                 <div class="flex flex-col gap-0.5">
                     <label class="text-[10px] font-bold text-amber-600 text-center">معالون /20</label>
@@ -225,11 +234,9 @@
                     class="excl-chip inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 transition-all hover:opacity-80 select-none">
                 <span class="w-2 h-2 rounded-full bg-blue-400 inline-block"></span>العمل
             </button>
-            <button type="button" data-key="hs" disabled
-                    class="excl-chip chip-off inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border cursor-not-allowed select-none"
-                    title="نقاط السكن مجمّدة — مستثناة دائماً من الحساب المخصص">
-                <span class="w-2 h-2 rounded-full bg-gray-400 inline-block"></span>السكن
-                <span class="text-[10px] bg-gray-200 text-gray-500 px-1 py-0.5 rounded font-bold">مجمّد</span>
+            <button type="button" data-key="hs" onclick="toggleExclude(this)"
+                    class="excl-chip inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border border-teal-200 bg-teal-50 text-teal-700 transition-all hover:opacity-80 select-none">
+                <span class="w-2 h-2 rounded-full bg-teal-400 inline-block"></span>السكن
             </button>
             <button type="button" data-key="ds"  onclick="toggleExclude(this)"
                     class="excl-chip inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-700 transition-all hover:opacity-80 select-none">
@@ -562,13 +569,12 @@
                         <input type="number" name="work_score" id="f-work" min="0" max="2"
                                class="w-full border border-blue-200 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-400 focus:outline-none" oninput="calcPreview()">
                     </div>
-                    <div class="bg-teal-50/50 border border-teal-100 rounded-xl p-3 opacity-60 cursor-not-allowed" title="نقاط السكن مجمّدة ولا يمكن تعديلها">
-                        <label class="block text-xs font-bold text-teal-600 mb-1.5 flex items-center gap-1.5 cursor-not-allowed">
+                    <div class="bg-teal-50/50 border border-teal-100 rounded-xl p-3">
+                        <label class="block text-xs font-bold text-teal-600 mb-1.5">
                             السكن <span class="text-teal-300 font-normal">(0 – 4)</span>
-                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-200 text-gray-500">مجمّد</span>
                         </label>
-                        <input type="number" name="housing_score" id="f-housing" min="0" max="4" readonly
-                               class="w-full border border-teal-200 rounded-lg px-3 py-2 text-sm bg-gray-50 cursor-not-allowed focus:outline-none">
+                        <input type="number" name="housing_score" id="f-housing" min="0" max="4"
+                               class="w-full border border-teal-200 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-teal-400 focus:outline-none" oninput="calcPreview()">
                     </div>
                     <div class="bg-amber-50/50 border border-amber-100 rounded-xl p-3">
                         <label class="block text-xs font-bold text-amber-600 mb-1.5">المعالون <span class="text-amber-300 font-normal">(0 – 20)</span></label>
@@ -659,11 +665,38 @@
 </style>
 
 <script>
+/* ── Per-component score chips ── */
+function toggleScoreChip(btn, col) {
+    const nowActive = btn.dataset.active !== 'true';
+    btn.dataset.active = String(nowActive);
+
+    const activeClasses   = btn.dataset.activeClass.split(' ').filter(Boolean);
+    const inactiveClasses = btn.dataset.inactiveClass.split(' ').filter(Boolean);
+
+    if (nowActive) {
+        inactiveClasses.forEach(c => btn.classList.remove(c));
+        activeClasses.forEach(c => btn.classList.add(c));
+    } else {
+        activeClasses.forEach(c => btn.classList.remove(c));
+        inactiveClasses.forEach(c => btn.classList.add(c));
+    }
+
+    const container = document.getElementById('sf-inputs-' + col);
+    container.innerHTML = '';
+    btn.closest('.sf-chips').querySelectorAll('button[data-active="true"]').forEach(activeBtn => {
+        const inp = document.createElement('input');
+        inp.type  = 'hidden';
+        inp.name  = 'sf_' + col + '[]';
+        inp.value = activeBtn.dataset.val;
+        container.appendChild(inp);
+    });
+}
+
 /* ── Exclusion panel ── */
 const allPageIds = @json($allIds);
 let allPagesSelected = false;
 
-const excluded = { ws: false, hs: true, ds: false, dss: false, is: false, ss: false, add: false, fv: false };
+const excluded = { ws: false, hs: false, ds: false, dss: false, is: false, ss: false, add: false, fv: false };
 
 function toggleExclude(btn) {
     const key = btn.dataset.key;
@@ -673,8 +706,8 @@ function toggleExclude(btn) {
 }
 
 function resetExclusions() {
-    Object.keys(excluded).forEach(k => { if (k !== 'hs') excluded[k] = false; });
-    document.querySelectorAll('.excl-chip:not([disabled])').forEach(btn => btn.classList.remove('chip-off'));
+    Object.keys(excluded).forEach(k => { excluded[k] = false; });
+    document.querySelectorAll('.excl-chip').forEach(btn => btn.classList.remove('chip-off'));
     recalcAll();
 }
 
@@ -810,7 +843,7 @@ function calcPreview() {
     const ss  = clamp(document.getElementById('f-special').value, 10);
     const add = Math.max(0, parseInt(document.getElementById('f-addition').value) || 0);
     const ded = Math.max(0, parseInt(document.getElementById('f-deduction').value) || 0);
-    const total = Math.max(0, ws + ds + dss + is_ + ss + add - ded);
+    const total = Math.max(0, ws + hs + ds + dss + is_ + ss + add - ded);
     document.getElementById('preview-total').textContent  = total;
     document.getElementById('preview-amount').textContent = total > 0
         ? 'المبلغ المقدر: ' + (total * 500).toLocaleString('ar-SY') + ' ل.س'

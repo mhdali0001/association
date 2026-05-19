@@ -33,7 +33,7 @@
 </div>
 
 {{-- Stats row --}}
-@php $hasActiveFilters = $modelType !== '' || $requestedBy !== '' || $dateFrom !== '' || $dateTo !== ''; @endphp
+@php $hasActiveFilters = $modelType !== '' || $requestedBy !== '' || $dateFrom !== '' || $dateTo !== '' || $visitorName !== ''; @endphp
 <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center gap-3">
         <div class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
@@ -92,7 +92,7 @@
 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-6">
     <div class="flex border-b border-gray-100">
         @foreach(['pending' => ['label' => 'معلّقة', 'color' => 'amber'], 'approved' => ['label' => 'موافق عليها', 'color' => 'emerald'], 'rejected' => ['label' => 'مرفوضة', 'color' => 'red']] as $s => $info)
-            <a href="{{ route('pending-changes.index', array_filter(['status' => $s, 'date_from' => $dateFrom, 'date_to' => $dateTo, 'model_type' => $modelType, 'requested_by' => $requestedBy], fn($v) => $v !== '')) }}"
+            <a href="{{ route('pending-changes.index', array_filter(['status' => $s, 'date_from' => $dateFrom, 'date_to' => $dateTo, 'model_type' => $modelType, 'requested_by' => $requestedBy, 'visitor_name' => $visitorName], fn($v) => $v !== '')) }}"
                class="flex-1 text-center py-3.5 text-sm font-semibold transition-colors border-b-2 {{ $status === $s ? 'border-'.$info['color'].'-500 text-'.$info['color'].'-600 bg-'.$info['color'].'-50/50' : 'border-transparent text-gray-400 hover:text-gray-600' }}">
                 {{ $info['label'] }}
                 @if($s === 'pending' && $pendingCount > 0)
@@ -122,7 +122,7 @@
             ];
             @endphp
             @foreach($modelTypes as $val => $lbl)
-                <a href="{{ route('pending-changes.index', array_filter(['status' => $status, 'model_type' => $val, 'date_from' => $dateFrom, 'date_to' => $dateTo, 'requested_by' => $requestedBy], fn($v) => $v !== '')) }}"
+                <a href="{{ route('pending-changes.index', array_filter(['status' => $status, 'model_type' => $val, 'date_from' => $dateFrom, 'date_to' => $dateTo, 'requested_by' => $requestedBy, 'visitor_name' => $visitorName], fn($v) => $v !== '')) }}"
                    class="px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all
                        {{ $modelType === $val
                            ? 'bg-amber-500 text-white border-amber-500'
@@ -132,7 +132,7 @@
             @endforeach
         </div>
 
-        {{-- Requester + Date range (single form) --}}
+        {{-- Requester + Visitor + Date range (single form) --}}
         <form method="GET" action="{{ route('pending-changes.index') }}" class="flex items-center gap-2 flex-wrap">
             <input type="hidden" name="status" value="{{ $status }}">
             <input type="hidden" name="model_type" value="{{ $modelType }}">
@@ -149,6 +149,15 @@
 
             <span class="text-xs text-gray-300 mx-1">|</span>
 
+            {{-- Visitor name --}}
+            <span class="text-xs font-semibold text-gray-500 shrink-0">اسم الزائر:</span>
+            <input type="text" name="visitor_name" value="{{ $visitorName }}"
+                   placeholder="ابحث بالاسم..."
+                   class="text-sm border rounded-xl px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 transition min-w-[140px]
+                          {{ $visitorName !== '' ? 'border-amber-400 bg-amber-50/40' : 'border-gray-200' }}">
+
+            <span class="text-xs text-gray-300 mx-1">|</span>
+
             {{-- Date range --}}
             <span class="text-xs font-semibold text-gray-500 shrink-0">تاريخ الإضافة:</span>
             <input type="date" name="date_from" value="{{ $dateFrom }}"
@@ -160,7 +169,7 @@
                     class="text-sm bg-amber-500 hover:bg-amber-600 text-white font-semibold px-3 py-1.5 rounded-xl transition-colors">
                 تطبيق
             </button>
-            @if($dateFrom !== '' || $dateTo !== '' || $modelType !== '' || $requestedBy !== '')
+            @if($dateFrom !== '' || $dateTo !== '' || $modelType !== '' || $requestedBy !== '' || $visitorName !== '')
                 <a href="{{ route('pending-changes.index', ['status' => $status]) }}"
                    class="text-sm text-gray-400 hover:text-gray-600 underline">مسح الكل</a>
             @endif

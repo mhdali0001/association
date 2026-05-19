@@ -941,6 +941,8 @@
                     </div>
                     <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
                         <span class="font-mono">{{ $member->dossier_number ?? '—' }}</span>
+                        <span>{{ $member->national_id ?? '' }}</span>
+                        <span>{{ $member->phone ?? '' }}</span>
                         @if($member->region)
                             <span class="flex items-center gap-1">
                                 <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
@@ -948,7 +950,7 @@
                             </span>
                         @endif
                         @if($member->estimated_amount)
-                            <span class="font-semibold text-gray-700">{{ number_format($member->estimated_amount, 0) }} ل.س</span>
+                            <span class="font-semibold text-emerald-700">{{ number_format($member->estimated_amount, 0) }} ل.س</span>
                         @endif
                     </div>
                     <div class="flex flex-wrap gap-1.5 mt-1.5">
@@ -964,6 +966,12 @@
                                 {{ $member->finalStatus->name }}
                             </span>
                         @endif
+                        @if($member->housingStatus)
+                            <span class="text-xs font-semibold px-2 py-0.5 rounded-full border"
+                                  style="background:{{ $member->housingStatus->color }}22;color:{{ $member->housingStatus->color }};border-color:{{ $member->housingStatus->color }}44">
+                                {{ $member->housingStatus->name }}
+                            </span>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -974,53 +982,201 @@
         <div class="hidden sm:block overflow-x-auto">
             <table class="w-full text-right text-sm">
                 <thead>
-                    <tr class="bg-gray-50 border-b border-gray-100">
-                        <th class="w-10 px-4 py-3">
+                    <tr class="bg-gray-50/70 border-b border-gray-100">
+                        <th class="w-10 px-4 py-3.5">
                             <input type="checkbox" id="check-all" onchange="toggleAll(this)"
                                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-400 cursor-pointer">
                         </th>
-                        <th class="font-semibold text-gray-500 px-4 py-3">رقم الاضبارة</th>
-                        <th class="font-semibold text-gray-500 px-4 py-3">الاسم الكامل</th>
-                        <th class="font-semibold text-gray-500 px-4 py-3">المنطقة</th>
-                        <th class="font-semibold text-gray-500 px-4 py-3">حالة التحقق</th>
-                        <th class="font-semibold text-gray-500 px-4 py-3">الحالة النهائية</th>
-                        <th class="font-semibold text-gray-500 px-4 py-3">المبلغ المقدر</th>
-                        <th class="px-4 py-3"></th>
+                        <th class="font-semibold text-gray-500 text-sm px-4 py-3.5 text-right">رقم الملف</th>
+                        <th class="font-semibold text-gray-500 text-sm px-4 py-3.5 text-right">العضو</th>
+                        <th class="font-semibold text-gray-500 text-sm px-4 py-3.5 text-right">رقم الهوية</th>
+                        <th class="font-semibold text-gray-500 text-sm px-4 py-3.5 text-right">الهاتف</th>
+                        <th class="font-semibold text-gray-500 text-sm px-4 py-3.5 text-right">المنطقة</th>
+                        <th class="font-semibold text-gray-500 text-sm px-4 py-3.5 text-right">المندوب</th>
+                        <th class="font-semibold text-gray-500 text-sm px-4 py-3.5 text-right">الفرد الثاني</th>
+                        <th class="font-semibold text-gray-500 text-sm px-4 py-3.5 text-right">وضع السكن</th>
+                        <th class="font-semibold text-gray-500 text-sm px-4 py-3.5 text-right">نوع الشبكة</th>
+                        <th class="font-semibold text-gray-500 text-sm px-4 py-3.5 text-right">الحالة الاجتماعية</th>
+                        <th class="font-semibold text-gray-500 text-sm px-4 py-3.5 text-right">شام كاش</th>
+                        <th class="font-semibold text-gray-500 text-sm px-4 py-3.5 text-right">حالة التحقق</th>
+                        <th class="font-semibold text-gray-500 text-sm px-4 py-3.5 text-right">الحالة النهائية</th>
+                        <th class="font-semibold text-gray-500 text-sm px-4 py-3.5 text-right">الجولة الميدانية</th>
+                        <th class="font-semibold text-gray-500 text-sm px-4 py-3.5 text-right">المبلغ المقدر</th>
+                        <th class="font-semibold text-gray-500 text-sm px-4 py-3.5 text-right">المبلغ النهائي</th>
+                        <th class="font-semibold text-gray-500 text-sm px-4 py-3.5 text-right">الدفعات</th>
+                        <th class="px-4 py-3.5"></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
                     @foreach($members as $member)
-                    <tr class="hover:bg-indigo-50/30 transition-colors member-row" data-id="{{ $member->id }}">
-                        <td class="px-4 py-3.5">
+                    @php
+                        $sn   = $member->verificationStatus?->name ?? '';
+                        $cash = $member->sham_cash_account;
+                        if (str_contains($sn, 'رفض')) {
+                            $trClass = 'dark-row bg-rose-200 hover:bg-rose-300 divide-rose-300';
+                        } elseif (str_contains($sn, 'طلب إلغاء')) {
+                            $trClass = 'dark-row bg-orange-200 hover:bg-orange-300 divide-orange-300';
+                        } elseif (str_contains($sn, 'تقييد')) {
+                            $trClass = 'dark-row bg-violet-200 hover:bg-violet-300 divide-violet-300';
+                        } elseif (str_contains($sn, 'تكرار')) {
+                            $trClass = 'bg-red-50 hover:bg-red-100 divide-red-100';
+                        } elseif (str_contains($sn, 'تم') && $cash) {
+                            $trClass = 'bg-emerald-50 hover:bg-emerald-100 divide-emerald-100';
+                        } elseif (str_contains($sn, 'تم') && !$cash) {
+                            $trClass = 'bg-blue-50 hover:bg-blue-100 divide-blue-100';
+                        } elseif (str_contains($sn, 'نقص')) {
+                            $trClass = 'bg-amber-50 hover:bg-amber-100 divide-amber-100';
+                        } else {
+                            $trClass = 'hover:bg-gray-50 divide-gray-50';
+                        }
+                        $latestVisit  = $member->fieldVisits->first();
+                        $memberFinal  = ($member->estimated_amount ?? 0) + ($latestVisit?->estimated_amount ?? 0);
+                    @endphp
+                    <tr class="transition-colors group {{ $trClass }}">
+                        <td class="px-4 py-4">
                             <input type="checkbox" value="{{ $member->id }}" class="member-check rounded border-gray-300 text-indigo-600 focus:ring-indigo-400 cursor-pointer" onchange="updateCount()">
                         </td>
-                        <td class="px-4 py-3.5 text-gray-500 font-mono text-xs">{{ $member->dossier_number ?? '—' }}</td>
-                        <td class="px-4 py-3.5 font-semibold text-gray-800">{{ $member->full_name }}</td>
-                        <td class="px-4 py-3.5 text-gray-600">{{ $member->region?->name ?? '—' }}</td>
-                        <td class="px-4 py-3.5">
+                        <td class="px-4 py-4 text-gray-800 font-mono font-semibold text-sm">{{ $member->dossier_number ?? '—' }}</td>
+                        <td class="px-4 py-4">
+                            <span class="font-bold text-gray-900 text-base group-hover:text-indigo-700 transition-colors">
+                                {{ $member->full_name }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-4 text-gray-800 font-mono font-semibold text-sm">{{ $member->national_id ?? '—' }}</td>
+                        <td class="px-4 py-4 text-gray-800 font-semibold text-sm">{{ $member->phone ?? '—' }}</td>
+                        <td class="px-4 py-4 text-gray-700 text-sm">{{ $member->region?->name ?? '—' }}</td>
+                        <td class="px-4 py-4 text-gray-700 text-sm">{{ $member->delegate ?? '—' }}</td>
+                        <td class="px-4 py-4 text-gray-700 text-sm">{{ $member->second_person ?? '—' }}</td>
+                        <td class="px-4 py-4">
+                            @if($member->housingStatus)
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border"
+                                      style="background:{{ $member->housingStatus->color }}22;color:{{ $member->housingStatus->color }};border-color:{{ $member->housingStatus->color }}44">
+                                    {{ $member->housingStatus->name }}
+                                </span>
+                            @else
+                                <span class="text-gray-400 text-sm">—</span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-4">
+                            @if($member->network)
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-semibold bg-cyan-50 text-cyan-700 border border-cyan-100">
+                                    {{ $member->network }}
+                                </span>
+                            @else
+                                <span class="text-gray-300 text-sm">—</span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-4">
+                            @if($member->marital_status)
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-semibold bg-purple-50 text-purple-700 border border-purple-100">
+                                    {{ $member->marital_status }}
+                                </span>
+                            @else
+                                <span class="text-gray-300 text-sm">—</span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-4 text-center">
+                            @if($member->sham_cash_account)
+                                @php
+                                    $memberIban     = trim($member->paymentInfo?->iban ?? '');
+                                    $ibanDuplicated = $memberIban !== '' && isset($duplicateIbans[$memberIban]);
+                                    $shamLabel      = $member->sham_cash_account === 'manual' ? 'يدوي' : 'نعم';
+                                    $shamBadgeClass = $member->sham_cash_account === 'manual'
+                                        ? 'text-amber-700 bg-amber-50 border-amber-300'
+                                        : 'text-emerald-700 bg-emerald-50 border-emerald-200';
+                                @endphp
+                                @if($ibanDuplicated)
+                                    <a href="{{ route('payment-review.duplicate-ibans', ['search' => $memberIban]) }}"
+                                       title="آيبان مكرر: {{ $memberIban }}"
+                                       class="inline-flex items-center gap-1 text-sm font-semibold text-red-700 bg-red-50 border border-red-300 rounded-full px-2.5 py-0.5 hover:bg-red-100 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                                        {{ $shamLabel }}
+                                    </a>
+                                @else
+                                    <span class="inline-flex items-center gap-1 text-sm font-semibold {{ $shamBadgeClass }} border rounded-full px-2.5 py-0.5">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                        {{ $shamLabel }}
+                                    </span>
+                                @endif
+                            @else
+                                <span class="text-sm text-gray-300 font-medium">لا</span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-4">
                             @if($member->verificationStatus)
-                                <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border"
-                                      style="color:{{ $member->verificationStatus->color }};border-color:{{ $member->verificationStatus->color }}40;background:{{ $member->verificationStatus->color }}15">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold border"
+                                      style="background:{{ $member->verificationStatus->color }}18;color:{{ $member->verificationStatus->color }};border-color:{{ $member->verificationStatus->color }}40">
+                                    <span class="w-2 h-2 rounded-full flex-shrink-0" style="background:{{ $member->verificationStatus->color }}"></span>
                                     {{ $member->verificationStatus->name }}
                                 </span>
                             @else
-                                <span class="text-gray-300">—</span>
+                                <span class="text-gray-300 text-sm">—</span>
                             @endif
                         </td>
-                        <td class="px-4 py-3.5">
-                            @if($member->finalStatus)
-                                <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border"
-                                      style="color:{{ $member->finalStatus->color }};border-color:{{ $member->finalStatus->color }}40;background:{{ $member->finalStatus->color }}15">
-                                    {{ $member->finalStatus->name }}
+                        <td class="px-4 py-4">
+                            @if(auth()->user()?->role === 'admin')
+                                <form method="POST" action="{{ route('members.final-status.update', $member) }}" class="inline-block">
+                                    @csrf @method('PATCH')
+                                    <select name="final_status_id" onchange="this.form.submit()"
+                                            class="text-sm font-semibold rounded-full px-2.5 py-1 border cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all"
+                                            style="@if($member->finalStatus) background:{{ $member->finalStatus->color }}18;color:{{ $member->finalStatus->color }};border-color:{{ $member->finalStatus->color }}40 @else background:#f9fafb;color:#9ca3af;border-color:#e5e7eb @endif">
+                                        <option value="">— بدون —</option>
+                                        @foreach($finalStatusList as $fs)
+                                            <option value="{{ $fs->id }}" {{ $member->final_status_id == $fs->id ? 'selected' : '' }}>{{ $fs->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </form>
+                            @else
+                                @if($member->finalStatus)
+                                    <span class="text-sm font-semibold rounded-full px-2.5 py-1 border"
+                                          style="background:{{ $member->finalStatus->color }}18;color:{{ $member->finalStatus->color }};border-color:{{ $member->finalStatus->color }}40">
+                                        {{ $member->finalStatus->name }}
+                                    </span>
+                                @else
+                                    <span class="text-gray-300 text-sm">—</span>
+                                @endif
+                            @endif
+                        </td>
+                        <td class="px-4 py-4">
+                            @if($latestVisit?->status)
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold text-white"
+                                      style="background:{{ $latestVisit->status->color }}">
+                                    {{ $latestVisit->status->name }}
+                                </span>
+                            @elseif($latestVisit)
+                                <span class="text-xs text-gray-400 font-medium">{{ $latestVisit->visit_date?->format('Y/m/d') ?? 'جولة بدون حالة' }}</span>
+                            @else
+                                <span class="text-gray-300 text-sm">—</span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-4">
+                            @if($member->estimated_amount)
+                                <span class="inline-flex items-center gap-1 text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1">
+                                    {{ number_format($member->estimated_amount, 0) }}
                                 </span>
                             @else
-                                <span class="text-gray-300">—</span>
+                                <span class="text-gray-300 text-sm">—</span>
                             @endif
                         </td>
-                        <td class="px-4 py-3.5 font-semibold text-gray-700">
-                            {{ $member->estimated_amount ? number_format($member->estimated_amount, 0) . ' ل.س' : '—' }}
+                        <td class="px-4 py-4">
+                            @if($memberFinal > 0)
+                                <span class="inline-flex items-center gap-1 text-sm font-bold text-purple-700 bg-purple-50 border border-purple-100 rounded-lg px-2.5 py-1">
+                                    {{ number_format($memberFinal, 0) }}
+                                </span>
+                            @else
+                                <span class="text-gray-300 text-sm">—</span>
+                            @endif
                         </td>
-                        <td class="px-4 py-3.5">
+                        <td class="px-4 py-4">
+                            @if($member->payments_count !== null)
+                                <span class="inline-flex items-center gap-1 text-sm font-bold text-sky-700 bg-sky-50 border border-sky-100 rounded-lg px-2.5 py-1">
+                                    {{ $member->payments_count }}
+                                </span>
+                            @else
+                                <span class="text-gray-300 text-sm">—</span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-4">
                             <a href="{{ route('members.show', $member) }}"
                                class="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg px-2.5 py-1 transition-colors">
                                 عرض

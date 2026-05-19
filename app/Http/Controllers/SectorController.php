@@ -17,9 +17,11 @@ use App\Models\Region;
 use App\Models\Sector;
 use App\Models\User;
 use App\Models\VerificationStatus;
+use App\Exports\MembersExport;
 use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Maatwebsite\Excel\Facades\Excel;
 
 class SectorController extends Controller
 {
@@ -90,15 +92,8 @@ class SectorController extends Controller
         return (new \App\Exports\SectorsMembersExport($ids))->download($filename);
     }
 
-    public function exportSingle(Sector $sector)
-    {
-        $this->adminOnly();
-        $sector->load(['members' => fn($q) => $q->with('paymentInfo')->orderByRaw('CAST(dossier_number AS UNSIGNED)')]);
-        $filename = $sector->name . '_' . now()->format('Y-m-d') . '.xlsx';
-        return (new \App\Exports\SectorSheetExport($sector))->download($filename);
-    }
 
-    private function buildMembersQuery(Request $request, Sector $sector): \Illuminate\Database\Eloquent\Builder
+    private function buildMembersQuery(Request $request, Sector $sector)
     {
         $search              = trim($request->get('search', ''));
         $dossierSearch       = trim($request->get('dossier_search', ''));
@@ -288,8 +283,18 @@ class SectorController extends Controller
         $fvCount             = trim($request->get('fv_count', ''));
 
         $members = $this->buildMembersQuery($request, $sector)
+                        ->with([
+                            'region', 'verificationStatus', 'finalStatus', 'housingStatus', 'paymentInfo',
+                            'fieldVisits' => fn($q) => $q->latest()->with('status'),
+                        ])
                         ->paginate(50)
                         ->withQueryString();
+
+        $finalStatusList = FinalStatus::active()->orderBy('name')->get();
+        $duplicateIbans  = \Illuminate\Support\Facades\DB::table('payment_info')
+            ->select('iban')->whereNotNull('iban')->where('iban', '!=', '')
+            ->groupBy('iban')->havingRaw('COUNT(*) > 1')
+            ->pluck('iban')->flip()->toArray();
 
         $allSectors             = Sector::active()->orderBy('name')->get();
         $sectorRegions          = $sector->regions()->withCount('members')->orderBy('name')->get();
@@ -325,7 +330,7 @@ class SectorController extends Controller
             || $hasFvFilters || $fvCount !== '';
 
         return view('sectors.show', compact(
-            'sector', 'members', 'allSectors',
+            'sector', 'members', 'finalStatusList', 'duplicateIbans', 'allSectors',
             'sectorRegions', 'availableRegions',
             'verificationStatuses', 'finalStatuses',
             'maritalStatusList', 'associationList', 'housingStatusList',
@@ -370,9 +375,10 @@ class SectorController extends Controller
     public function exportSingle(Request $request, Sector $sector)
     {
         $this->adminOnly();
-        $members  = $this->buildMembersQuery($request, $sector)->with('paymentInfo')->get();
+        $query = $this->buildMembersQuery($request, $sector)
+            ->orderByRaw('CAST(dossier_number AS UNSIGNED) ASC');
         $filename = $sector->name . '_' . now()->format('Y-m-d') . '.xlsx';
-        return (new \App\Exports\SectorSheetExport($sector, $members))->download($filename);
+        return Excel::download(new MembersExport($query), $filename);
     }
 
     public function store(Request $request)
