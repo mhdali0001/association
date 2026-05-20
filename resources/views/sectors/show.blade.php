@@ -1089,23 +1089,34 @@
                     @endif
 
                     {{-- Amounts + payments --}}
-                    <div class="flex flex-wrap items-center gap-2">
+                    @if($member->estimated_amount || $memberFinal > 0 || $member->payments_count !== null)
+                    <div class="grid grid-cols-2 gap-2">
                         @if($member->estimated_amount)
-                            <span class="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-0.5">
-                                مقدر: {{ number_format($member->estimated_amount, 0) }}
-                            </span>
+                        <div class="bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
+                            <p class="text-xs text-emerald-600 font-medium mb-0.5">المبلغ المقدر</p>
+                            <p class="text-sm font-black text-emerald-800 leading-none">
+                                {{ number_format($member->estimated_amount, 0) }}
+                                <span class="text-xs font-normal text-emerald-500">ل.س</span>
+                            </p>
+                        </div>
                         @endif
                         @if($memberFinal > 0)
-                            <span class="inline-flex items-center gap-1 text-xs font-bold text-purple-700 bg-purple-50 border border-purple-100 rounded-lg px-2 py-0.5">
-                                نهائي: {{ number_format($memberFinal, 0) }}
-                            </span>
+                        <div class="bg-purple-50 border border-purple-200 rounded-xl px-3 py-2">
+                            <p class="text-xs text-purple-600 font-medium mb-0.5">المبلغ النهائي</p>
+                            <p class="text-sm font-black text-purple-800 leading-none">
+                                {{ number_format($memberFinal, 0) }}
+                                <span class="text-xs font-normal text-purple-400">ل.س</span>
+                            </p>
+                        </div>
                         @endif
                         @if($member->payments_count !== null)
-                            <span class="inline-flex items-center gap-1 text-xs font-bold text-sky-700 bg-sky-50 border border-sky-100 rounded-lg px-2 py-0.5">
-                                {{ $member->payments_count }} دفعة
-                            </span>
+                        <div class="bg-sky-50 border border-sky-200 rounded-xl px-3 py-2 {{ (!$member->estimated_amount && !($memberFinal > 0)) ? 'col-span-2' : '' }}">
+                            <p class="text-xs text-sky-600 font-medium mb-0.5">الدفعات</p>
+                            <p class="text-sm font-black text-sky-800 leading-none">{{ $member->payments_count }} <span class="text-xs font-normal text-sky-400">دفعة</span></p>
+                        </div>
                         @endif
                     </div>
+                    @endif
 
                 </div>
             </div>
