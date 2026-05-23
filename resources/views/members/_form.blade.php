@@ -828,10 +828,8 @@ function selectFormRegion(id, name, sectorId, sectorName) {
     document.getElementById('form-region-panel').classList.add('hidden');
     document.getElementById('form-region-chevron').style.transform = '';
 
-    // Auto-select sector based on region
-    if (sectorId) {
-        selectFormSector(String(sectorId), sectorName);
-    }
+    // Auto-select sector based on region (always update, clearing if no sector)
+    selectFormSector(sectorId ? String(sectorId) : '', sectorName || '');
 }
 
 function filterFormRegions(q) {

@@ -60,10 +60,12 @@
         $labels = \App\Models\PendingChange::memberFieldLabels();
         $topFields = [
             'full_name','age','gender','mother_name','national_id','verification_status_id',
-            'dossier_number','current_address','marital_status','disease_type','phone','phone2',
-            'network','provider_status','job','housing_status','dependents_count','payments_count','notes',
+            'final_status_id','dossier_number','current_address','region_id','sector_id',
+            'marital_status','disease_type','phone','phone2','network','provider_status','job',
+            'housing_status_id','dependents_count','payments_count','notes',
             'illness_details','special_cases','special_cases_description','sham_cash_account',
-            'other_association','representative_id','delegate','association_id','score','estimated_amount',
+            'other_association','representative_id','delegate','second_person',
+            'data_entry_name','association_id','score','estimated_amount',
         ];
         $scoreFields   = ['work_score','housing_score','dependents_score','dependent_status_score','illness_score','special_cases_score'];
         $paymentFields = ['iban','barcode','data_entry_name'];
@@ -79,17 +81,25 @@
         : null;
 
     // Maps for ID → name resolution
-    $fvsMap       = \App\Models\FieldVisitStatus::pluck('name', 'id')->toArray();
-    $vsMap        = \App\Models\VerificationStatus::pluck('name', 'id')->toArray();
-    $houseTypeMap = \App\Models\HouseType::pluck('name', 'id')->toArray();
-    $houseCondMap = \App\Models\HouseCondition::pluck('name', 'id')->toArray();
+    $fvsMap         = \App\Models\FieldVisitStatus::pluck('name', 'id')->toArray();
+    $vsMap          = \App\Models\VerificationStatus::pluck('name', 'id')->toArray();
+    $houseTypeMap   = \App\Models\HouseType::pluck('name', 'id')->toArray();
+    $houseCondMap   = \App\Models\HouseCondition::pluck('name', 'id')->toArray();
+    $regionMap      = \App\Models\Region::pluck('name', 'id')->toArray();
+    $sectorMap      = \App\Models\Sector::pluck('name', 'id')->toArray();
+    $finalStatusMap = \App\Models\FinalStatus::pluck('name', 'id')->toArray();
+    $housingStatMap = \App\Models\HousingStatus::pluck('name', 'id')->toArray();
 
     // Helper: resolve any known ID field to its display name
-    $resolveId = function($field, $value) use ($fvsMap, $vsMap, $houseTypeMap, $houseCondMap) {
-        if ($field === 'field_visit_status_id')  return $fvsMap[$value]       ?? $value;
-        if ($field === 'verification_status_id') return $vsMap[$value]        ?? $value;
-        if ($field === 'house_type_id')          return $houseTypeMap[$value] ?? $value;
-        if ($field === 'house_condition_id')     return $houseCondMap[$value] ?? $value;
+    $resolveId = function($field, $value) use ($fvsMap, $vsMap, $houseTypeMap, $houseCondMap, $regionMap, $sectorMap, $finalStatusMap, $housingStatMap) {
+        if ($field === 'field_visit_status_id')  return $fvsMap[$value]         ?? $value;
+        if ($field === 'verification_status_id') return $vsMap[$value]          ?? $value;
+        if ($field === 'house_type_id')          return $houseTypeMap[$value]   ?? $value;
+        if ($field === 'house_condition_id')     return $houseCondMap[$value]   ?? $value;
+        if ($field === 'region_id')              return $regionMap[$value]      ?? $value;
+        if ($field === 'sector_id')              return $sectorMap[$value]      ?? $value;
+        if ($field === 'final_status_id')        return $finalStatusMap[$value] ?? $value;
+        if ($field === 'housing_status_id')      return $housingStatMap[$value] ?? $value;
         return $value;
     };
 @endphp
@@ -344,7 +354,8 @@
         if (in_array($field, $skipTopFields)) continue;
         $o = $original[$field] ?? null;
         $n = $payload[$field]  ?? null;
-        if ($o != $n) { $changedFields[]   = $field; }
+        // Loose equality handles int/string parity (47 == "47") but misses null vs 0/""/false
+        if ($o != $n || ($o === null) !== ($n === null)) { $changedFields[] = $field; }
         elseif (isset($original[$field]) || isset($payload[$field])) { $unchangedFields[] = $field; }
     }
     $changedScores   = [];
@@ -353,7 +364,7 @@
     foreach ($scoreFields as $sf) {
         $o = $original['scores'][$sf] ?? null;
         $n = $payload['scores'][$sf]  ?? null;
-        if ($o != $n) { $changedScores[]   = $sf; }
+        if ($o != $n || ($o === null) !== ($n === null)) { $changedScores[] = $sf; }
         elseif ($o !== null || $n !== null) { $unchangedScores[] = $sf; }
     }
     $changedPayments   = [];
@@ -362,7 +373,7 @@
     foreach ($paymentFields as $pf) {
         $o = $original['payment'][$pf] ?? null;
         $n = $payload['payment'][$pf]  ?? null;
-        if ($o != $n) { $changedPayments[]   = $pf; }
+        if ($o != $n || ($o === null) !== ($n === null)) { $changedPayments[] = $pf; }
         elseif ($o !== null || $n !== null) { $unchangedPayments[] = $pf; }
     }
     $totalChanged   = count($changedFields) + count($changedScores) + count($changedPayments);

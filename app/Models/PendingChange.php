@@ -66,7 +66,7 @@ class PendingChange extends Model
         if ($action === 'bulk_update') {
             $changedFields = array_keys($payload['fields'] ?? []);
             $memberTableFields = array_intersect($changedFields, [
-                'network', 'marital_status', 'current_address', 'region_id',
+                'network', 'marital_status', 'current_address', 'region_id', 'sector_id',
                 'housing_status_id', 'verification_status_id', 'estimated_amount',
                 'payments_count', 'delegate', 'final_status_id', 'sham_cash_account',
             ]);
@@ -558,7 +558,7 @@ class PendingChange extends Model
         $restorable = array_intersect_key($o, array_flip([
             'full_name', 'age', 'gender', 'mother_name', 'national_id',
             'verification_status_id', 'final_status_id', 'dossier_number',
-            'current_address', 'region_id', 'marital_status', 'disease_type',
+            'current_address', 'region_id', 'sector_id', 'marital_status', 'disease_type',
             'phone', 'phone2', 'network', 'provider_status', 'job', 'housing_status_id',
             'dependents_count', 'payments_count', 'notes', 'illness_details', 'special_cases',
             'special_cases_description', 'sham_cash_account', 'other_association',
@@ -665,6 +665,7 @@ class PendingChange extends Model
             'dossier_number'            => $p['dossier_number']            ?? null,
             'current_address'           => $p['current_address']           ?? null,
             'region_id'                 => $p['region_id']                 ?? null,
+            'sector_id'                 => $p['sector_id']                 ?? null,
             'marital_status'            => $p['marital_status']            ?? null,
             'disease_type'              => $p['disease_type']              ?? null,
             'other_association'         => $p['other_association']         ?? false,
@@ -837,7 +838,10 @@ class PendingChange extends Model
             'network'                   => 'نوع الشبكة',
             'provider_status'           => 'حالة المعيل',
             'job'                       => 'العمل',
-            'housing_status'            => 'حالة السكن',
+            'housing_status_id'         => 'وضع السكن',
+            'region_id'                 => 'المنطقة',
+            'sector_id'                 => 'القطاع',
+            'final_status_id'           => 'الحالة النهائية',
             'dependents_count'          => 'عدد المعالين',
             'payments_count'            => 'عدد الدفعات',
             'notes'                     => 'ملاحظة',

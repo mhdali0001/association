@@ -952,7 +952,7 @@ class MemberController extends Controller
         return array_merge(
             $member->only([
                 'full_name', 'age', 'gender', 'mother_name', 'national_id',
-                'verification_status_id', 'final_status_id', 'dossier_number', 'current_address', 'region_id',
+                'verification_status_id', 'final_status_id', 'dossier_number', 'current_address', 'region_id', 'sector_id',
                 'marital_status', 'disease_type', 'phone', 'phone2', 'network', 'provider_status',
                 'job', 'second_person', 'housing_status_id', 'dependents_count', 'payments_count', 'notes', 'illness_details',
                 'special_cases', 'special_cases_description', 'sham_cash_account',

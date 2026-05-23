@@ -1618,9 +1618,10 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Bulk select
-    var selectAll    = document.getElementById('select-all');
-    var bulkBar      = document.getElementById('bulk-action-bar');
-    var bulkCount    = document.getElementById('bulk-count');
+    var selectAll       = document.getElementById('select-all');
+    var selectAllMobile = document.getElementById('select-all-mobile');
+    var bulkBar         = document.getElementById('bulk-action-bar');
+    var bulkCount       = document.getElementById('bulk-count');
     var bulkIdsContainer = document.getElementById('bulk-ids-container');
 
     function updateBulkBar() {
@@ -1676,6 +1677,11 @@ document.addEventListener('DOMContentLoaded', function () {
             selectAll.indeterminate = checked.length > 0 && checked.length < all.length;
         }
 
+        if (selectAllMobile) {
+            selectAllMobile.checked = all.length > 0 && checked.length === all.length;
+            selectAllMobile.indeterminate = checked.length > 0 && checked.length < all.length;
+        }
+
         var beCount = document.getElementById('bulk-edit-selected-count');
         if (beCount) {
             beCount.textContent = checked.length > 0 ? ('(' + checked.length + ' عضو محدد)') : '';
@@ -1686,6 +1692,15 @@ document.addEventListener('DOMContentLoaded', function () {
         selectAll.addEventListener('change', function() {
             document.querySelectorAll('.row-checkbox').forEach(function(cb) {
                 cb.checked = selectAll.checked;
+            });
+            updateBulkBar();
+        });
+    }
+
+    if (selectAllMobile) {
+        selectAllMobile.addEventListener('change', function() {
+            document.querySelectorAll('.row-checkbox').forEach(function(cb) {
+                cb.checked = selectAllMobile.checked;
             });
             updateBulkBar();
         });
@@ -1860,6 +1875,8 @@ function clearSelection() {
     document.querySelectorAll('.row-checkbox').forEach(function(cb) { cb.checked = false; });
     var sa = document.getElementById('select-all');
     if (sa) { sa.checked = false; sa.indeterminate = false; }
+    var sam = document.getElementById('select-all-mobile');
+    if (sam) { sam.checked = false; sam.indeterminate = false; }
     var bar = document.getElementById('bulk-action-bar');
     bar.classList.add('hidden');
     bar.classList.remove('flex');
@@ -1987,6 +2004,17 @@ function toggleDuplicates() {
     @else
         {{-- Mobile cards --}}
         <div class="block sm:hidden divide-y divide-gray-100">
+
+            {{-- Mobile select-all bar --}}
+            <div class="flex items-center gap-3 px-4 py-2.5 bg-gray-50 border-b border-gray-100">
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" id="select-all-mobile"
+                           class="rounded border-gray-300 text-red-600 focus:ring-red-400">
+                    <span class="text-sm font-semibold text-gray-700">تحديد الكل</span>
+                </label>
+                <span class="text-xs text-gray-400 mr-auto">{{ $members->count() }} في هذه الصفحة</span>
+            </div>
+
             @foreach($members as $member)
             @php
                 $sn   = $member->verificationStatus?->name ?? '';
