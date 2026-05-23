@@ -44,6 +44,9 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middl
 
 // Dashboard (protected)
 Route::middleware('auth')->group(function () {
+    Route::get('/password/change',  [AuthController::class, 'showChangePassword'])->name('password.change');
+    Route::post('/password/change', [AuthController::class, 'changePassword'])    ->name('password.update');
+
     Route::get('/dashboard',                        [DashboardController::class,  'index'])           ->name('dashboard');
     Route::get('/dashboard/user-activity/{user}',   [DashboardController::class,  'userWeekActivity'])->name('dashboard.user-activity');
     Route::get('/statistics',                       [StatisticsController::class, 'index'])            ->name('statistics');
@@ -88,6 +91,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('verification-statuses', VerificationStatusController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('final-statuses',        \App\Http\Controllers\FinalStatusController::class)->only(['index', 'store', 'update', 'destroy']);
 
+    Route::get('/members/map',                       [MemberController::class, 'mapIndex'])           ->name('members.map');
     Route::get('/members/export',                   [MemberController::class, 'export'])             ->name('members.export');
     Route::delete('/members/bulk-destroy',          [MemberController::class, 'bulkDestroy'])        ->name('members.bulk-destroy');
     Route::patch('/members/bulk-update',            [MemberController::class, 'bulkUpdate'])          ->name('members.bulk-update');
@@ -118,9 +122,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/members/import/{importResult}/status',        [MemberImportController::class, 'status'])->name('members.import.status');
     Route::post('/members/import/{importResult}/chunk',        [MemberImportController::class, 'chunk']) ->name('members.import.chunk');
     Route::resource('members', MemberController::class);
-    Route::patch('/members/{member}/address', [MemberController::class, 'updateAddress'])->name('members.address.update');
-    Route::patch('/members/{member}/region',  [MemberController::class, 'updateRegion']) ->name('members.region.update');
-    Route::patch('/members/{member}/sector',  [MemberController::class, 'updateSector']) ->name('members.sector.update');
+    Route::patch('/members/{member}/address',  [MemberController::class, 'updateAddress'])  ->name('members.address.update');
+    Route::patch('/members/{member}/region',   [MemberController::class, 'updateRegion'])   ->name('members.region.update');
+    Route::patch('/members/{member}/sector',   [MemberController::class, 'updateSector'])   ->name('members.sector.update');
+    Route::patch('/members/{member}/location', [MemberController::class, 'updateLocation']) ->name('members.location.update');
     Route::get('/member-images',                     [MemberImageController::class, 'index'])      ->name('member-images.index');
     Route::post('/member-images',                    [MemberImageController::class, 'storeGlobal'])->name('member-images.store-global');
     Route::get('/member-images/{memberImage}/edit',  [MemberImageController::class, 'edit'])       ->name('member-images.edit');
@@ -129,7 +134,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/member-images/{memberImage}',    [MemberImageController::class, 'destroy'])    ->name('member-images.destroy');
     Route::get('/members-duplicates', [DuplicateMembersController::class, 'index'])->name('members.duplicates');
     Route::get('/age-statistics',     [\App\Http\Controllers\AgeStatisticsController::class, 'index'])->name('age-statistics.index');
-    Route::get('/delegates',              [DelegateController::class, 'index'])   ->name('delegates.index');
+    Route::get('/delegates',              [DelegateController::class, 'index'])      ->name('delegates.index');
+    Route::post('/delegates',             [DelegateController::class, 'store'])      ->name('delegates.store');
+    Route::post('/delegates/quick-store', [DelegateController::class, 'quickStore']) ->name('delegates.quick-store');
     Route::get('/delegates/{delegate}',   [DelegateController::class, 'show'])    ->name('delegates.show');
     Route::patch('/delegates/{delegate}', [DelegateController::class, 'rename'])  ->name('delegates.rename');
     Route::delete('/delegates/{delegate}',[DelegateController::class, 'destroy']) ->name('delegates.destroy');

@@ -23,14 +23,34 @@ class PaymentReviewController extends Controller
         $dateFrom = trim($request->get('date_from', ''));
         $dateTo   = trim($request->get('date_to', ''));
 
-        // Only show members who have an IBAN (in manual or AI table) — IBAN is mandatory
-        $query = Member::query()
-            ->with(['paymentInfo', 'paymentInfoAI'])
-            ->where(function ($q) {
-                $q->whereHas('paymentInfo', fn($s) => $s->whereNotNull('iban')->where('iban', '!=', ''))
-                  ->orWhereHas('paymentInfoAI', fn($s) => $s->whereNotNull('iban')->where('iban', '!=', ''));
-            })
-            ->orderBy('full_name');
+        // "done_no_iban": members with sham_cash=done but NO IBAN — bypass the IBAN requirement
+        if ($shamCash === 'done_no_iban') {
+            $query = Member::query()
+                ->with(['paymentInfo', 'paymentInfoAI'])
+                ->where('sham_cash_account', 'done')
+                ->where(function ($q) {
+                    $q->whereDoesntHave('paymentInfo')
+                      ->orWhereHas('paymentInfo', fn($s) => $s->where(fn($x) =>
+                          $x->whereNull('iban')->orWhere('iban', '')
+                      ));
+                })
+                ->where(function ($q) {
+                    $q->whereDoesntHave('paymentInfoAI')
+                      ->orWhereHas('paymentInfoAI', fn($s) => $s->where(fn($x) =>
+                          $x->whereNull('iban')->orWhere('iban', '')
+                      ));
+                })
+                ->orderBy('full_name');
+        } else {
+            // All other filters: only show members who have an IBAN
+            $query = Member::query()
+                ->with(['paymentInfo', 'paymentInfoAI'])
+                ->where(function ($q) {
+                    $q->whereHas('paymentInfo', fn($s) => $s->whereNotNull('iban')->where('iban', '!=', ''))
+                      ->orWhereHas('paymentInfoAI', fn($s) => $s->whereNotNull('iban')->where('iban', '!=', ''));
+                })
+                ->orderBy('full_name');
+        }
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -44,14 +64,6 @@ class PaymentReviewController extends Controller
 
         if ($shamCash === 'done') {
             $query->where('sham_cash_account', 'done');
-        } elseif ($shamCash === 'done_no_iban') {
-            $query->where('sham_cash_account', 'done')
-                  ->where(function ($q) {
-                      $q->whereDoesntHave('paymentInfo')
-                        ->orWhereHas('paymentInfo', fn($s) => $s->where(function ($x) {
-                            $x->whereNull('iban')->orWhere('iban', '');
-                        }));
-                  });
         } elseif ($shamCash === 'manual') {
             $query->where('sham_cash_account', 'manual');
         } elseif ($shamCash === 'none') {

@@ -14,6 +14,7 @@ class Member extends Model
         'housing_status_id', 'dependents_count', 'illness_details',
         'special_cases', 'special_cases_description', 'score',
         'estimated_amount', 'payments_count', 'notes', 'sham_cash_account', 'association_id',
+        'latitude', 'longitude',
     ];
 
     protected $casts = [

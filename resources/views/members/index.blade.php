@@ -1625,33 +1625,42 @@ document.addEventListener('DOMContentLoaded', function () {
     var bulkIdsContainer = document.getElementById('bulk-ids-container');
 
     function updateBulkBar() {
-        var checked = document.querySelectorAll('.row-checkbox:checked');
-        var all     = document.querySelectorAll('.row-checkbox');
+        // Deduplicate by member ID — mobile + desktop both render the same member
+        var checkedElems = document.querySelectorAll('.row-checkbox:checked');
+        var allElems     = document.querySelectorAll('.row-checkbox');
 
-        if (checked.length > 0) {
+        var checkedIdMap = {};
+        checkedElems.forEach(function(cb) { checkedIdMap[cb.value] = true; });
+        var checkedIds = Object.keys(checkedIdMap);
+
+        var allIdMap = {};
+        allElems.forEach(function(cb) { allIdMap[cb.value] = true; });
+        var allCount = Object.keys(allIdMap).length;
+
+        if (checkedIds.length > 0) {
             bulkBar.classList.remove('hidden');
             bulkBar.classList.add('flex');
-            bulkCount.textContent = 'تم تحديد ' + checked.length + ' عضو';
+            bulkCount.textContent = 'تم تحديد ' + checkedIds.length + ' عضو';
 
             bulkIdsContainer.innerHTML = '';
             var editIds = document.getElementById('bulk-edit-ids-container');
             if (editIds) editIds.innerHTML = '';
 
-            checked.forEach(function(cb) {
+            checkedIds.forEach(function(id) {
                 var inp = document.createElement('input');
-                inp.type = 'hidden'; inp.name = 'ids[]'; inp.value = cb.value;
+                inp.type = 'hidden'; inp.name = 'ids[]'; inp.value = id;
                 bulkIdsContainer.appendChild(inp);
 
                 if (editIds) {
                     var inp2 = document.createElement('input');
-                    inp2.type = 'hidden'; inp2.name = 'ids[]'; inp2.value = cb.value;
+                    inp2.type = 'hidden'; inp2.name = 'ids[]'; inp2.value = id;
                     editIds.appendChild(inp2);
                 }
             });
 
             // Show select-all-pages banner only when all on page are checked and there are more pages
             var banner = document.getElementById('select-all-pages-banner');
-            if (checked.length === all.length && totalMembersCount > pageCount && !allPagesSelected) {
+            if (checkedIds.length === allCount && totalMembersCount > pageCount && !allPagesSelected) {
                 banner.classList.remove('hidden');
                 banner.classList.add('flex');
                 var msg = document.getElementById('select-all-pages-msg');
@@ -1673,24 +1682,24 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (selectAll) {
-            selectAll.checked = all.length > 0 && checked.length === all.length;
-            selectAll.indeterminate = checked.length > 0 && checked.length < all.length;
+            selectAll.checked = allCount > 0 && checkedIds.length === allCount;
+            selectAll.indeterminate = checkedIds.length > 0 && checkedIds.length < allCount;
         }
 
         if (selectAllMobile) {
-            selectAllMobile.checked = all.length > 0 && checked.length === all.length;
-            selectAllMobile.indeterminate = checked.length > 0 && checked.length < all.length;
+            selectAllMobile.checked = allCount > 0 && checkedIds.length === allCount;
+            selectAllMobile.indeterminate = checkedIds.length > 0 && checkedIds.length < allCount;
         }
 
         var beCount = document.getElementById('bulk-edit-selected-count');
         if (beCount) {
-            beCount.textContent = checked.length > 0 ? ('(' + checked.length + ' عضو محدد)') : '';
+            beCount.textContent = checkedIds.length > 0 ? ('(' + checkedIds.length + ' عضو محدد)') : '';
         }
     }
 
     if (selectAll) {
         selectAll.addEventListener('change', function() {
-            document.querySelectorAll('.row-checkbox').forEach(function(cb) {
+            document.querySelectorAll('.row-checkbox-desktop').forEach(function(cb) {
                 cb.checked = selectAll.checked;
             });
             updateBulkBar();
@@ -1699,7 +1708,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (selectAllMobile) {
         selectAllMobile.addEventListener('change', function() {
-            document.querySelectorAll('.row-checkbox').forEach(function(cb) {
+            document.querySelectorAll('.row-checkbox-mobile').forEach(function(cb) {
                 cb.checked = selectAllMobile.checked;
             });
             updateBulkBar();
@@ -1833,12 +1842,15 @@ function injectBulkEditIds() {
     if (allPagesSelected) {
         return confirm('سيتم تعديل جميع الـ ' + totalMembersCount.toLocaleString('ar') + ' عضو. هل أنت متأكد؟');
     }
-    var checked = document.querySelectorAll('.row-checkbox:checked');
-    if (checked.length === 0) {
+    var checkedElems = document.querySelectorAll('.row-checkbox:checked');
+    var idMap = {};
+    checkedElems.forEach(function(cb) { idMap[cb.value] = true; });
+    var uniqueCount = Object.keys(idMap).length;
+    if (uniqueCount === 0) {
         alert('يرجى تحديد أعضاء من الجدول أولاً.');
         return false;
     }
-    return confirm('سيتم تعديل ' + checked.length + ' عضو. هل أنت متأكد؟');
+    return confirm('سيتم تعديل ' + uniqueCount + ' عضو. هل أنت متأكد؟');
 }
 
 function removeEmptyFilters(form) {
@@ -2049,7 +2061,7 @@ function toggleDuplicates() {
 
                 {{-- Header: checkbox + name + actions --}}
                 <div class="flex items-start gap-2.5 mb-2.5">
-                    <input type="checkbox" class="row-checkbox mt-1 rounded border-gray-300 text-red-600 focus:ring-red-400 cursor-pointer shrink-0" value="{{ $member->id }}">
+                    <input type="checkbox" class="row-checkbox row-checkbox-mobile mt-1 rounded border-gray-300 text-red-600 focus:ring-red-400 cursor-pointer shrink-0" value="{{ $member->id }}">
                     <div class="flex-1 min-w-0 flex items-start justify-between gap-2">
                         <div class="min-w-0">
                             <div class="font-bold text-gray-900 text-sm leading-snug truncate">{{ $member->full_name }}</div>
@@ -2222,232 +2234,305 @@ function toggleDuplicates() {
         </div>
 
         {{-- Desktop table --}}
-        <div class="hidden sm:block overflow-x-auto">
-            <table class="w-full text-sm">
+        <div class="hidden sm:block">
+            <table class="w-full">
                 <thead>
-                    <tr class="bg-gray-50/70 border-b border-gray-100">
-                        <th class="px-4 py-3.5 w-10">
-                            <input type="checkbox" id="select-all" class="rounded border-gray-300 text-red-600 focus:ring-red-400 cursor-pointer">
+                    <tr class="border-b border-gray-200" style="background:linear-gradient(to left,#f8fafc,#f1f5f9)">
+                        <th class="px-4 py-3.5 w-10 text-center">
+                            <input type="checkbox" id="select-all" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-400 cursor-pointer">
                         </th>
-                        <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">رقم الملف</th>
-                        <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">العضو</th>
-                        <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">رقم الهوية</th>
-                        <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">الهاتف</th>
-                        <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">المنطقة</th>
-                        <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">القطاع</th>
-                        <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">المندوب</th>
-                        <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">الفرد الثاني</th>
-                        <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">وضع السكن</th>
-                        <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">نوع الشبكة</th>
-                        <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">الحالة الاجتماعية</th>
-                        <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">شام كاش</th>
-                        <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">حالة التحقق</th>
-                        <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">الحالة النهائية</th>
-                        <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">الجولة الميدانية</th>
-                        <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">المبلغ المقدر</th>
-                        <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">المبلغ النهائي</th>
-                        <th class="text-right font-semibold text-gray-500 text-sm px-4 py-3.5">الدفعات</th>
-                        <th class="px-4 py-3.5"></th>
+                        <th class="text-right px-4 py-3.5">
+                            <span class="text-[10px] font-bold tracking-widest text-gray-400 uppercase">العضو</span>
+                        </th>
+                        <th class="text-right px-4 py-3.5">
+                            <span class="text-[10px] font-bold tracking-widest text-gray-400 uppercase">الموقع</span>
+                        </th>
+                        <th class="text-right px-4 py-3.5">
+                            <span class="text-[10px] font-bold tracking-widest text-gray-400 uppercase">التفاصيل</span>
+                        </th>
+                        <th class="text-center px-4 py-3.5">
+                            <span class="text-[10px] font-bold tracking-widest text-gray-400 uppercase">شام كاش</span>
+                        </th>
+                        <th class="text-right px-4 py-3.5">
+                            <span class="text-[10px] font-bold tracking-widest text-gray-400 uppercase">الحالة</span>
+                        </th>
+                        <th class="text-right px-4 py-3.5">
+                            <span class="text-[10px] font-bold tracking-widest text-gray-400 uppercase">الجولة الميدانية</span>
+                        </th>
+                        <th class="text-right px-4 py-3.5">
+                            <span class="text-[10px] font-bold tracking-widest text-gray-400 uppercase">المبالغ والدفعات</span>
+                        </th>
+                        <th class="w-24 px-4 py-3.5"></th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody>
                     @foreach($members as $member)
                         @php
-                            $sn       = $member->verificationStatus?->name ?? '';
-                            $cash     = $member->sham_cash_account;
+                            $sn   = $member->verificationStatus?->name ?? '';
+                            $cash = $member->sham_cash_account;
 
                             if (str_contains($sn, 'رفض')) {
-                                $trClass = 'dark-row bg-rose-200 hover:bg-rose-300 divide-rose-300';
+                                $trBg    = 'bg-rose-50 hover:bg-rose-100/70';
+                                $trBorder = 'border-rose-100';
+                                $isDark  = true;
                             } elseif (str_contains($sn, 'طلب إلغاء')) {
-                                $trClass = 'dark-row bg-orange-200 hover:bg-orange-300 divide-orange-300';
+                                $trBg    = 'bg-orange-50 hover:bg-orange-100/70';
+                                $trBorder = 'border-orange-100';
+                                $isDark  = true;
                             } elseif (str_contains($sn, 'تقييد')) {
-                                $trClass = 'dark-row bg-violet-200 hover:bg-violet-300 divide-violet-300';
+                                $trBg    = 'bg-violet-50 hover:bg-violet-100/70';
+                                $trBorder = 'border-violet-100';
+                                $isDark  = true;
                             } elseif (str_contains($sn, 'تكرار')) {
-                                $trClass = 'bg-red-50 hover:bg-red-100 divide-red-100';
+                                $trBg    = 'bg-red-50/60 hover:bg-red-50';
+                                $trBorder = 'border-red-100';
+                                $isDark  = false;
                             } elseif (str_contains($sn, 'تم') && $cash) {
-                                $trClass = 'bg-emerald-50 hover:bg-emerald-100 divide-emerald-100';
+                                $trBg    = 'bg-emerald-50/60 hover:bg-emerald-50';
+                                $trBorder = 'border-emerald-100';
+                                $isDark  = false;
                             } elseif (str_contains($sn, 'تم') && !$cash) {
-                                $trClass = 'bg-blue-50 hover:bg-blue-100 divide-blue-100';
+                                $trBg    = 'bg-blue-50/60 hover:bg-blue-50';
+                                $trBorder = 'border-blue-100';
+                                $isDark  = false;
                             } elseif (str_contains($sn, 'نقص')) {
-                                $trClass = 'bg-amber-50 hover:bg-amber-100 divide-amber-100';
+                                $trBg    = 'bg-amber-50/60 hover:bg-amber-50';
+                                $trBorder = 'border-amber-100';
+                                $isDark  = false;
                             } else {
-                                $trClass = 'hover:bg-gray-50 divide-gray-50';
+                                $trBg    = 'bg-white hover:bg-slate-50/80';
+                                $trBorder = 'border-gray-100';
+                                $isDark  = false;
                             }
+
+                            // Avatar color from name
+                            $avatarColors = ['#6366f1','#0ea5e9','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6'];
+                            $avatarColor  = $avatarColors[mb_ord(mb_substr($member->full_name, 0, 1)) % count($avatarColors)];
+                            $avatarLetter = mb_strtoupper(mb_substr($member->full_name, 0, 1));
                         @endphp
-                        <tr class="transition-colors group {{ $trClass }}" {{ str_contains($sn, 'تكرار') ? 'data-duplicate="1"' : '' }}>
-                            <td class="px-4 py-4">
-                                <input type="checkbox" class="row-checkbox rounded border-gray-300 text-red-600 focus:ring-red-400 cursor-pointer" value="{{ $member->id }}">
+                        <tr class="group border-b transition-all duration-150 {{ $trBg }} {{ $trBorder }} {{ $isDark ? 'dark-row' : '' }}"
+                            {{ str_contains($sn, 'تكرار') ? 'data-duplicate="1"' : '' }}>
+
+                            {{-- Checkbox --}}
+                            <td class="px-4 py-3.5 text-center">
+                                <input type="checkbox" class="row-checkbox row-checkbox-desktop rounded border-gray-300 text-emerald-600 focus:ring-emerald-400 cursor-pointer" value="{{ $member->id }}">
                             </td>
-                            <td class="px-4 py-4 text-gray-800 font-mono font-semibold text-sm">{{ $member->dossier_number ?? '—' }}</td>
-                            <td class="px-4 py-4">
-                                <span class="font-bold text-gray-900 text-base group-hover:text-emerald-700 transition-colors">
-                                    {{ $member->full_name }}
-                                </span>
+
+                            {{-- Col 1: Avatar + name + IDs + phone --}}
+                            <td class="px-4 py-3.5">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm"
+                                         style="background:{{ $avatarColor }}">{{ $avatarLetter }}</div>
+                                    <div class="min-w-0">
+                                        <a href="{{ route('members.show', $member) }}"
+                                           class="block font-bold text-gray-900 text-sm leading-tight group-hover:text-emerald-700 transition-colors truncate">
+                                            {{ $member->full_name }}
+                                        </a>
+                                        <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+                                            @if($member->dossier_number)
+                                                <span class="inline-flex items-center gap-0.5 font-mono text-[11px] font-semibold text-gray-500 bg-gray-100 rounded px-1.5 py-px">#{{ $member->dossier_number }}</span>
+                                            @endif
+                                            @if($member->national_id)
+                                                <span class="font-mono text-[11px] text-gray-400">{{ $member->national_id }}</span>
+                                            @endif
+                                            @if($member->phone)
+                                                <span class="text-[11px] text-gray-400 flex items-center gap-0.5">
+                                                    <svg class="w-2.5 h-2.5 text-gray-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                                                    {{ $member->phone }}
+                                                </span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
                             </td>
-                            <td class="px-4 py-4 text-gray-800 font-mono font-semibold text-sm">{{ $member->national_id ?? '—' }}</td>
-                            <td class="px-4 py-4 text-gray-800 font-semibold text-sm">{{ $member->phone ?? '—' }}</td>
-                            <td class="px-4 py-4 text-gray-700 text-sm">{{ $member->region?->name ?? '—' }}</td>
-                            <td class="px-4 py-4 text-gray-700 text-sm">{{ $member->sector?->name ?? '—' }}</td>
-                            <td class="px-4 py-4 text-gray-700 text-sm">{{ $member->delegate ?? '—' }}</td>
-                            <td class="px-4 py-4 text-gray-700 text-sm">{{ $member->second_person ?? '—' }}</td>
-                            <td class="px-4 py-4">
-                                @if($member->housingStatus)
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border"
-                                          style="background:{{ $member->housingStatus->color }}22; color:{{ $member->housingStatus->color }}; border-color:{{ $member->housingStatus->color }}44">
-                                        {{ $member->housingStatus->name }}
-                                    </span>
-                                @else
-                                    <span class="text-gray-400 text-sm">—</span>
-                                @endif
-                            </td>
-                            <td class="px-4 py-4">
-                                @if($member->network)
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-semibold bg-cyan-50 text-cyan-700 border border-cyan-100">
-                                        {{ $member->network }}
-                                    </span>
+
+                            {{-- Col 2: Region / Sector / Delegate / Second person --}}
+                            <td class="px-4 py-3.5">
+                                @if($member->region)
+                                    <div class="flex items-center gap-1 text-sm text-gray-800 font-medium leading-tight">
+                                        <svg class="w-3 h-3 text-violet-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                        {{ $member->region->name }}
+                                        @if($member->sector)
+                                            <span class="text-gray-300 font-normal">/</span>
+                                            <span class="text-gray-500 font-normal text-xs">{{ $member->sector->name }}</span>
+                                        @endif
+                                    </div>
                                 @else
                                     <span class="text-gray-300 text-sm">—</span>
                                 @endif
-                            </td>
-                            <td class="px-4 py-4">
-                                @if($member->marital_status)
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-semibold bg-purple-50 text-purple-700 border border-purple-100">
-                                        {{ $member->marital_status }}
-                                    </span>
-                                @else
-                                    <span class="text-gray-300 text-sm">—</span>
+                                @if($member->delegate || $member->second_person)
+                                    <div class="flex items-center gap-1 mt-1 text-[11px] text-gray-400">
+                                        <svg class="w-2.5 h-2.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                        @if($member->delegate)<span>{{ $member->delegate }}</span>@endif
+                                        @if($member->delegate && $member->second_person)<span class="text-gray-300">·</span>@endif
+                                        @if($member->second_person)<span>{{ $member->second_person }}</span>@endif
+                                    </div>
                                 @endif
                             </td>
-                            <td class="px-4 py-4 text-center">
+
+                            {{-- Col 3: Housing + Network + Marital --}}
+                            <td class="px-4 py-3.5">
+                                <div class="flex flex-col gap-1">
+                                    @if($member->housingStatus)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold w-fit border"
+                                              style="background:{{ $member->housingStatus->color }}18; color:{{ $member->housingStatus->color }}; border-color:{{ $member->housingStatus->color }}35">
+                                            {{ $member->housingStatus->name }}
+                                        </span>
+                                    @endif
+                                    <div class="flex flex-wrap gap-1">
+                                        @if($member->network)
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-cyan-50 text-cyan-700 border border-cyan-100">{{ $member->network }}</span>
+                                        @endif
+                                        @if($member->marital_status)
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-purple-50 text-purple-700 border border-purple-100">{{ $member->marital_status }}</span>
+                                        @endif
+                                    </div>
+                                    @if(!$member->housingStatus && !$member->network && !$member->marital_status)
+                                        <span class="text-gray-300 text-sm">—</span>
+                                    @endif
+                                </div>
+                            </td>
+
+                            {{-- Col 4: Sham cash --}}
+                            <td class="px-4 py-3.5 text-center">
                                 @if($member->sham_cash_account)
                                     @php
-                                        $memberIban    = trim($member->paymentInfo?->iban ?? '');
+                                        $memberIban     = trim($member->paymentInfo?->iban ?? '');
                                         $ibanDuplicated = $memberIban !== '' && isset($duplicateIbans[$memberIban]);
-                                        $shamLabel     = $member->sham_cash_account === 'manual' ? 'يدوي' : 'نعم';
+                                        $shamLabel      = $member->sham_cash_account === 'manual' ? 'يدوي' : 'نعم';
                                         $shamBadgeClass = $member->sham_cash_account === 'manual'
-                                            ? 'text-amber-700 bg-amber-50 border-amber-300'
-                                            : 'text-emerald-700 bg-emerald-50 border-emerald-200';
+                                            ? 'text-amber-700 bg-amber-50 border-amber-200 shadow-amber-100'
+                                            : 'text-emerald-700 bg-emerald-50 border-emerald-200 shadow-emerald-100';
                                     @endphp
                                     @if($ibanDuplicated)
                                         <a href="{{ route('payment-review.duplicate-ibans', ['search' => $memberIban]) }}"
                                            title="آيبان مكرر: {{ $memberIban }}"
-                                           class="inline-flex items-center gap-1 text-sm font-semibold text-red-700 bg-red-50 border border-red-300 rounded-full px-2.5 py-0.5 hover:bg-red-100 transition-colors">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                                           class="inline-flex items-center gap-1 text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1 shadow-sm shadow-red-100 hover:bg-red-100 transition-colors">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
                                             {{ $shamLabel }}
                                         </a>
                                     @else
-                                        <span class="inline-flex items-center gap-1 text-sm font-semibold {{ $shamBadgeClass }} border rounded-full px-2.5 py-0.5">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                        <span class="inline-flex items-center gap-1 text-xs font-semibold {{ $shamBadgeClass }} border rounded-lg px-2.5 py-1 shadow-sm">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                                             {{ $shamLabel }}
                                         </span>
                                     @endif
                                 @else
-                                    <span class="text-sm text-gray-300 font-medium">لا</span>
+                                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gray-100 text-gray-300 text-xs">✕</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-4">
-                                @if($member->verificationStatus)
-                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold border"
-                                          style="background:{{ $member->verificationStatus->color }}18; color:{{ $member->verificationStatus->color }}; border-color:{{ $member->verificationStatus->color }}40">
-                                        <span class="w-2 h-2 rounded-full flex-shrink-0" style="background:{{ $member->verificationStatus->color }}"></span>
-                                        {{ $member->verificationStatus->name }}
-                                    </span>
-                                @else
-                                    <span class="text-gray-300 text-sm">—</span>
-                                @endif
-                            </td>
-                            <td class="px-4 py-4">
-                                @if(auth()->user()?->role === 'admin')
-                                    <form method="POST" action="{{ route('members.final-status.update', $member) }}" class="inline-block">
-                                        @csrf @method('PATCH')
-                                        <select name="final_status_id" onchange="this.form.submit()"
-                                                class="text-sm font-semibold rounded-full px-2.5 py-1 border cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-all"
-                                                style="@if($member->finalStatus) background:{{ $member->finalStatus->color }}18; color:{{ $member->finalStatus->color }}; border-color:{{ $member->finalStatus->color }}40 @else background:#f9fafb; color:#9ca3af; border-color:#e5e7eb @endif">
-                                            <option value="">— بدون —</option>
-                                            @foreach($finalStatusList as $fs)
-                                                <option value="{{ $fs->id }}" {{ $member->final_status_id == $fs->id ? 'selected' : '' }}>{{ $fs->name }}</option>
-                                            @endforeach
-                                        </select>
-                                    </form>
-                                @else
-                                    @if($member->finalStatus)
-                                        <span class="text-sm font-semibold rounded-full px-2.5 py-1 border"
-                                              style="background:{{ $member->finalStatus->color }}18; color:{{ $member->finalStatus->color }}; border-color:{{ $member->finalStatus->color }}40">
+
+                            {{-- Col 5: Verification + Final status --}}
+                            <td class="px-4 py-3.5">
+                                <div class="flex flex-col gap-1.5">
+                                    @if($member->verificationStatus)
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border w-fit shadow-sm"
+                                              style="background:{{ $member->verificationStatus->color }}12; color:{{ $member->verificationStatus->color }}; border-color:{{ $member->verificationStatus->color }}30; box-shadow:0 1px 2px {{ $member->verificationStatus->color }}18">
+                                            <span class="w-1.5 h-1.5 rounded-full shrink-0" style="background:{{ $member->verificationStatus->color }}"></span>
+                                            {{ $member->verificationStatus->name }}
+                                        </span>
+                                    @endif
+                                    @if(auth()->user()?->role === 'admin')
+                                        <form method="POST" action="{{ route('members.final-status.update', $member) }}">
+                                            @csrf @method('PATCH')
+                                            <select name="final_status_id" onchange="this.form.submit()"
+                                                    class="text-xs font-semibold rounded-lg px-2.5 py-1 border cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-all shadow-sm"
+                                                    style="@if($member->finalStatus) background:{{ $member->finalStatus->color }}12; color:{{ $member->finalStatus->color }}; border-color:{{ $member->finalStatus->color }}30 @else background:#f9fafb; color:#9ca3af; border-color:#e5e7eb @endif">
+                                                <option value="">— الحالة النهائية —</option>
+                                                @foreach($finalStatusList as $fs)
+                                                    <option value="{{ $fs->id }}" {{ $member->final_status_id == $fs->id ? 'selected' : '' }}>{{ $fs->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </form>
+                                    @elseif($member->finalStatus)
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border w-fit shadow-sm"
+                                              style="background:{{ $member->finalStatus->color }}12; color:{{ $member->finalStatus->color }}; border-color:{{ $member->finalStatus->color }}30">
                                             {{ $member->finalStatus->name }}
                                         </span>
-                                    @else
+                                    @elseif(!$member->verificationStatus)
                                         <span class="text-gray-300 text-sm">—</span>
                                     @endif
-                                @endif
+                                </div>
                             </td>
-                            <td class="px-4 py-4">
+
+                            {{-- Col 6: Field visit --}}
+                            <td class="px-4 py-3.5">
                                 @php $latestVisit = $member->fieldVisits->first(); @endphp
                                 @if($latestVisit?->status)
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold text-white"
-                                          style="background: {{ $latestVisit->status->color }}">
-                                        {{ $latestVisit->status->name }}
-                                    </span>
+                                    <div class="flex flex-col gap-1">
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold text-white w-fit shadow-sm"
+                                              style="background:{{ $latestVisit->status->color }}; box-shadow:0 1px 3px {{ $latestVisit->status->color }}55">
+                                            {{ $latestVisit->status->name }}
+                                        </span>
+                                        @if($latestVisit->visit_date)
+                                            <span class="text-[11px] text-gray-400 flex items-center gap-1">
+                                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                                {{ $latestVisit->visit_date->format('Y/m/d') }}
+                                            </span>
+                                        @endif
+                                        @if($latestVisit->visitor)
+                                            <span class="text-[11px] text-gray-400">{{ $latestVisit->visitor }}</span>
+                                        @endif
+                                    </div>
                                 @elseif($latestVisit)
-                                    <span class="text-xs text-gray-400 font-medium">{{ $latestVisit->visit_date?->format('Y/m/d') ?? 'جولة بدون حالة' }}</span>
+                                    <span class="text-xs text-gray-400">{{ $latestVisit->visit_date?->format('Y/m/d') ?? 'بدون حالة' }}</span>
                                 @else
                                     <span class="text-gray-300 text-sm">—</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-4">
-                                @if($member->estimated_amount)
-                                    <span class="inline-flex items-center gap-1 text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1">
-                                        {{ number_format($member->estimated_amount, 0) }}
-                                    </span>
-                                @else
-                                    <span class="text-gray-300 text-sm">—</span>
-                                @endif
-                            </td>
-                            <td class="px-4 py-4">
-                                @php $memberFinal = ($member->estimated_amount ?? 0) + ($member->fieldVisits->first()?->estimated_amount ?? 0); @endphp
-                                @if($memberFinal > 0)
-                                    <span class="inline-flex items-center gap-1 text-sm font-bold text-purple-700 bg-purple-50 border border-purple-100 rounded-lg px-2.5 py-1">
-                                        {{ number_format($memberFinal, 0) }}
-                                    </span>
-                                @else
-                                    <span class="text-gray-300 text-sm">—</span>
-                                @endif
-                            </td>
-                            <td class="px-4 py-4">
-                                @if($member->payments_count !== null)
-                                    <span class="inline-flex items-center gap-1 text-sm font-bold text-sky-700 bg-sky-50 border border-sky-100 rounded-lg px-2.5 py-1">
-                                        {{ $member->payments_count }}
-                                    </span>
-                                @else
-                                    <span class="text-gray-300 text-sm">—</span>
-                                @endif
-                            </td>
+
+                            {{-- Col 7: Amounts + payments --}}
                             <td class="px-4 py-3.5">
-                                <div class="flex items-center gap-1">
+                                @php $memberFinal = ($member->estimated_amount ?? 0) + ($member->fieldVisits->first()?->estimated_amount ?? 0); @endphp
+                                @if($member->estimated_amount || $memberFinal > 0 || $member->payments_count !== null)
+                                    <div class="flex flex-col gap-1">
+                                        @if($member->estimated_amount)
+                                            <div class="flex items-baseline gap-1">
+                                                <span class="text-sm font-bold text-emerald-700">{{ number_format($member->estimated_amount, 0) }}</span>
+                                                <span class="text-[10px] text-emerald-500 font-medium">ل.س مقدر</span>
+                                            </div>
+                                        @endif
+                                        @if($memberFinal > 0)
+                                            <div class="flex items-baseline gap-1">
+                                                <span class="text-sm font-bold text-purple-700">{{ number_format($memberFinal, 0) }}</span>
+                                                <span class="text-[10px] text-purple-400 font-medium">ل.س نهائي</span>
+                                            </div>
+                                        @endif
+                                        @if($member->payments_count !== null)
+                                            <div class="flex items-center gap-1">
+                                                <span class="inline-flex items-center gap-1 text-xs font-semibold text-sky-700 bg-sky-50 border border-sky-100 rounded-md px-2 py-0.5">
+                                                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+                                                    {{ $member->payments_count }} دفعة
+                                                </span>
+                                            </div>
+                                        @endif
+                                    </div>
+                                @else
+                                    <span class="text-gray-300 text-sm">—</span>
+                                @endif
+                            </td>
+
+                            {{-- Actions --}}
+                            <td class="px-4 py-3.5">
+                                <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                                     <a href="{{ route('members.show', $member) }}"
                                        title="عرض"
-                                       class="p-1.5 rounded-lg text-blue-500 hover:text-blue-700 hover:bg-blue-50 transition-colors">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                        </svg>
+                                       class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-100 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                        عرض
                                     </a>
                                     <a href="{{ route('members.edit', $member) }}"
                                        title="تعديل"
-                                       class="p-1.5 rounded-lg text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                        </svg>
+                                       class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                        تعديل
                                     </a>
                                     <form method="POST" action="{{ route('members.destroy', $member) }}"
                                           onsubmit="return confirm('هل أنت متأكد من حذف هذا العضو؟')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit"
-                                                title="حذف"
-                                                class="p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                            </svg>
+                                        @csrf @method('DELETE')
+                                        <button type="submit" title="حذف"
+                                                class="inline-flex items-center p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 transition-colors">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                         </button>
                                     </form>
                                 </div>
@@ -2467,10 +2552,20 @@ function toggleDuplicates() {
 </div>
 
 <style>
+/* Dark-background rows keep text legible */
 tr.dark-row td,
 tr.dark-row td span:not([style]),
-tr.dark-row td a { color: rgba(0,0,0,0.85) !important; }
-tr.dark-row td .text-gray-300 { color: rgba(0,0,0,0.35) !important; }
+tr.dark-row td a { color: rgba(0,0,0,0.80) !important; }
+tr.dark-row td .text-gray-300,
+tr.dark-row td .text-gray-400 { color: rgba(0,0,0,0.40) !important; }
+
+/* Smooth action button reveal on row hover */
+tr .opacity-0 { transition: opacity 0.15s ease; }
+
+/* Subtle left accent bar on hovered rows */
+tr:hover td:first-child {
+    box-shadow: inset 3px 0 0 #10b981;
+}
 </style>
 
 @endsection

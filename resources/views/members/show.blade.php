@@ -62,7 +62,7 @@
         </div>
 
         {{-- Action buttons --}}
-        <div class="flex items-center gap-2 shrink-0">
+        <div class="flex items-center gap-2 shrink-0 flex-wrap">
             <a href="{{ route('members.edit', $member) }}"
                class="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white text-emerald-700 hover:bg-emerald-50 text-sm font-semibold px-4 py-2.5 sm:py-2 rounded-xl transition-colors shadow-md">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -70,6 +70,14 @@
                 </svg>
                 تعديل
             </a>
+            <button type="button" onclick="openMapModal()"
+                    class="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 border border-white/30 text-white text-sm font-medium px-4 py-2.5 sm:py-2 rounded-xl transition-colors backdrop-blur-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                الخريطة
+            </button>
             <a href="{{ route('members.index') }}"
                class="flex-1 sm:flex-none flex items-center justify-center text-sm text-white/90 hover:text-white bg-white/15 hover:bg-white/25 border border-white/30 px-4 py-2.5 sm:py-2 rounded-xl transition-colors backdrop-blur-sm font-medium">
                 رجوع
@@ -1261,5 +1269,156 @@ document.addEventListener('click', function(e) {
     }
 });
 </script>
+
+{{-- ── Map Modal ── --}}
+<div id="map-modal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeMapModal()"></div>
+    <div class="absolute inset-4 sm:inset-8 md:inset-16 bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        {{-- Header --}}
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-sm font-black text-gray-800">الموقع الجغرافي</h3>
+                    <p class="text-xs text-gray-400">{{ $member->full_name }}</p>
+                </div>
+            </div>
+            <button onclick="closeMapModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        {{-- Coordinate inputs + save form --}}
+        <form method="POST" action="{{ route('members.location.update', $member) }}" class="px-5 py-3 border-b border-gray-100 flex items-end gap-3 flex-wrap">
+            @csrf
+            @method('PATCH')
+            <div class="flex-1 min-w-[140px]">
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">خط العرض</label>
+                <input type="number" name="latitude" id="modal_latitude" step="0.0000001"
+                       value="{{ $member->latitude }}" placeholder="33.5138" dir="ltr"
+                       class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-400 font-mono"
+                       oninput="syncModalMapFromInputs()">
+            </div>
+            <div class="flex-1 min-w-[140px]">
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">خط الطول</label>
+                <input type="number" name="longitude" id="modal_longitude" step="0.0000001"
+                       value="{{ $member->longitude }}" placeholder="36.2765" dir="ltr"
+                       class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-400 font-mono"
+                       oninput="syncModalMapFromInputs()">
+            </div>
+            <div class="flex gap-2">
+                <button type="submit"
+                        class="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    حفظ
+                </button>
+                @if($member->latitude && $member->longitude)
+                    <a href="https://www.openstreetmap.org/?mlat={{ $member->latitude }}&mlon={{ $member->longitude }}&zoom=16"
+                       target="_blank" rel="noopener"
+                       class="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-3 py-2 rounded-xl transition-colors">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                        </svg>
+                        فتح في OSM
+                    </a>
+                @endif
+            </div>
+        </form>
+
+        <p class="text-xs text-gray-400 px-5 py-2">انقر على الخريطة لتحديد الموقع، أو اسحب العلامة، أو أدخل الإحداثيات يدوياً.</p>
+
+        {{-- Map --}}
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+        <div id="modal-map" class="flex-1 min-h-0"></div>
+    </div>
+</div>
+
+@push('scripts')
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function () {
+    const defaultLat = 33.5138, defaultLng = 36.2765, defaultZoom = 8;
+    let modalMap = null, modalMarker = null;
+
+    window.openMapModal = function () {
+        document.getElementById('map-modal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+
+        if (!modalMap) {
+            const latVal = parseFloat(document.getElementById('modal_latitude').value);
+            const lngVal = parseFloat(document.getElementById('modal_longitude').value);
+            const hasCoords = !isNaN(latVal) && !isNaN(lngVal);
+            const initLat = hasCoords ? latVal : defaultLat;
+            const initLng = hasCoords ? lngVal : defaultLng;
+            const initZoom = hasCoords ? 14 : defaultZoom;
+
+            modalMap = L.map('modal-map').setView([initLat, initLng], initZoom);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                maxZoom: 19,
+            }).addTo(modalMap);
+
+            if (hasCoords) {
+                modalMarker = L.marker([initLat, initLng], { draggable: true }).addTo(modalMap);
+                modalMarker.on('dragend', updateInputsFromMarker);
+            }
+
+            modalMap.on('click', function (e) {
+                const { lat, lng } = e.latlng;
+                setModalCoords(lat, lng);
+            });
+        } else {
+            modalMap.invalidateSize();
+        }
+    };
+
+    window.closeMapModal = function () {
+        document.getElementById('map-modal').classList.add('hidden');
+        document.body.style.overflow = '';
+    };
+
+    function setModalCoords(lat, lng) {
+        document.getElementById('modal_latitude').value  = lat.toFixed(7);
+        document.getElementById('modal_longitude').value = lng.toFixed(7);
+        if (modalMarker) {
+            modalMarker.setLatLng([lat, lng]);
+        } else {
+            modalMarker = L.marker([lat, lng], { draggable: true }).addTo(modalMap);
+            modalMarker.on('dragend', updateInputsFromMarker);
+        }
+        modalMap.setView([lat, lng], Math.max(modalMap.getZoom(), 14));
+    }
+
+    function updateInputsFromMarker() {
+        const pos = modalMarker.getLatLng();
+        document.getElementById('modal_latitude').value  = pos.lat.toFixed(7);
+        document.getElementById('modal_longitude').value = pos.lng.toFixed(7);
+    }
+
+    window.syncModalMapFromInputs = function () {
+        if (!modalMap) return;
+        const lat = parseFloat(document.getElementById('modal_latitude').value);
+        const lng = parseFloat(document.getElementById('modal_longitude').value);
+        if (isNaN(lat) || isNaN(lng)) return;
+        if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return;
+        setModalCoords(lat, lng);
+    };
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeMapModal();
+    });
+})();
+</script>
+@endpush
 
 @endsection

@@ -131,9 +131,74 @@
 
         <div>
             <label class="{{ $labelClass }}">مندوب</label>
-            <input type="text" name="delegate" value="{{ $v('delegate') }}"
-                   placeholder="اسم المندوب"
-                   class="{{ $inputClass }}">
+            @php
+                $selDelegate = $v('delegate');
+            @endphp
+            <input type="hidden" name="delegate" id="delegate_select" value="{{ $selDelegate }}">
+            <div class="flex gap-2 items-start">
+                <div class="relative flex-1" id="form-delegate-dropdown">
+                    <button type="button" onclick="toggleFormDelegateDropdown(event)"
+                            class="w-full flex items-center justify-between gap-2 border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50 hover:border-sky-400 focus:outline-none transition text-right">
+                        <span id="form-delegate-label" class="truncate {{ $selDelegate ? 'text-gray-800' : 'text-gray-400' }}">
+                            {{ $selDelegate ?: '— بدون مندوب —' }}
+                        </span>
+                        <svg class="w-4 h-4 text-gray-400 shrink-0" id="form-delegate-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div id="form-delegate-panel" class="hidden absolute z-50 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                        <div class="p-2 border-b border-gray-100">
+                            <input type="text" id="form-delegate-search" placeholder="ابحث في المندوبين..."
+                                   oninput="filterFormDelegates(this.value)" autocomplete="off"
+                                   class="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-sky-400 focus:outline-none">
+                        </div>
+                        <ul id="form-delegate-list" class="max-h-52 overflow-y-auto py-1">
+                            <li class="form-delegate-item">
+                                <button type="button" onclick="selectFormDelegate('')"
+                                        class="w-full text-right px-3 py-2 text-sm text-gray-400 hover:bg-gray-50 transition-colors">
+                                    — بدون مندوب —
+                                </button>
+                            </li>
+                            @foreach($delegateList ?? [] as $dlg)
+                            <li class="form-delegate-item">
+                                <button type="button"
+                                        onclick="selectFormDelegate('{{ addslashes($dlg) }}')"
+                                        data-name="{{ mb_strtolower($dlg) }}"
+                                        class="w-full text-right px-3 py-2 text-sm transition-colors hover:bg-sky-50
+                                               {{ $selDelegate === $dlg ? 'bg-sky-50 text-sky-700 font-bold' : 'text-gray-700' }}">
+                                    {{ $dlg }}
+                                </button>
+                            </li>
+                            @endforeach
+                        </ul>
+                        <div id="form-delegate-no-results" class="hidden px-3 py-2 text-xs text-gray-400 text-center">لا توجد نتائج</div>
+                    </div>
+                </div>
+                @if(auth()->user()?->role === 'admin')
+                <button type="button" onclick="toggleAddDelegate()"
+                        title="إضافة مندوب جديد"
+                        class="shrink-0 w-10 h-10 flex items-center justify-center bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-xl text-sky-600 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                    </svg>
+                </button>
+                @endif
+            </div>
+            {{-- Inline add delegate --}}
+            @if(auth()->user()?->role === 'admin')
+            <div id="add-delegate-panel" class="hidden mt-2 flex gap-2 items-center">
+                <input type="text" id="new-delegate-input" placeholder="اسم المندوب الجديد..."
+                       class="flex-1 border border-sky-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white"
+                       onkeydown="if(event.key==='Enter'){event.preventDefault();submitNewDelegate();}">
+                <button type="button" onclick="submitNewDelegate()"
+                        class="shrink-0 px-3 py-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-bold rounded-xl transition-colors">
+                    إضافة
+                </button>
+                <button type="button" onclick="toggleAddDelegate()"
+                        class="shrink-0 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-bold rounded-xl transition-colors">
+                    إلغاء
+                </button>
+            </div>
+            <p id="add-delegate-error" class="hidden text-red-500 text-xs mt-1"></p>
+            @endif
         </div>
 
         <div>
@@ -795,6 +860,47 @@
     </div>
 </div>
 
+{{-- ════════════════════════════════════════ --}}
+{{-- ٧ · الموقع الجغرافي                     --}}
+{{-- ════════════════════════════════════════ --}}
+<div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-5">
+    <div class="flex items-center gap-3 mb-5 pb-4 border-b border-gray-100">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center shadow-sm">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+        </div>
+        <h2 class="text-sm font-black text-teal-700 uppercase tracking-wide">الموقع الجغرافي</h2>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+            <label class="{{ $labelClass }}">خط العرض (Latitude)</label>
+            <input type="number" name="latitude" id="form_latitude" step="0.0000001"
+                   value="{{ old('latitude', $isEdit ? $member->latitude : '') }}"
+                   placeholder="مثال: 33.5138"
+                   dir="ltr"
+                   class="{{ $inputClass }} font-mono"
+                   oninput="syncFormMapFromInputs()">
+        </div>
+        <div>
+            <label class="{{ $labelClass }}">خط الطول (Longitude)</label>
+            <input type="number" name="longitude" id="form_longitude" step="0.0000001"
+                   value="{{ old('longitude', $isEdit ? $member->longitude : '') }}"
+                   placeholder="مثال: 36.2765"
+                   dir="ltr"
+                   class="{{ $inputClass }} font-mono"
+                   oninput="syncFormMapFromInputs()">
+        </div>
+    </div>
+
+    <p class="text-xs text-gray-400 mb-3">انقر على الخريطة لتحديد الموقع، أو أدخل الإحداثيات يدوياً في الحقول أعلاه.</p>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <div id="form-map" class="rounded-xl border border-gray-200 overflow-hidden" style="height: 300px;"></div>
+</div>
+
 <script>
 function toggleAssociations(val) {
     const list = document.getElementById('associations_list');
@@ -1050,6 +1156,119 @@ async function submitNewSector() {
     }
 }
 
+// ── Delegate dropdown ──────────────────────────────────────────────────────
+function toggleFormDelegateDropdown(e) {
+    e.stopPropagation();
+    const panel = document.getElementById('form-delegate-panel');
+    const isHidden = panel.classList.contains('hidden');
+    panel.classList.toggle('hidden', !isHidden);
+    document.getElementById('form-delegate-chevron').style.transform = isHidden ? 'rotate(180deg)' : '';
+    if (isHidden) {
+        const s = document.getElementById('form-delegate-search');
+        s.value = '';
+        filterFormDelegates('');
+        setTimeout(() => s.focus(), 50);
+    }
+}
+
+function filterFormDelegates(q) {
+    const lower = q.toLowerCase();
+    let visible = 0;
+    document.querySelectorAll('#form-delegate-list .form-delegate-item').forEach(li => {
+        const btn = li.querySelector('button[data-name]');
+        if (!btn) { li.style.display = ''; return; } // "بدون" row always visible
+        const show = btn.dataset.name.includes(lower);
+        li.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+    document.getElementById('form-delegate-no-results').classList.toggle('hidden', visible > 0 || !q);
+}
+
+function selectFormDelegate(name) {
+    document.getElementById('delegate_select').value = name;
+    const lbl = document.getElementById('form-delegate-label');
+    lbl.textContent = name || '— بدون مندوب —';
+    lbl.className = name ? 'truncate text-gray-800' : 'truncate text-gray-400';
+    document.getElementById('form-delegate-panel').classList.add('hidden');
+    document.getElementById('form-delegate-chevron').style.transform = '';
+}
+
+document.addEventListener('click', function(e) {
+    const dd = document.getElementById('form-delegate-dropdown');
+    if (dd && !dd.contains(e.target)) {
+        document.getElementById('form-delegate-panel')?.classList.add('hidden');
+        const ch = document.getElementById('form-delegate-chevron');
+        if (ch) ch.style.transform = '';
+    }
+});
+
+function toggleAddDelegate() {
+    const panel = document.getElementById('add-delegate-panel');
+    const input = document.getElementById('new-delegate-input');
+    const err   = document.getElementById('add-delegate-error');
+    if (!panel) return;
+    panel.classList.toggle('hidden');
+    err?.classList.add('hidden');
+    if (!panel.classList.contains('hidden')) {
+        input.value = '';
+        input.focus();
+    }
+}
+
+async function submitNewDelegate() {
+    const input = document.getElementById('new-delegate-input');
+    const err   = document.getElementById('add-delegate-error');
+    const name  = input.value.trim();
+    err.classList.add('hidden');
+
+    if (!name) {
+        err.textContent = 'يرجى إدخال اسم المندوب.';
+        err.classList.remove('hidden');
+        input.focus();
+        return;
+    }
+
+    try {
+        const res = await fetch('{{ route("delegates.quick-store") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                             || '{{ csrf_token() }}',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({ name }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            err.textContent = data.errors?.name?.[0] ?? data.message ?? 'حدث خطأ.';
+            err.classList.remove('hidden');
+            return;
+        }
+
+        document.getElementById('add-delegate-panel').classList.add('hidden');
+
+        // Add new option to the list
+        const list = document.getElementById('form-delegate-list');
+        const li = document.createElement('li');
+        li.className = 'form-delegate-item';
+        li.innerHTML = `<button type="button"
+            onclick="selectFormDelegate('${data.name.replace(/'/g, "\\'")}')"
+            data-name="${data.name.toLowerCase()}"
+            class="w-full text-right px-3 py-2 text-sm transition-colors hover:bg-sky-50 text-gray-700">
+            ${data.name}
+        </button>`;
+        list.appendChild(li);
+
+        selectFormDelegate(data.name);
+    } catch {
+        err.textContent = 'تعذّر الاتصال بالخادم.';
+        err.classList.remove('hidden');
+    }
+}
+
 function calcTotal() {
     const fields = ['work_score', 'housing_score', 'dependents_score', 'dependent_status_score', 'illness_score', 'special_cases_score'];
     let total = 0;
@@ -1074,4 +1293,70 @@ function calcTotal() {
     if (amountEl) amountEl.value = total * 500;
 }
 calcTotal();
+</script>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function () {
+    const defaultLat = 33.5138, defaultLng = 36.2765, defaultZoom = 8;
+
+    const latInput = document.getElementById('form_latitude');
+    const lngInput = document.getElementById('form_longitude');
+
+    const initLat = parseFloat(latInput?.value) || defaultLat;
+    const initLng = parseFloat(lngInput?.value) || defaultLng;
+    const initZoom = (latInput?.value && lngInput?.value) ? 14 : defaultZoom;
+
+    const map = L.map('form-map').setView([initLat, initLng], initZoom);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 19,
+    }).addTo(map);
+
+    let marker = null;
+
+    if (latInput?.value && lngInput?.value) {
+        marker = L.marker([initLat, initLng], { draggable: true }).addTo(map);
+        marker.on('dragend', () => {
+            const pos = marker.getLatLng();
+            latInput.value = pos.lat.toFixed(7);
+            lngInput.value = pos.lng.toFixed(7);
+        });
+    }
+
+    map.on('click', function (e) {
+        const { lat, lng } = e.latlng;
+        latInput.value = lat.toFixed(7);
+        lngInput.value = lng.toFixed(7);
+        if (marker) {
+            marker.setLatLng([lat, lng]);
+        } else {
+            marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+            marker.on('dragend', () => {
+                const pos = marker.getLatLng();
+                latInput.value = pos.lat.toFixed(7);
+                lngInput.value = pos.lng.toFixed(7);
+            });
+        }
+    });
+
+    window.syncFormMapFromInputs = function () {
+        const lat = parseFloat(latInput.value);
+        const lng = parseFloat(lngInput.value);
+        if (isNaN(lat) || isNaN(lng)) return;
+        if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return;
+        map.setView([lat, lng], 14);
+        if (marker) {
+            marker.setLatLng([lat, lng]);
+        } else {
+            marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+            marker.on('dragend', () => {
+                const pos = marker.getLatLng();
+                latInput.value = pos.lat.toFixed(7);
+                lngInput.value = pos.lng.toFixed(7);
+            });
+        }
+    };
+})();
 </script>

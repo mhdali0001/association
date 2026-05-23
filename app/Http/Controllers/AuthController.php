@@ -78,6 +78,36 @@ class AuthController extends Controller
         return redirect()->route('users.index')->with('success', 'تم إنشاء المستخدم بنجاح.');
     }
 
+    public function showChangePassword()
+    {
+        return view('auth.change-password');
+    }
+
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => ['required'],
+            'password'         => ['required', 'string', 'min:8', 'confirmed'],
+        ], [
+            'current_password.required' => 'كلمة المرور الحالية مطلوبة',
+            'password.required'         => 'كلمة المرور الجديدة مطلوبة',
+            'password.min'              => 'كلمة المرور يجب أن تكون 8 أحرف على الأقل',
+            'password.confirmed'        => 'تأكيد كلمة المرور غير متطابق',
+        ]);
+
+        $user = Auth::user();
+
+        if (! Hash::check($request->current_password, $user->password)) {
+            return back()->withErrors(['current_password' => 'كلمة المرور الحالية غير صحيحة']);
+        }
+
+        $user->update(['password' => Hash::make($request->password)]);
+
+        ActivityLogger::log('updated', 'تغيير كلمة المرور');
+
+        return back()->with('success', 'تم تغيير كلمة المرور بنجاح.');
+    }
+
     public function logout(Request $request)
     {
         ActivityLogger::log('logout', 'تسجيل خروج');
