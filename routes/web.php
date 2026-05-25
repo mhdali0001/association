@@ -56,6 +56,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/users',          [AuthController::class,  'register'])     ->name('users.store');
         Route::delete('/users/{user}', [UserController::class,  'destroy'])      ->name('users.destroy');
         Route::get('/activity-logs',   [ActivityLogController::class, 'index'])  ->name('activity-logs.index');
+        Route::get('/archive',         [\App\Http\Controllers\ArchiveController::class, 'index'])->name('archive.index');
         Route::resource('expenses',    ExpenseController::class);
         // Budget & Beneficiaries
         Route::get('/budget',                          [BudgetController::class,     'index'])  ->name('budget.index');
@@ -80,10 +81,15 @@ Route::middleware('auth')->group(function () {
         Route::post('/pending-changes/{pendingChange}/reject',       [PendingChangeController::class, 'reject'])          ->name('pending-changes.reject');
         Route::post('/pending-changes/{pendingChange}/reopen',       [PendingChangeController::class, 'reopen'])          ->name('pending-changes.reopen');
         Route::post('/pending-changes/{pendingChange}/revoke',       [PendingChangeController::class, 'revoke'])          ->name('pending-changes.revoke');
+        Route::post('/pending-changes/bulk-approve',                  [PendingChangeController::class, 'bulkApprove'])     ->name('pending-changes.bulk-approve');
+        Route::post('/pending-changes/bulk-reject',                   [PendingChangeController::class, 'bulkReject'])      ->name('pending-changes.bulk-reject');
         // Config tables — admin only (index visible to all auth users below)
     });
 
     Route::get('/my-requests', [PendingChangeController::class, 'myRequests'])->name('pending-changes.my');
+    Route::get('/pending-changes/{pendingChange}/edit-request',    [PendingChangeController::class, 'editRequest'])   ->name('pending-changes.edit-request');
+    Route::patch('/pending-changes/{pendingChange}/update-request', [PendingChangeController::class, 'updateRequest']) ->name('pending-changes.update-request');
+    Route::delete('/pending-changes/{pendingChange}/withdraw',      [PendingChangeController::class, 'withdraw'])      ->name('pending-changes.withdraw');
 
     // Config tables — all authenticated users (write operations go through pending changes for non-admins)
     Route::resource('marital-statuses',      MaritalStatusController::class)     ->only(['index', 'store', 'update', 'destroy']);
@@ -98,6 +104,8 @@ Route::middleware('auth')->group(function () {
     Route::patch('/members/{member}/final-status', [MemberController::class, 'updateFinalStatus'])->name('members.final-status.update');
     Route::get('/members/bulk-amount',      [MemberController::class, 'bulkAmountShow'])      ->name('members.bulk-amount');
     Route::post('/members/bulk-amount',     [MemberController::class, 'bulkAmountApply'])     ->name('members.bulk-amount.apply');
+    Route::get('/members/fv-reduction',    [MemberController::class, 'fvReductionShow'])     ->name('members.fv-reduction');
+    Route::post('/members/fv-reduction',   [MemberController::class, 'fvReductionApply'])    ->name('members.fv-reduction.apply');
     Route::get('/members/bulk-payments',    [MemberController::class, 'bulkPaymentsShow'])    ->name('members.bulk-payments');
     Route::post('/members/bulk-payments',   [MemberController::class, 'bulkPaymentsApply'])   ->name('members.bulk-payments.apply');
     Route::get('/members/score-deductions',  [MemberController::class, 'scoreDeductionsIndex']) ->name('members.score-deductions');

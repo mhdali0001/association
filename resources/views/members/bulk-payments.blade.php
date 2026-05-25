@@ -13,6 +13,37 @@
 @php
     $qs  = request()->getQueryString();
     $fmt = fn($n) => number_format((int)$n, 0, '.', ',');
+
+    $fvActiveCount = (int)!empty($fieldVisitStatusIds) + (int)!empty($fvHouseTypeIds) + (int)!empty($fvHouseConditionIds)
+        + (!empty($fvVisitors) ? 1 : 0) + (!empty($fvCreatedByIds) ? 1 : 0)
+        + ($fvDateFrom !== '' || $fvDateTo !== '' ? 1 : 0)
+        + ($fvAmountFrom !== '' || $fvAmountTo !== '' ? 1 : 0)
+        + ($fvNotes !== '' ? 1 : 0) + ($fvHasVideo !== '' ? 1 : 0) + ($fvHasSpecialCase !== '' ? 1 : 0)
+        + ($fvCount !== '' ? 1 : 0);
+
+    $mainActiveCount =
+        ($dossierFrom !== '' || $dossierTo !== '' ? 1 : 0)
+        + ($estimatedFrom !== '' || $estimatedTo !== '' ? 1 : 0)
+        + ($paymentsCountFrom !== '' || $paymentsCountTo !== '' ? 1 : 0)
+        + (!empty($verificationIds)    ? 1 : 0)
+        + (!empty($finalStatusIds)     ? 1 : 0)
+        + (!empty($maritalStatuses)    ? 1 : 0)
+        + (!empty($genders)            ? 1 : 0)
+        + (!empty($associationIds)     ? 1 : 0)
+        + (!empty($delegates)          ? 1 : 0)
+        + (!empty($secondPersons)      ? 1 : 0)
+        + (!empty($specialDescriptions)? 1 : 0)
+        + (!empty($addresses)          ? 1 : 0)
+        + (!empty($networks)           ? 1 : 0)
+        + (!empty($shamCash)           ? 1 : 0)
+        + (!empty($sectorIds)          ? 1 : 0)
+        + (!empty($regionIds)          ? 1 : 0)
+        + (!empty($housingStatusIds)   ? 1 : 0)
+        + (!empty($paymentDataEntries) ? 1 : 0)
+        + ($specialCases  !== '' ? 1 : 0)
+        + ($hasPayments   !== '' ? 1 : 0);
+    // Panel auto-opens for any active filter (main OR field-visit)
+    $hasMainFilters = $mainActiveCount > 0 || $fvActiveCount > 0;
 @endphp
 
 <style>
@@ -117,7 +148,10 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
                     </svg>
                     الفلاتر
-                    <svg id="bp-filter-arrow" class="w-4 h-4 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    @if($mainActiveCount > 0)
+                        <span class="text-xs bg-teal-600 text-white rounded-full px-1.5 py-0.5 font-black">{{ $mainActiveCount }}</span>
+                    @endif
+                    <svg id="bp-filter-arrow" class="w-4 h-4 text-gray-400 transition-transform duration-200 {{ $hasMainFilters ? 'rotate-180' : '' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
                     </svg>
                 </button>
@@ -125,7 +159,7 @@
         </div>
 
         {{-- Collapsible filters --}}
-        <div id="bp-filter-body" class="hidden">
+        <div id="bp-filter-body" class="{{ $hasMainFilters ? '' : 'hidden' }}">
         <div class="p-5">
 
         {{-- Dossier range --}}
@@ -559,13 +593,6 @@
         </div>
 
         {{-- Field visit filters --}}
-        @php
-            $fvActiveCount = (int)!empty($fieldVisitStatusIds) + (int)!empty($fvHouseTypeIds) + (int)!empty($fvHouseConditionIds)
-                + (!empty($fvVisitors) ? 1 : 0) + (!empty($fvCreatedByIds) ? 1 : 0)
-                + ($fvDateFrom !== '' || $fvDateTo !== '' ? 1 : 0)
-                + ($fvAmountFrom !== '' || $fvAmountTo !== '' ? 1 : 0)
-                + ($fvNotes !== '' ? 1 : 0) + ($fvHasVideo !== '' ? 1 : 0) + ($fvHasSpecialCase !== '' ? 1 : 0);
-        @endphp
         <div class="border border-indigo-100 rounded-2xl mb-4">
             <button type="button" onclick="toggleBpFvFilters()"
                     class="w-full flex items-center justify-between gap-3 px-5 py-3 bg-indigo-50/60 hover:bg-indigo-50 transition-colors text-right rounded-t-2xl">
@@ -959,6 +986,12 @@
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                         إضافة
                     </button>
+                    <button type="button" data-op="subtract"
+                            class="mobile-op-btn flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all text-gray-500 text-xs font-semibold"
+                            onclick="setMobileOp('subtract')">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4"/></svg>
+                        طرح
+                    </button>
                     <button type="button" data-op="set"
                             class="mobile-op-btn flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all text-gray-500 text-xs font-semibold"
                             onclick="setMobileOp('set')">
@@ -1008,6 +1041,11 @@
                         <input type="radio" name="operation" value="add" checked class="hidden">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                         إضافة
+                    </label>
+                    <label class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all has-[:checked]:bg-white has-[:checked]:shadow-sm has-[:checked]:text-red-600 text-gray-500 text-sm font-semibold">
+                        <input type="radio" name="operation" value="subtract" class="hidden">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4"/></svg>
+                        طرح
                     </label>
                     <label class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all has-[:checked]:bg-white has-[:checked]:shadow-sm has-[:checked]:text-teal-700 text-gray-500 text-sm font-semibold">
                         <input type="radio" name="operation" value="set" class="hidden">
@@ -1073,9 +1111,15 @@ function toggleBpFvFilters() {
     arrow.classList.toggle('rotate-180');
 }
 
-// ── Remove empty array params before GET submit ────────────────────────────
+// ── Remove empty params before GET submit ─────────────────────────────────
 function removeBpEmptyFilters(form) {
     form.querySelectorAll('input[type=checkbox]:not(:checked)').forEach(cb => cb.disabled = true);
+    form.querySelectorAll('input[type=text], input[type=date], input[type=number]').forEach(el => {
+        if (el.value === '') el.disabled = true;
+    });
+    form.querySelectorAll('select').forEach(el => {
+        if (el.value === '') el.disabled = true;
+    });
 }
 
 // ── Multi-select dropdown JS ───────────────────────────────────────────────
@@ -1211,8 +1255,10 @@ function setMobileOp(val) {
         const active = btn.dataset.op === val;
         btn.classList.toggle('bg-white', active);
         btn.classList.toggle('shadow-sm', active);
-        btn.classList.toggle('text-teal-700', active);
         btn.classList.toggle('text-gray-500', !active);
+        btn.classList.toggle('text-teal-700', active && val !== 'subtract');
+        btn.classList.toggle('text-red-600',  active && val === 'subtract');
+        if (!active) { btn.classList.remove('text-teal-700', 'text-red-600'); }
     });
     // Sync to desktop radio
     const desktopRadio = document.querySelector('.hidden.sm\\:block input[name="operation"][value="' + val + '"]');

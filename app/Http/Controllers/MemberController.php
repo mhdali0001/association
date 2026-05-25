@@ -453,6 +453,181 @@ class MemberController extends Controller
         }
     }
 
+    // ── Field-Visit Amount Reduction ───────────────────────────────────
+
+    public function fvReductionShow(Request $request)
+    {
+        $base = $this->buildFilteredQuery($request);
+
+        $fieldVisitStatusIds = array_filter((array) $request->get('field_visit_status_id', []));
+        $fvHouseTypeIds      = array_filter((array) $request->get('fv_house_type_id', []));
+        $fvHouseConditionIds = array_filter((array) $request->get('fv_house_condition_id', []));
+        $fvVisitors          = array_filter((array) $request->get('fv_visitors', []));
+        $fvCreatedByIds      = array_filter((array) $request->get('fv_created_by', []));
+        $fvDateFrom          = trim($request->get('fv_date_from', ''));
+        $fvDateTo            = trim($request->get('fv_date_to', ''));
+        $fvAmountFrom        = trim($request->get('fv_amount_from', ''));
+        $fvAmountTo          = trim($request->get('fv_amount_to', ''));
+        $fvNotes             = trim($request->get('fv_notes', ''));
+        $fvHasVideo          = $request->get('fv_has_video', '');
+        $fvHasSpecialCase    = $request->get('fv_has_special_case', '');
+        $fvCount             = $request->get('fv_count', '');
+        $hasFvFilters        = !empty($fieldVisitStatusIds) || !empty($fvHouseTypeIds) || !empty($fvHouseConditionIds)
+            || !empty($fvVisitors) || !empty($fvCreatedByIds)
+            || $fvDateFrom !== '' || $fvDateTo !== '' || $fvAmountFrom !== '' || $fvAmountTo !== ''
+            || $fvNotes !== '' || $fvHasVideo !== '' || $fvHasSpecialCase !== '';
+
+        $search          = trim($request->get('search', ''));
+        $dossierFrom     = trim($request->get('dossier_from', ''));
+        $dossierTo       = trim($request->get('dossier_to', ''));
+        $verificationIds = array_filter((array) $request->get('verification_status_id', []));
+        $finalStatusIds  = array_filter((array) $request->get('final_status_id', []));
+        $associationIds  = array_filter((array) $request->get('association_id', []));
+        $regionIds       = array_filter((array) $request->get('region_id', []));
+        $sectorIds       = array_filter((array) $request->get('sector_id', []));
+        $delegates       = array_filter((array) $request->get('delegate', []));
+        $estimatedFrom      = trim($request->get('estimated_from', ''));
+        $estimatedTo        = trim($request->get('estimated_to', ''));
+        $shamCash           = array_filter((array) $request->get('sham_cash', []));
+        $fvReductionApplied = $request->get('fv_reduction_applied', '');
+
+        if ($fvReductionApplied === 'yes') {
+            $base->whereHas('scores', fn($q) => $q->where('score_deduction', '>', 0));
+        } elseif ($fvReductionApplied === 'no') {
+            $base->where(fn($q) => $q
+                ->whereDoesntHave('scores')
+                ->orWhereHas('scores', fn($q2) => $q2->where(fn($q3) => $q3->where('score_deduction', 0)->orWhereNull('score_deduction')))
+            );
+        }
+
+        $totalCount  = (clone $base)->count();
+        $withAmount  = (clone $base)->whereNotNull('estimated_amount')->where('estimated_amount', '>', 0)->count();
+        $totalAmount = (clone $base)->whereNotNull('estimated_amount')->sum('estimated_amount');
+
+        $members = (clone $base)
+            ->with(['verificationStatus', 'finalStatus', 'region', 'association', 'latestFieldVisit.status'])
+            ->orderByRaw('CAST(dossier_number AS UNSIGNED)')
+            ->paginate(60)->withQueryString();
+
+        $verificationStatuses = VerificationStatus::active()->orderBy('name')->get();
+        $finalStatusList      = FinalStatus::active()->orderBy('name')->get();
+        $associationList      = Association::active()->orderBy('name')->get();
+        $regionList           = \App\Models\Region::active()->orderBy('name')->get();
+        $sectorList           = \App\Models\Sector::active()->orderBy('name')->get();
+        $delegateList         = Delegate::orderBy('name')->pluck('name');
+        $fieldVisitStatuses   = \App\Models\FieldVisitStatus::active()->orderBy('id')->get();
+        $houseTypes           = \App\Models\HouseType::active()->orderBy('id')->get();
+        $houseConditions      = \App\Models\HouseCondition::active()->orderBy('name')->get();
+        $fvVisitorList        = \App\Models\FieldVisit::whereNotNull('visitor')->where('visitor','!=','')->distinct()->orderBy('visitor')->pluck('visitor');
+        $fvCreatedByList      = \App\Models\User::whereIn('id', \App\Models\FieldVisit::whereNotNull('created_by')->distinct()->pluck('created_by'))->orderBy('name')->get(['id','name']);
+
+        return view('members.fv-reduction', compact(
+            'members', 'totalCount', 'withAmount', 'totalAmount',
+            'search', 'dossierFrom', 'dossierTo', 'estimatedFrom', 'estimatedTo', 'shamCash', 'fvReductionApplied',
+            'verificationIds', 'finalStatusIds', 'associationIds', 'regionIds', 'sectorIds', 'delegates',
+            'fieldVisitStatusIds', 'fvHouseTypeIds', 'fvHouseConditionIds', 'fvVisitors', 'fvCreatedByIds',
+            'fvDateFrom', 'fvDateTo', 'fvAmountFrom', 'fvAmountTo', 'fvNotes',
+            'fvHasVideo', 'fvHasSpecialCase', 'fvCount', 'hasFvFilters',
+            'verificationStatuses', 'finalStatusList', 'associationList', 'regionList', 'sectorList',
+            'delegateList', 'fieldVisitStatuses', 'houseTypes', 'houseConditions',
+            'fvVisitorList', 'fvCreatedByList'
+        ));
+    }
+
+    public function fvReductionApply(Request $request)
+    {
+        $request->validate([
+            'percentage' => 'required|numeric|min:1|max:100',
+            'reason'     => 'nullable|string|max:500',
+            'apply_to'   => 'required|in:selected,filtered',
+            'member_ids' => 'array',
+        ]);
+
+        $percentage = (float) $request->percentage;
+        $reason     = $request->reason ?: null;
+        $applyTo    = $request->apply_to;
+
+        $query = $applyTo === 'selected'
+            ? Member::whereIn('id', $request->input('member_ids', []))
+            : $this->buildFilteredQuery($request);
+
+        // Only affect members who actually have an amount
+        $query->whereNotNull('estimated_amount')->where('estimated_amount', '>', 0);
+
+        $count = $query->count();
+        if ($count === 0) {
+            return back()->with('error', 'لا يوجد أعضاء لديهم مبلغ مقدّر في الاختيار الحالي.');
+        }
+
+        $label = "تخفيض {$percentage}% من المبلغ المقدّر لـ {$count} عضو";
+        if ($reason) $label .= " — السبب: {$reason}";
+
+        if (!$this->isAdmin()) {
+            $memberIds = $query->pluck('id')->all();
+            PendingChange::createWithSnapshots([
+                'model_type'   => 'member',
+                'model_id'     => null,
+                'action'       => 'bulk_fv_reduction',
+                'payload'      => [
+                    'percentage' => $percentage,
+                    'reason'     => $reason,
+                    'member_ids' => $memberIds,
+                    'count'      => $count,
+                    'label'      => $label,
+                ],
+                'original'     => null,
+                'requested_by' => Auth::id(),
+                'status'       => 'pending',
+            ], $memberIds);
+            return back()->with('success', "تم إرسال طلب ({$label}) وهو بانتظار موافقة المسؤول.");
+        }
+
+        $this->applyFvReductionToIds($query->pluck('id')->all(), $percentage, $reason);
+
+        ActivityLogger::log('updated', "تخفيض جماعي للمبلغ: {$label}");
+        return back()->with('success', "تم تطبيق التخفيض بنجاح: {$label}.");
+    }
+
+    private function applyFvReductionToIds(array $ids, float $percentage, ?string $reason): void
+    {
+        foreach ($ids as $memberId) {
+            $member = Member::with('scores')->find($memberId);
+            if (!$member || !$member->estimated_amount) continue;
+
+            $currentAmount  = (float) $member->estimated_amount;
+            $reduction      = (int) floor($currentAmount * $percentage / 100);
+            $pointsDeducted = (int) floor($reduction / 500);
+
+            if ($pointsDeducted <= 0) continue;
+
+            $scores = $member->scores ?? new MemberScore(['member_id' => $memberId]);
+
+            $rawScore = ($scores->work_score            ?? 0)
+                      + ($scores->housing_score          ?? 0)
+                      + ($scores->dependents_score       ?? 0)
+                      + ($scores->dependent_status_score ?? 0)
+                      + ($scores->illness_score          ?? 0)
+                      + ($scores->special_cases_score    ?? 0);
+
+            $addition     = (int)($scores->score_addition  ?? 0);
+            $newDeduction = (int)($scores->score_deduction ?? 0) + $pointsDeducted;
+            $totalScore   = max(0, $rawScore + $addition - $newDeduction);
+            $newAmount    = $totalScore * 500;
+
+            $scores->fill([
+                'member_id'              => $memberId,
+                'score_deduction'        => $newDeduction,
+                'score_deduction_reason' => $reason ?? 'تخفيض الجولة الميدانية',
+                'total_score'            => $totalScore,
+            ])->save();
+
+            DB::table('members')->where('id', $memberId)->update([
+                'score'            => $totalScore,
+                'estimated_amount' => $newAmount,
+            ]);
+        }
+    }
+
     // ── Bulk Payments ──────────────────────────────────────────────────
 
     public function bulkPaymentsShow(Request $request)
@@ -553,7 +728,7 @@ class MemberController extends Controller
     {
         $request->validate([
             'payments_count' => 'required|integer|min:0',
-            'operation'      => 'required|in:add,set',
+            'operation'      => 'required|in:add,subtract,set',
             'apply_to'       => 'required|in:selected,filtered',
             'member_ids'     => 'array',
         ]);
@@ -576,7 +751,11 @@ class MemberController extends Controller
             return back()->with('error', 'لم يتم تحديد أي أعضاء.');
         }
 
-        $opLabel = $operation === 'add' ? "إضافة {$amount} دفعة" : "تعيين {$amount} دفعة";
+        $opLabel = match($operation) {
+            'add'      => "إضافة {$amount} دفعة",
+            'subtract' => "طرح {$amount} دفعة",
+            default    => "تعيين {$amount} دفعة",
+        };
         $label   = "{$opLabel} لـ {$count} عضو";
 
         if (!$this->isAdmin()) {
@@ -602,6 +781,10 @@ class MemberController extends Controller
         if ($operation === 'add') {
             DB::table('members')->whereIn('id', $ids)->update([
                 'payments_count' => DB::raw('COALESCE(payments_count, 0) + ' . $amount),
+            ]);
+        } elseif ($operation === 'subtract') {
+            DB::table('members')->whereIn('id', $ids)->update([
+                'payments_count' => DB::raw('GREATEST(COALESCE(payments_count, 0) - ' . $amount . ', 0)'),
             ]);
         } else {
             DB::table('members')->whereIn('id', $ids)->update(['payments_count' => $amount]);
@@ -946,7 +1129,7 @@ class MemberController extends Controller
             'age'                        => 'nullable|integer|min:0|max:150',
             'gender'                     => 'nullable|string|max:10',
             'mother_name'                => 'nullable|string|max:255',
-            'national_id'                => 'required|string|max:50|unique:members,national_id',
+            'national_id'                => 'required|string|size:11|unique:members,national_id',
             'verification_status_id'     => 'required|exists:verification_statuses,id',
             'final_status_id'            => 'nullable|exists:final_statuses,id',
             'dossier_number'             => 'nullable|string|max:50|unique:members,dossier_number',
@@ -981,13 +1164,13 @@ class MemberController extends Controller
             'score_addition'             => 'nullable|integer|min:0',
             'score_addition_reason'      => 'nullable|string|max:500',
             // payment
-            'iban'                       => 'nullable|string|max:50',
+            'iban'                       => 'nullable|string|size:16',
             'barcode'                    => 'nullable|string|max:100',
             'iban_image'                 => 'nullable|image|max:2048',
             'barcode_image'              => 'nullable|image|max:2048',
             'recipient_name'             => 'nullable|string|max:150',
             // payment AI
-            'iban_ai'                    => 'nullable|string|max:50',
+            'iban_ai'                    => 'nullable|string|size:16',
             'barcode_ai'                 => 'nullable|string|max:100',
             'recipient_name_ai'          => 'nullable|string|max:150',
         ]);
@@ -1126,7 +1309,7 @@ class MemberController extends Controller
             'age'                        => 'nullable|integer|min:0|max:150',
             'gender'                     => 'nullable|string|max:10',
             'mother_name'                => 'nullable|string|max:255',
-            'national_id'                => 'required|string|max:50|unique:members,national_id,' . $member->id,
+            'national_id'                => 'required|string|size:11|unique:members,national_id,' . $member->id,
             'verification_status_id'     => 'required|exists:verification_statuses,id',
             'final_status_id'            => 'nullable|exists:final_statuses,id',
             'dossier_number'             => 'nullable|string|max:50|unique:members,dossier_number,' . $member->id,
@@ -1161,13 +1344,13 @@ class MemberController extends Controller
             'score_deduction_reason'     => 'nullable|string|max:500',
             'score_addition'             => 'nullable|integer|min:0',
             'score_addition_reason'      => 'nullable|string|max:500',
-            'iban'                       => 'nullable|string|max:50',
+            'iban'                       => 'nullable|string|size:16',
             'barcode'                    => 'nullable|string|max:100',
             'iban_image'                 => 'nullable|image|max:2048',
             'barcode_image'              => 'nullable|image|max:2048',
             'recipient_name'             => 'nullable|string|max:150',
             // payment AI
-            'iban_ai'                    => 'nullable|string|max:50',
+            'iban_ai'                    => 'nullable|string|size:16',
             'barcode_ai'                 => 'nullable|string|max:100',
             'recipient_name_ai'          => 'nullable|string|max:150',
             'latitude'                   => 'nullable|numeric|between:-90,90',

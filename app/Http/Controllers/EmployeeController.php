@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Employee;
 use App\Models\EmployeeTransaction;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -59,7 +60,8 @@ class EmployeeController extends Controller
         $data['base_salary_currency'] = $data['base_salary_currency'] ?? 'SYP';
         if (empty($data['access_pin'])) unset($data['access_pin']);
 
-        Employee::create($data);
+        $employee = Employee::create($data);
+        ActivityLogger::log('created', "إضافة موظف: {$employee->name}", $employee);
 
         return redirect()->route('employees.index')->with('success', 'تم إضافة الموظف بنجاح.');
     }
@@ -126,6 +128,7 @@ class EmployeeController extends Controller
         $data['is_active']            = $request->boolean('is_active');
 
         $employee->update($data);
+        ActivityLogger::log('updated', "تعديل بيانات الموظف: {$employee->name}", $employee);
 
         return redirect()->route('employees.show', $employee)->with('success', 'تم تحديث بيانات الموظف.');
     }
@@ -133,7 +136,9 @@ class EmployeeController extends Controller
     public function destroy(Employee $employee)
     {
         $this->adminOnly();
+        $name = $employee->name;
         $employee->delete();
+        ActivityLogger::log('deleted', "حذف الموظف: {$name}");
         return redirect()->route('employees.index')->with('success', 'تم حذف الموظف.');
     }
 
@@ -152,7 +157,11 @@ class EmployeeController extends Controller
         $data['employee_id'] = $employee->id;
         $data['created_by']  = Auth::id();
 
-        EmployeeTransaction::create($data);
+        $typeLabels = ['salary' => 'راتب', 'addition' => 'إضافة', 'deduction' => 'خصم', 'advance' => 'سلفة', 'bonus' => 'مكافأة'];
+        $typeLabel  = $typeLabels[$data['type']] ?? $data['type'];
+
+        $tx = EmployeeTransaction::create($data);
+        ActivityLogger::log('created', "إضافة معاملة مالية ({$typeLabel}) للموظف: {$employee->name} — {$data['amount']} {$data['currency']}", $employee);
 
         return back()->with('success', 'تمت إضافة العملية بنجاح.');
     }
@@ -170,7 +179,11 @@ class EmployeeController extends Controller
             'transaction_date' => 'required|date',
         ]);
 
+        $typeLabels = ['salary' => 'راتب', 'addition' => 'إضافة', 'deduction' => 'خصم', 'advance' => 'سلفة', 'bonus' => 'مكافأة'];
+        $typeLabel  = $typeLabels[$data['type']] ?? $data['type'];
+
         $transaction->update($data);
+        ActivityLogger::log('updated', "تعديل معاملة مالية ({$typeLabel}) للموظف: {$employee->name} — {$data['amount']} {$data['currency']}", $employee);
 
         return back()->with('success', 'تم تعديل العملية بنجاح.');
     }
@@ -179,7 +192,10 @@ class EmployeeController extends Controller
     {
         $this->adminOnly();
         abort_if($transaction->employee_id !== $employee->id, 403);
+        $typeLabels = ['salary' => 'راتب', 'addition' => 'إضافة', 'deduction' => 'خصم', 'advance' => 'سلفة', 'bonus' => 'مكافأة'];
+        $typeLabel  = $typeLabels[$transaction->type] ?? $transaction->type;
         $transaction->delete();
+        ActivityLogger::log('deleted', "حذف معاملة مالية ({$typeLabel}) للموظف: {$employee->name}", $employee);
         return back()->with('success', 'تم حذف العملية.');
     }
 }

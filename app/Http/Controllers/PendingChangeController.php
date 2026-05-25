@@ -239,4 +239,119 @@ class PendingChangeController extends Controller
         return redirect()->route('pending-changes.show', $pendingChange)
                          ->with('success', 'تم إعادة رفض الطلب.');
     }
+
+    public function editRequest(PendingChange $pendingChange)
+    {
+        abort_unless($pendingChange->isPending(), 422, 'يمكن تعديل الطلبات المعلّقة فقط.');
+        abort_unless($pendingChange->requested_by === Auth::id(), 403);
+
+        $pendingChange->load('requester');
+        return view('pending-changes.edit-request', compact('pendingChange'));
+    }
+
+    public function updateRequest(Request $request, PendingChange $pendingChange)
+    {
+        abort_unless($pendingChange->isPending(), 422, 'يمكن تعديل الطلبات المعلّقة فقط.');
+        abort_unless($pendingChange->requested_by === Auth::id(), 403);
+
+        $request->validate(['_requester_notes' => 'nullable|string|max:500']);
+
+        $payload = $pendingChange->payload ?? [];
+
+        // Requester note
+        $payload['_requester_notes'] = $request->input('_requester_notes') ?: null;
+
+        // Merge all submitted payload fields (deep merge for nested arrays like scores/payment)
+        $edited = $request->input('payload', []);
+
+        // Admin-only fields the requester cannot change
+        $adminOnly = ['sham_cash_account'];
+
+        foreach ($edited as $key => $value) {
+            if (in_array($key, $adminOnly)) continue;
+            if (is_array($value)) {
+                $existing = $payload[$key] ?? [];
+                foreach ($value as $subKey => $subVal) {
+                    $existing[$subKey] = ($subVal === '' || $subVal === null) ? null : $subVal;
+                }
+                $payload[$key] = $existing;
+            } else {
+                $payload[$key] = ($value === '' || $value === null) ? null : $value;
+            }
+        }
+
+        $pendingChange->update(['payload' => $payload]);
+        ActivityLogger::log('updated', "تعديل طلب معلّق: {$pendingChange->summary()}");
+
+        return redirect()->route('pending-changes.my', ['status' => 'pending'])
+            ->with('success', 'تم تحديث الطلب بنجاح — لا يزال بانتظار موافقة المسؤول.');
+    }
+
+    public function withdraw(PendingChange $pendingChange)
+    {
+        abort_unless($pendingChange->isPending(), 422, 'يمكن سحب الطلبات المعلّقة فقط.');
+        abort_unless($pendingChange->requested_by === Auth::id(), 403);
+
+        $summary = $pendingChange->summary();
+        $pendingChange->cleanup();
+        $pendingChange->delete();
+
+        ActivityLogger::log('deleted', "سحب طلب معلّق: {$summary}");
+
+        return redirect()->route('pending-changes.my')
+            ->with('success', 'تم سحب الطلب وإلغاؤه بنجاح.');
+    }
+
+    public function bulkApprove(Request $request)
+    {
+        $ids = array_filter((array) $request->input('ids', []));
+
+        if (empty($ids)) {
+            return back()->with('error', 'لم يتم تحديد أي طلب.');
+        }
+
+        $changes = PendingChange::whereIn('id', $ids)->where('status', 'pending')->get();
+        $done = 0;
+        $errors = [];
+
+        foreach ($changes as $change) {
+            try {
+                $change->apply();
+                $done++;
+            } catch (\Throwable $e) {
+                $errors[] = "#{$change->id}: " . $e->getMessage();
+            }
+        }
+
+        ActivityLogger::log('approved', "موافقة جماعية على {$done} طلب");
+
+        $msg = "تمت الموافقة على {$done} طلب بنجاح.";
+        if (!empty($errors)) {
+            $msg .= ' فشل: ' . implode('، ', $errors);
+        }
+
+        return back()->with($errors ? 'error' : 'success', $msg);
+    }
+
+    public function bulkReject(Request $request)
+    {
+        $ids = array_filter((array) $request->input('ids', []));
+
+        if (empty($ids)) {
+            return back()->with('error', 'لم يتم تحديد أي طلب.');
+        }
+
+        $count = PendingChange::whereIn('id', $ids)->where('status', 'pending')->each(function ($change) {
+            $change->cleanup();
+            $change->update([
+                'status'      => 'rejected',
+                'reviewed_by' => Auth::id(),
+                'reviewed_at' => now(),
+            ]);
+        })->count();
+
+        ActivityLogger::log('rejected', "رفض جماعي لـ {$count} طلب");
+
+        return back()->with('success', "تم رفض {$count} طلب بنجاح.");
+    }
 }

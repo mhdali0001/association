@@ -201,6 +201,7 @@
                         ['members.import.show', 'استيراد Excel',        'M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
                         ['members.bulk-amount',       'إضافة وانقاص النقاط',     'M20 12H4'],
                         ['members.bulk-payments',     'الدفعات الجماعية',  'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z'],
+                        ['members.fv-reduction',      'تخفيض الجولة الميدانية', 'M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z'],
                         ['members.score-adjustments', 'تعديلات النقاط',    'M3 6h18M3 12h18M3 18h18'],
                         ['members.score-equalizer',  'تسوية النقاط',      'M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4'],
                         ['members.score-manager',   'إدارة النقاط',      'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'],
@@ -286,6 +287,11 @@
                        class="nav-link {{ request()->routeIs('activity-logs.*') ? 'active' : '' }}">
                         <svg class="nav-icon shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
                         <span class="sidebar-label">سجل النشاط</span>
+                    </a>
+                    <a href="{{ route('archive.index') }}" data-tip="الأرشيف"
+                       class="nav-link {{ request()->routeIs('archive.*') ? 'active' : '' }}">
+                        <svg class="nav-icon shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+                        <span class="sidebar-label">الأرشيف</span>
                     </a>
                 </div>
             </div>

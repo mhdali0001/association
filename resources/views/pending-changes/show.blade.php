@@ -153,6 +153,16 @@
         </div>
     </div>
 
+    {{-- Requester note (from user edit) --}}
+    @if(!empty($pendingChange->payload['_requester_notes']))
+        <div class="px-6 py-3 bg-amber-50 border-b border-amber-100 flex items-start gap-2">
+            <svg class="w-4 h-4 text-amber-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+            </svg>
+            <p class="text-sm text-amber-800"><span class="font-semibold">ملاحظة مقدّم الطلب:</span> {{ $pendingChange->payload['_requester_notes'] }}</p>
+        </div>
+    @endif
+
     {{-- Reviewer notes --}}
     @if($pendingChange->reviewer_notes)
         <div class="px-6 py-3 bg-red-50 border-b border-red-100 flex items-start gap-2">

@@ -191,6 +191,45 @@
         </div>
     @endif
 
+    {{-- Bulk action toolbar (pending only) --}}
+    @if($status === 'pending' && !$changes->isEmpty())
+    <div id="bulk-bar" class="hidden items-center gap-3 px-4 py-2.5 border-b border-amber-100 bg-amber-50/60">
+        <span class="text-xs font-bold text-amber-700">
+            <span id="bulk-count">0</span> طلب محدد
+        </span>
+        <div class="flex items-center gap-2 mr-auto">
+            <form id="bulk-approve-form" action="{{ route('pending-changes.bulk-approve') }}" method="POST">
+                @csrf
+                <div id="bulk-approve-ids"></div>
+                <button type="submit"
+                        onclick="return confirm('الموافقة على الطلبات المحددة؟')"
+                        class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-colors shadow-sm">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    موافقة جماعية
+                </button>
+            </form>
+            <form id="bulk-reject-form" action="{{ route('pending-changes.bulk-reject') }}" method="POST">
+                @csrf
+                <div id="bulk-reject-ids"></div>
+                <button type="submit"
+                        onclick="return confirm('رفض الطلبات المحددة؟')"
+                        class="flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-colors shadow-sm">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    رفض جماعي
+                </button>
+            </form>
+            <button onclick="clearSelection()"
+                    class="text-xs text-gray-400 hover:text-gray-600 font-medium underline">
+                إلغاء التحديد
+            </button>
+        </div>
+    </div>
+    @endif
+
     {{-- Table --}}
     @if($changes->isEmpty())
         <div class="flex flex-col items-center justify-center py-16 text-center">
@@ -206,6 +245,13 @@
             <table class="w-full text-sm">
                 <thead>
                     <tr class="bg-gray-50/70 border-b border-gray-100">
+                        @if($status === 'pending')
+                        <th class="px-4 py-3.5 w-10">
+                            <input type="checkbox" id="select-all"
+                                   class="w-4 h-4 rounded border-gray-300 text-amber-500 focus:ring-amber-400 cursor-pointer"
+                                   onchange="toggleAll(this)">
+                        </th>
+                        @endif
                         <th class="text-right font-semibold text-gray-500 px-5 py-3.5">#</th>
                         <th class="text-right font-semibold text-gray-500 px-5 py-3.5">نوع الطلب</th>
                         <th class="text-right font-semibold text-gray-500 px-5 py-3.5">العنصر</th>
@@ -217,7 +263,14 @@
                 </thead>
                 <tbody class="divide-y divide-gray-50">
                     @foreach($changes as $change)
-                        <tr class="hover:bg-gray-50 transition-colors">
+                        <tr class="hover:bg-gray-50 transition-colors bulk-row" data-id="{{ $change->id }}">
+                            @if($status === 'pending')
+                            <td class="px-4 py-4">
+                                <input type="checkbox" value="{{ $change->id }}"
+                                       class="bulk-cb w-4 h-4 rounded border-gray-300 text-amber-500 focus:ring-amber-400 cursor-pointer"
+                                       onchange="onCheckChange()">
+                            </td>
+                            @endif
                             <td class="px-5 py-4 text-gray-400 font-mono text-xs">{{ $change->id }}</td>
                             <td class="px-5 py-4">
                                 @php
@@ -312,5 +365,65 @@
         @endif
     @endif
 </div>
+
+@if($status === 'pending')
+<script>
+function getChecked() {
+    return [...document.querySelectorAll('.bulk-cb:checked')].map(cb => cb.value);
+}
+
+function syncForms(ids) {
+    ['bulk-approve-ids', 'bulk-reject-ids'].forEach(containerId => {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        container.innerHTML = '';
+        ids.forEach(id => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'ids[]';
+            input.value = id;
+            container.appendChild(input);
+        });
+    });
+}
+
+function onCheckChange() {
+    const ids = getChecked();
+    const bar = document.getElementById('bulk-bar');
+    const countEl = document.getElementById('bulk-count');
+    if (bar) {
+        bar.classList.toggle('hidden', ids.length === 0);
+        bar.classList.toggle('flex', ids.length > 0);
+    }
+    if (countEl) countEl.textContent = ids.length;
+    syncForms(ids);
+
+    const allCb = document.getElementById('select-all');
+    const total = document.querySelectorAll('.bulk-cb').length;
+    if (allCb) {
+        allCb.indeterminate = ids.length > 0 && ids.length < total;
+        allCb.checked = ids.length === total;
+    }
+
+    // highlight selected rows
+    document.querySelectorAll('.bulk-row').forEach(row => {
+        const cb = row.querySelector('.bulk-cb');
+        row.classList.toggle('bg-amber-50/40', cb?.checked ?? false);
+    });
+}
+
+function toggleAll(master) {
+    document.querySelectorAll('.bulk-cb').forEach(cb => { cb.checked = master.checked; });
+    onCheckChange();
+}
+
+function clearSelection() {
+    document.querySelectorAll('.bulk-cb').forEach(cb => { cb.checked = false; });
+    const allCb = document.getElementById('select-all');
+    if (allCb) { allCb.checked = false; allCb.indeterminate = false; }
+    onCheckChange();
+}
+</script>
+@endif
 
 @endsection

@@ -132,13 +132,32 @@
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-2 shrink-0">
+                        <div class="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                             {{-- Status badge --}}
                             @if($change->isPending())
                                 <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
                                     <span class="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
                                     معلّق
                                 </span>
+                                {{-- Edit & Withdraw buttons --}}
+                                <a href="{{ route('pending-changes.edit-request', $change) }}"
+                                   class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                    </svg>
+                                    تعديل
+                                </a>
+                                <form method="POST" action="{{ route('pending-changes.withdraw', $change) }}"
+                                      onsubmit="return confirm('سحب الطلب وحذفه نهائياً؟')" class="inline">
+                                    @csrf @method('DELETE')
+                                    <button type="submit"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                        سحب
+                                    </button>
+                                </form>
                             @elseif($change->isApproved())
                                 <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>

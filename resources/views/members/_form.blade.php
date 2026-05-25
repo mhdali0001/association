@@ -63,6 +63,7 @@
         <div>
             <label class="{{ $labelClass }}">رقم الهوية <span class="text-red-500 normal-case">*</span></label>
             <input type="text" name="national_id" value="{{ $v('national_id') }}" required
+                   maxlength="11" minlength="11" pattern="\d{11}" placeholder="11 رقماً"
                    class="{{ $inputClass }} font-mono @error('national_id') {{ $errorInput }} @enderror">
             @error('national_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
         </div>
@@ -772,6 +773,7 @@
             <label class="{{ $labelClass }}">رقم الآيبان (IBAN)</label>
             <input type="text" name="iban" value="{{ old('iban', $payment?->iban) }}"
                    placeholder="SY00 0000 0000 0000" dir="ltr"
+                   maxlength="16" minlength="16"
                    class="{{ $inputClass }} font-mono">
         </div>
 
@@ -841,6 +843,7 @@
             <label class="{{ $labelClass }}">رقم الآيبان AI (IBAN)</label>
             <input type="text" name="iban_ai" value="{{ old('iban_ai', $paymentAI?->iban) }}"
                    placeholder="SY00 0000 0000 0000" dir="ltr"
+                   maxlength="16" minlength="16"
                    class="{{ $inputClass }} font-mono">
         </div>
 
@@ -858,47 +861,6 @@
         </div>
 
     </div>
-</div>
-
-{{-- ════════════════════════════════════════ --}}
-{{-- ٧ · الموقع الجغرافي                     --}}
-{{-- ════════════════════════════════════════ --}}
-<div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-5">
-    <div class="flex items-center gap-3 mb-5 pb-4 border-b border-gray-100">
-        <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center shadow-sm">
-            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-            </svg>
-        </div>
-        <h2 class="text-sm font-black text-teal-700 uppercase tracking-wide">الموقع الجغرافي</h2>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <div>
-            <label class="{{ $labelClass }}">خط العرض (Latitude)</label>
-            <input type="number" name="latitude" id="form_latitude" step="0.0000001"
-                   value="{{ old('latitude', $isEdit ? $member->latitude : '') }}"
-                   placeholder="مثال: 33.5138"
-                   dir="ltr"
-                   class="{{ $inputClass }} font-mono"
-                   oninput="syncFormMapFromInputs()">
-        </div>
-        <div>
-            <label class="{{ $labelClass }}">خط الطول (Longitude)</label>
-            <input type="number" name="longitude" id="form_longitude" step="0.0000001"
-                   value="{{ old('longitude', $isEdit ? $member->longitude : '') }}"
-                   placeholder="مثال: 36.2765"
-                   dir="ltr"
-                   class="{{ $inputClass }} font-mono"
-                   oninput="syncFormMapFromInputs()">
-        </div>
-    </div>
-
-    <p class="text-xs text-gray-400 mb-3">انقر على الخريطة لتحديد الموقع، أو أدخل الإحداثيات يدوياً في الحقول أعلاه.</p>
-
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-    <div id="form-map" class="rounded-xl border border-gray-200 overflow-hidden" style="height: 300px;"></div>
 </div>
 
 <script>
@@ -1293,70 +1255,4 @@ function calcTotal() {
     if (amountEl) amountEl.value = total * 500;
 }
 calcTotal();
-</script>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-(function () {
-    const defaultLat = 33.5138, defaultLng = 36.2765, defaultZoom = 8;
-
-    const latInput = document.getElementById('form_latitude');
-    const lngInput = document.getElementById('form_longitude');
-
-    const initLat = parseFloat(latInput?.value) || defaultLat;
-    const initLng = parseFloat(lngInput?.value) || defaultLng;
-    const initZoom = (latInput?.value && lngInput?.value) ? 14 : defaultZoom;
-
-    const map = L.map('form-map').setView([initLat, initLng], initZoom);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: 19,
-    }).addTo(map);
-
-    let marker = null;
-
-    if (latInput?.value && lngInput?.value) {
-        marker = L.marker([initLat, initLng], { draggable: true }).addTo(map);
-        marker.on('dragend', () => {
-            const pos = marker.getLatLng();
-            latInput.value = pos.lat.toFixed(7);
-            lngInput.value = pos.lng.toFixed(7);
-        });
-    }
-
-    map.on('click', function (e) {
-        const { lat, lng } = e.latlng;
-        latInput.value = lat.toFixed(7);
-        lngInput.value = lng.toFixed(7);
-        if (marker) {
-            marker.setLatLng([lat, lng]);
-        } else {
-            marker = L.marker([lat, lng], { draggable: true }).addTo(map);
-            marker.on('dragend', () => {
-                const pos = marker.getLatLng();
-                latInput.value = pos.lat.toFixed(7);
-                lngInput.value = pos.lng.toFixed(7);
-            });
-        }
-    });
-
-    window.syncFormMapFromInputs = function () {
-        const lat = parseFloat(latInput.value);
-        const lng = parseFloat(lngInput.value);
-        if (isNaN(lat) || isNaN(lng)) return;
-        if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return;
-        map.setView([lat, lng], 14);
-        if (marker) {
-            marker.setLatLng([lat, lng]);
-        } else {
-            marker = L.marker([lat, lng], { draggable: true }).addTo(map);
-            marker.on('dragend', () => {
-                const pos = marker.getLatLng();
-                latInput.value = pos.lat.toFixed(7);
-                lngInput.value = pos.lng.toFixed(7);
-            });
-        }
-    };
-})();
 </script>

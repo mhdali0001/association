@@ -173,6 +173,7 @@ class PendingChange extends Model
             'update'       => 'تعديل',
             'delete'       => 'حذف',
             'bulk_amount'           => 'تعديل جماعي للمبلغ',
+            'bulk_fv_reduction'     => 'تخفيض جماعي للمبلغ',
             'bulk_score_deduction'  => 'انقاص جماعي للنقاط',
             'bulk_score_addition'   => 'إضافة جماعية للنقاط',
             'bulk_score_equalize'   => 'تسوية جماعية للنقاط',
@@ -201,7 +202,7 @@ class PendingChange extends Model
     /** A short description for list views */
     public function summary(): string
     {
-        if (in_array($this->action, ['bulk_amount', 'bulk_score_deduction', 'bulk_score_addition', 'bulk_score_equalize'])) {
+        if (in_array($this->action, ['bulk_amount', 'bulk_fv_reduction', 'bulk_score_deduction', 'bulk_score_addition', 'bulk_score_equalize'])) {
             return "{$this->actionLabel()}: " . ($this->payload['label'] ?? '');
         }
 
@@ -242,6 +243,8 @@ class PendingChange extends Model
     {
         if ($this->action === 'bulk_amount') {
             $this->applyBulkAmount();
+        } elseif ($this->action === 'bulk_fv_reduction') {
+            $this->applyBulkFvReduction();
         } elseif ($this->action === 'bulk_score_deduction') {
             $this->applyBulkScoreDeduction();
         } elseif ($this->action === 'bulk_score_addition') {
@@ -347,6 +350,53 @@ class PendingChange extends Model
                 break;
             default: // set
                 $query->update([$field => $amount]);
+        }
+    }
+
+    private function applyBulkFvReduction(): void
+    {
+        $p          = $this->payload ?? [];
+        $percentage = (float) ($p['percentage'] ?? 0);
+        $reason     = $p['reason'] ?? null;
+        $ids        = $p['member_ids'] ?? [];
+
+        if (empty($ids) || $percentage <= 0) return;
+
+        foreach ($ids as $memberId) {
+            $member = Member::with('scores')->find($memberId);
+            if (!$member || !$member->estimated_amount) continue;
+
+            $currentAmount  = (float) $member->estimated_amount;
+            $reduction      = (int) floor($currentAmount * $percentage / 100);
+            $pointsDeducted = (int) floor($reduction / 500);
+
+            if ($pointsDeducted <= 0) continue;
+
+            $scores = $member->scores ?? new MemberScore(['member_id' => $memberId]);
+
+            $rawScore = ($scores->work_score            ?? 0)
+                      + ($scores->housing_score          ?? 0)
+                      + ($scores->dependents_score       ?? 0)
+                      + ($scores->dependent_status_score ?? 0)
+                      + ($scores->illness_score          ?? 0)
+                      + ($scores->special_cases_score    ?? 0);
+
+            $addition     = (int)($scores->score_addition  ?? 0);
+            $newDeduction = (int)($scores->score_deduction ?? 0) + $pointsDeducted;
+            $totalScore   = max(0, $rawScore + $addition - $newDeduction);
+            $newAmount    = $totalScore * 500;
+
+            $scores->fill([
+                'member_id'              => $memberId,
+                'score_deduction'        => $newDeduction,
+                'score_deduction_reason' => $reason ?? 'تخفيض الجولة الميدانية',
+                'total_score'            => $totalScore,
+            ])->save();
+
+            DB::table('members')->where('id', $memberId)->update([
+                'score'            => $totalScore,
+                'estimated_amount' => $newAmount,
+            ]);
         }
     }
 
@@ -481,7 +531,7 @@ class PendingChange extends Model
      */
     public function undo(): void
     {
-        if (in_array($this->action, ['bulk_amount', 'bulk_score_deduction', 'bulk_score_addition', 'bulk_score_equalize', 'bulk_delete', 'bulk_update'])) {
+        if (in_array($this->action, ['bulk_amount', 'bulk_fv_reduction', 'bulk_score_deduction', 'bulk_score_addition', 'bulk_score_equalize', 'bulk_delete', 'bulk_update'])) {
             return; // bulk operations are not automatically reversible
         }
 
