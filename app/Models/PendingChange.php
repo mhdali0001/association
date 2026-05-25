@@ -689,6 +689,8 @@ class PendingChange extends Model
             'sham_cash_account'         => in_array($p['sham_cash_account'] ?? '', ['done','manual']) ? $p['sham_cash_account'] : null,
             'score'                     => $totalScore,
             'estimated_amount'          => $totalScore * 500,
+            'latitude'                  => $p['latitude']  ?? null,
+            'longitude'                 => $p['longitude'] ?? null,
         ];
 
         $scoresData = [

@@ -696,10 +696,65 @@ class MemberController extends Controller
             'longitude' => 'nullable|numeric|between:-180,180',
         ]);
 
-        $member->update([
-            'latitude'  => $data['latitude']  ?: null,
-            'longitude' => $data['longitude'] ?: null,
-        ]);
+        $newLat = $data['latitude']  ?: null;
+        $newLng = $data['longitude'] ?: null;
+
+        if (!$this->isAdmin()) {
+            $member->load('scores');
+            $scores = $member->scores;
+            PendingChange::create([
+                'model_type'   => 'member',
+                'model_id'     => $member->id,
+                'action'       => 'update',
+                'payload'      => [
+                    'full_name'                 => $member->full_name,
+                    'age'                       => $member->age,
+                    'gender'                    => $member->gender,
+                    'mother_name'               => $member->mother_name,
+                    'national_id'               => $member->national_id,
+                    'verification_status_id'    => $member->verification_status_id,
+                    'dossier_number'            => $member->dossier_number,
+                    'current_address'           => $member->current_address,
+                    'region_id'                 => $member->region_id,
+                    'marital_status'            => $member->marital_status,
+                    'disease_type'              => $member->disease_type,
+                    'other_association'         => $member->other_association,
+                    'phone'                     => $member->phone,
+                    'phone2'                    => $member->phone2,
+                    'representative_id'         => $member->representative_id,
+                    'delegate'                  => $member->delegate,
+                    'network'                   => $member->network,
+                    'provider_status'           => $member->provider_status,
+                    'job'                       => $member->job,
+                    'housing_status_id'         => $member->housing_status_id,
+                    'dependents_count'          => $member->dependents_count,
+                    'illness_details'           => $member->illness_details,
+                    'special_cases'             => $member->special_cases,
+                    'special_cases_description' => $member->special_cases_description,
+                    'sham_cash_account'         => $member->sham_cash_account,
+                    'latitude'                  => $newLat,
+                    'longitude'                 => $newLng,
+                    'scores' => [
+                        'work_score'             => $scores?->work_score             ?? 0,
+                        'housing_score'          => $scores?->housing_score          ?? 0,
+                        'dependents_score'       => $scores?->dependents_score       ?? 0,
+                        'dependent_status_score' => $scores?->dependent_status_score ?? 0,
+                        'illness_score'          => $scores?->illness_score          ?? 0,
+                        'special_cases_score'    => $scores?->special_cases_score    ?? 0,
+                    ],
+                ],
+                'original'     => [
+                    'full_name' => $member->full_name,
+                    'latitude'  => $member->latitude,
+                    'longitude' => $member->longitude,
+                ],
+                'requested_by' => Auth::id(),
+                'status'       => 'pending',
+            ]);
+            return back()->with('pending', 'تم إرسال طلب تعديل الموقع — بانتظار موافقة المسؤول.');
+        }
+
+        $member->update(['latitude' => $newLat, 'longitude' => $newLng]);
 
         ActivityLogger::log('updated', "تعديل موقع المستفيد على الخريطة: {$member->full_name}", $member);
 
@@ -849,6 +904,8 @@ class MemberController extends Controller
             'second_person'             => $request->input('second_person'),
             'association_id'            => $request->input('association_id'),
             'association_ids'           => $request->input('association_ids', []),
+            'latitude'                  => $request->input('latitude') ?: null,
+            'longitude'                 => $request->input('longitude') ?: null,
             'scores'                    => $scores,
             'payment'                   => $payment,
             'payment_ai'                => $paymentAI,
@@ -865,7 +922,7 @@ class MemberController extends Controller
                 'job', 'second_person', 'housing_status_id', 'dependents_count', 'payments_count', 'notes', 'illness_details',
                 'special_cases', 'special_cases_description', 'sham_cash_account',
                 'other_association', 'representative_id', 'data_entry_name', 'delegate', 'association_id',
-                'score', 'estimated_amount',
+                'score', 'estimated_amount', 'latitude', 'longitude',
             ]),
             [
                 'scores' => $member->scores?->only([
