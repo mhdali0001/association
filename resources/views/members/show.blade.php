@@ -1044,12 +1044,12 @@
 
         {{-- Upload form (hidden by default) --}}
         <div id="upload-panel" class="hidden border-b border-violet-100 bg-violet-50/50 px-6 py-5">
-            @if(session('success'))
+            @if(session('upload_success'))
                 <div class="mb-4 flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl px-4 py-3">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
                     </svg>
-                    {{ session('success') }}
+                    {{ session('upload_success') }}
                 </div>
             @endif
             <form action="{{ route('member-images.store', $member) }}" method="POST" enctype="multipart/form-data"
@@ -1145,8 +1145,8 @@
         </div>
     </div>
 
-{{-- Auto-open upload panel if there are validation errors on the image field --}}
-@if($errors->has('image'))
+{{-- Auto-open upload panel on validation errors or after upload --}}
+@if($errors->has('image') || session('upload_success'))
 <script>document.getElementById('upload-panel').classList.remove('hidden');</script>
 @endif
 

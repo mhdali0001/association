@@ -42,7 +42,7 @@ class MemberImageController extends Controller
     {
         $this->upload($request, $member);
         $msg = $this->isAdmin() ? 'تم رفع الملف بنجاح.' : 'تم إرسال طلب رفع الملف للمراجعة.';
-        return back()->with('success', $msg);
+        return back()->with('upload_success', $msg);
     }
 
     /** رفع من صفحة الأرشيف العامة */

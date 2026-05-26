@@ -1129,7 +1129,7 @@ class MemberController extends Controller
             'age'                        => 'nullable|integer|min:0|max:150',
             'gender'                     => 'nullable|string|max:10',
             'mother_name'                => 'nullable|string|max:255',
-            'national_id'                => 'required|string|size:11|unique:members,national_id',
+            'national_id'                => 'required|string|unique:members,national_id',
             'verification_status_id'     => 'required|exists:verification_statuses,id',
             'final_status_id'            => 'nullable|exists:final_statuses,id',
             'dossier_number'             => 'nullable|string|max:50|unique:members,dossier_number',
@@ -1309,7 +1309,7 @@ class MemberController extends Controller
             'age'                        => 'nullable|integer|min:0|max:150',
             'gender'                     => 'nullable|string|max:10',
             'mother_name'                => 'nullable|string|max:255',
-            'national_id'                => 'required|string|size:11|unique:members,national_id,' . $member->id,
+            'national_id'                => 'required|string|unique:members,national_id,' . $member->id,
             'verification_status_id'     => 'required|exists:verification_statuses,id',
             'final_status_id'            => 'nullable|exists:final_statuses,id',
             'dossier_number'             => 'nullable|string|max:50|unique:members,dossier_number,' . $member->id,
@@ -1420,8 +1420,8 @@ class MemberController extends Controller
             'sham_cash_account'          => in_array($request->input('sham_cash_account'), ['done','manual']) ? $request->input('sham_cash_account') : null, // admin-only path
             'score'                      => $totalScore,
             'estimated_amount'           => $totalScore * 500,
-            'latitude'                   => $data['latitude']  ?: null,
-            'longitude'                  => $data['longitude'] ?: null,
+            'latitude'                   => ($data['latitude']  ?? null) ?: null,
+            'longitude'                  => ($data['longitude'] ?? null) ?: null,
         ]);
 
         $scores = $member->scores ?? new MemberScore(['member_id' => $member->id]);

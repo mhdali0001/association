@@ -63,7 +63,7 @@
         <div>
             <label class="{{ $labelClass }}">رقم الهوية <span class="text-red-500 normal-case">*</span></label>
             <input type="text" name="national_id" value="{{ $v('national_id') }}" required
-                   maxlength="11" minlength="11" pattern="\d{11}" placeholder="11 رقماً"
+                   placeholder="رقم الهوية"
                    class="{{ $inputClass }} font-mono @error('national_id') {{ $errorInput }} @enderror">
             @error('national_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
         </div>
