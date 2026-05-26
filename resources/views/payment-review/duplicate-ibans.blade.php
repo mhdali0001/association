@@ -172,7 +172,7 @@
                             <th class="font-semibold text-gray-400 text-xs px-4 py-2.5">الجمعية</th>
                             <th class="font-semibold text-gray-400 text-xs px-4 py-2.5">حالة التحقق</th>
                             <th class="font-semibold text-gray-400 text-xs px-4 py-2.5">الحالة النهائية</th>
-                            <th class="font-semibold text-gray-400 text-xs px-4 py-2.5">المبلغ المقدر</th>
+                            <th class="font-semibold text-gray-400 text-xs px-4 py-2.5">المبلغ النهائي</th>
                             <th class="font-semibold text-gray-400 text-xs px-4 py-2.5 whitespace-nowrap">تاريخ إضافة الآيبان</th>
                             <th class="px-4 py-2.5 w-16"></th>
                         </tr>
@@ -218,9 +218,10 @@
                                 @endif
                             </td>
                             <td class="px-4 py-3">
-                                @if($member->estimated_amount)
+                                @php $finalAmt = $member->final_amount; @endphp
+                                @if($finalAmt > 0)
                                     <span class="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-0.5">
-                                        {{ number_format((float)$member->estimated_amount, 0, '.', ',') }}
+                                        {{ number_format($finalAmt, 0, '.', ',') }}
                                     </span>
                                 @else
                                     <span class="text-gray-300 text-xs">—</span>

@@ -186,13 +186,13 @@ class PaymentReviewController extends Controller
                 // also check member names
                 $members = Member::whereHas('paymentInfo', fn($q) => $q->where('iban', $iban))
                     ->where('full_name', 'like', "%{$search}%")
-                    ->with(['paymentInfo', 'verificationStatus', 'finalStatus', 'association'])
+                    ->with(['paymentInfo', 'verificationStatus', 'finalStatus', 'association', 'latestFieldVisit'])
                     ->orderBy('full_name')
                     ->get();
                 if ($members->isEmpty()) continue;
             } else {
                 $members = Member::whereHas('paymentInfo', fn($q) => $q->where('iban', $iban))
-                    ->with(['paymentInfo', 'verificationStatus', 'finalStatus', 'association'])
+                    ->with(['paymentInfo', 'verificationStatus', 'finalStatus', 'association', 'latestFieldVisit'])
                     ->orderBy('full_name')
                     ->get();
             }
