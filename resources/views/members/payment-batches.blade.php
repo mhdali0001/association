@@ -258,7 +258,7 @@
                             <div class="w-px h-10 bg-gray-100"></div>
                             <div class="text-center">
                                 <p class="text-base font-black text-amber-600 leading-none">{{ $fmtMoney($batch->total_estimated_amount) }}</p>
-                                <p class="text-xs text-gray-400 mt-0.5">المبلغ المقدر</p>
+                                <p class="text-xs text-gray-400 mt-0.5">المبلغ النهائي</p>
                             </div>
                         </div>
 

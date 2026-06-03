@@ -831,8 +831,11 @@ class MemberController extends Controller
 
         $ids = $query->pluck('id')->all();
 
-        $memberData = Member::whereIn('id', $ids)->get(['id', 'payments_count', 'estimated_amount']);
-        $totalEstimated = $memberData->sum('estimated_amount');
+        $memberData = Member::whereIn('id', $ids)
+            ->with('latestFieldVisit')
+            ->get(['id', 'payments_count', 'estimated_amount']);
+
+        $totalEstimated = $memberData->sum(fn($m) => $m->final_amount);
 
         $batch = \App\Models\PaymentBatch::create([
             'label'                  => $request->input('batch_label') ?: $label,
@@ -857,7 +860,7 @@ class MemberController extends Controller
                 'member_id'        => $member->id,
                 'previous_count'   => $prev,
                 'new_count'        => $new,
-                'estimated_amount' => $member->estimated_amount ?? 0,
+                'estimated_amount' => $member->final_amount,
                 'created_at'       => now(),
                 'updated_at'       => now(),
             ];
@@ -910,17 +913,50 @@ class MemberController extends Controller
         ));
     }
 
-    public function paymentBatchShow(\App\Models\PaymentBatch $batch)
+    public function paymentBatchShow(Request $request, \App\Models\PaymentBatch $batch)
     {
         $batch->load('appliedBy');
-        $members = \App\Models\PaymentBatchMember::with('member')
-            ->where('batch_id', $batch->id)
-            ->orderByRaw('CAST(members.dossier_number AS UNSIGNED)')
-            ->join('members', 'members.id', '=', 'payment_batch_members.member_id')
-            ->select('payment_batch_members.*')
-            ->paginate(60);
 
-        return view('members.payment-batch-show', compact('batch', 'members'));
+        $search      = trim($request->get('search', ''));
+        $amountFrom  = trim($request->get('amount_from', ''));
+        $amountTo    = trim($request->get('amount_to', ''));
+        $diffFilter  = $request->get('diff', '');
+
+        $query = \App\Models\PaymentBatchMember::with('member')
+            ->where('payment_batch_members.batch_id', $batch->id)
+            ->join('members', 'members.id', '=', 'payment_batch_members.member_id')
+            ->select('payment_batch_members.*');
+
+        if ($search) {
+            $query->where(fn($q) => $q
+                ->where('members.full_name', 'like', "%{$search}%")
+                ->orWhere('members.dossier_number', 'like', "%{$search}%")
+            );
+        }
+
+        if ($amountFrom !== '') {
+            $query->where('payment_batch_members.estimated_amount', '>=', (float)$amountFrom);
+        }
+        if ($amountTo !== '') {
+            $query->where('payment_batch_members.estimated_amount', '<=', (float)$amountTo);
+        }
+
+        if ($diffFilter === 'added') {
+            $query->whereRaw('payment_batch_members.new_count > payment_batch_members.previous_count');
+        } elseif ($diffFilter === 'subtracted') {
+            $query->whereRaw('payment_batch_members.new_count < payment_batch_members.previous_count');
+        } elseif ($diffFilter === 'same') {
+            $query->whereRaw('payment_batch_members.new_count = payment_batch_members.previous_count');
+        }
+
+        $members = $query
+            ->orderByRaw('CAST(members.dossier_number AS UNSIGNED)')
+            ->paginate(60)
+            ->withQueryString();
+
+        return view('members.payment-batch-show', compact(
+            'batch', 'members', 'search', 'amountFrom', 'amountTo', 'diffFilter'
+        ));
     }
 
     // ───────────────────────────────────────────────────────────────────

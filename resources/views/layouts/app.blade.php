@@ -600,10 +600,11 @@ document.addEventListener('click', (e) => {
     }, true);
 
     okBtn.addEventListener('click', function () {
+        var formToSubmit = pendingForm;
         hideModal();
-        if (pendingForm) {
-            pendingForm._delConfirmed = true;
-            pendingForm.submit();
+        if (formToSubmit) {
+            formToSubmit._delConfirmed = true;
+            formToSubmit.submit();
         }
     });
 
