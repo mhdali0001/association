@@ -24,11 +24,11 @@
         </div>
         <div class="flex gap-3 flex-wrap items-center">
             <div class="bg-white/15 border border-white/25 rounded-xl px-4 py-2.5 text-center min-w-[90px]">
-                <p class="text-white font-black text-2xl leading-none">{{ $totalDuplicateIbans }}</p>
+                <p class="text-white font-black text-2xl leading-none">{{ $rawTotalDuplicateIbans }}</p>
                 <p class="text-rose-200 text-xs mt-0.5">آيبان مكرر</p>
             </div>
             <div class="bg-white/15 border border-white/25 rounded-xl px-4 py-2.5 text-center min-w-[90px]">
-                <p class="text-white font-black text-2xl leading-none">{{ $totalAffectedMembers }}</p>
+                <p class="text-white font-black text-2xl leading-none">{{ $rawTotalAffectedMembers }}</p>
                 <p class="text-rose-200 text-xs mt-0.5">عضو متأثر</p>
             </div>
             <a href="{{ route('payment-review.recent-ibans') }}"
@@ -62,20 +62,39 @@
                class="w-full pr-10 pl-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-rose-400 focus:bg-white transition placeholder-gray-300">
     </div>
 
-    {{-- Final Status filter --}}
-    <div class="relative">
-        <select name="final_status_id" onwheel="this.blur()"
-                class="text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-rose-400 focus:bg-white transition text-gray-600 min-w-[160px]">
-            <option value="">— كل الحالات النهائية —</option>
-            <option value="none" {{ $finalStatusId === 'none' ? 'selected' : '' }}>بدون حالة نهائية</option>
+    {{-- Final Status multi-select --}}
+    <div class="relative" id="ms-final-status-wrap">
+        <button type="button" id="ms-final-status-btn" onclick="toggleMs('ms-final-status')"
+                class="flex items-center gap-2 text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-rose-400 transition text-gray-600 min-w-[180px]">
+            <span id="ms-final-status-label">
+                @if(!empty($finalStatusIds))
+                    {{ count($finalStatusIds) }} حالة محددة
+                @else
+                    — كل الحالات النهائية —
+                @endif
+            </span>
+            <svg class="w-4 h-4 text-gray-400 mr-auto" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+            </svg>
+        </button>
+        <div id="ms-final-status-dropdown"
+             class="hidden absolute z-50 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg min-w-[200px] max-h-60 overflow-y-auto p-2 space-y-0.5">
+            <label class="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer text-sm text-gray-600">
+                <input type="checkbox" name="final_status_id[]" value="none"
+                       class="rounded accent-rose-500"
+                       {{ in_array('none', $finalStatusIds) ? 'checked' : '' }}>
+                بدون حالة نهائية
+            </label>
             @foreach($finalStatusList as $fs)
-                <option value="{{ $fs->id }}"
-                        {{ $finalStatusId == $fs->id ? 'selected' : '' }}
-                        style="color:{{ $fs->color }}">
-                    {{ $fs->name }}
-                </option>
+            <label class="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer text-sm">
+                <input type="checkbox" name="final_status_id[]" value="{{ $fs->id }}"
+                       class="rounded accent-rose-500"
+                       {{ in_array($fs->id, array_map('intval', $finalStatusIds)) ? 'checked' : '' }}>
+                <span class="w-2 h-2 rounded-full shrink-0" style="background:{{ $fs->color }}"></span>
+                <span style="color:{{ $fs->color }}" class="font-medium">{{ $fs->name }}</span>
+            </label>
             @endforeach
-        </select>
+        </div>
     </div>
 
     {{-- Date range filter --}}
@@ -97,7 +116,7 @@
             class="flex items-center gap-2 bg-gradient-to-l from-red-600 to-rose-500 hover:from-red-700 hover:to-rose-600 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm">
         بحث
     </button>
-    @if($search || $finalStatusId || $dateFrom || $dateTo)
+    @if($search || !empty($finalStatusIds) || $dateFrom || $dateTo)
         <a href="{{ route('payment-review.duplicate-ibans') }}"
            class="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -109,7 +128,7 @@
 </form>
 
 {{-- Results count (shown when filter is active) --}}
-@if($search || $finalStatusId || $dateFrom || $dateTo)
+@if($search || !empty($finalStatusIds) || $dateFrom || $dateTo)
 <div class="mb-4 flex items-center gap-3 px-4 py-2.5 bg-rose-50 border border-rose-100 rounded-xl text-sm">
     <svg class="w-4 h-4 text-rose-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
@@ -124,15 +143,30 @@
 @endif
 
 {{-- Results --}}
+@php $hasFilters = $search || !empty($finalStatusIds) || $dateFrom || $dateTo; @endphp
 @if($membersByIban->isEmpty())
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm text-center py-20">
-        <div class="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <svg class="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-        </div>
-        <p class="text-gray-700 font-bold text-base mb-1">لا توجد آيبانات مكررة</p>
-        <p class="text-gray-400 text-sm">جميع الآيبانات المسجلة فريدة</p>
+        @if($hasFilters)
+            <div class="w-16 h-16 bg-rose-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-rose-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
+                </svg>
+            </div>
+            <p class="text-gray-700 font-bold text-base mb-1">لا توجد نتائج مطابقة للفلاتر</p>
+            <p class="text-gray-400 text-sm">يوجد {{ $rawTotalDuplicateIbans }} آيبان مكرر — جرب تغيير الفلاتر</p>
+            <a href="{{ route('payment-review.duplicate-ibans') }}"
+               class="inline-flex items-center gap-1.5 mt-4 px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors">
+                مسح الفلاتر
+            </a>
+        @else
+            <div class="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <p class="text-gray-700 font-bold text-base mb-1">لا توجد آيبانات مكررة</p>
+            <p class="text-gray-400 text-sm">جميع الآيبانات المسجلة فريدة</p>
+        @endif
     </div>
 @else
     <div class="space-y-5">
@@ -255,5 +289,30 @@
         @endforeach
     </div>
 @endif
+
+@push('scripts')
+<script>
+function toggleMs(id) {
+    const dd = document.getElementById(id + '-dropdown');
+    dd.classList.toggle('hidden');
+}
+
+document.addEventListener('click', function (e) {
+    ['ms-final-status'].forEach(function (id) {
+        const wrap = document.getElementById(id + '-wrap');
+        const dd   = document.getElementById(id + '-dropdown');
+        if (wrap && !wrap.contains(e.target)) dd.classList.add('hidden');
+    });
+});
+
+document.addEventListener('change', function (e) {
+    if (e.target.name === 'final_status_id[]') {
+        const checked = document.querySelectorAll('input[name="final_status_id[]"]:checked');
+        const label   = document.getElementById('ms-final-status-label');
+        label.textContent = checked.length ? checked.length + ' حالة محددة' : '— كل الحالات النهائية —';
+    }
+});
+</script>
+@endpush
 
 @endsection

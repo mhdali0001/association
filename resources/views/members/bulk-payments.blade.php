@@ -1010,6 +1010,18 @@
                     </span>
                 </span>
             </div>
+            {{-- Row 1.5: batch label + date + notes --}}
+            <div class="flex flex-col gap-2 px-3 py-2 border-b border-gray-100">
+                <div class="flex items-center gap-2">
+                    <input type="text" name="batch_label" placeholder="اسم الدفعة"
+                           class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition placeholder-gray-300">
+                    <input type="date" name="payment_date" value="{{ now()->toDateString() }}"
+                           class="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition">
+                </div>
+                <input type="text" name="batch_notes" placeholder="ملاحظات (اختياري)"
+                       class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition placeholder-gray-300">
+            </div>
+
             {{-- Row 2: action buttons --}}
             <div class="flex items-center gap-2 px-3 py-2.5">
                 <button type="button" onclick="applyToSelected()"
@@ -1060,6 +1072,27 @@
                     <input type="number" name="payments_count" min="0" step="1" value="1"
                            class="w-24 text-center text-lg font-black border-2 border-teal-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-teal-400 transition"
                            id="payments-count-input">
+                </div>
+
+                {{-- Batch label --}}
+                <div class="flex items-center gap-2">
+                    <label class="text-sm font-bold text-gray-600 shrink-0">اسم الدفعة</label>
+                    <input type="text" name="batch_label" placeholder="مثال: دفعة يونيو 2026"
+                           class="w-44 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition placeholder-gray-300">
+                </div>
+
+                {{-- Batch date --}}
+                <div class="flex items-center gap-2">
+                    <label class="text-sm font-bold text-gray-600 shrink-0">تاريخ الدفعة</label>
+                    <input type="date" name="payment_date" value="{{ now()->toDateString() }}"
+                           class="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition">
+                </div>
+
+                {{-- Batch notes --}}
+                <div class="flex items-center gap-2">
+                    <label class="text-sm font-bold text-gray-600 shrink-0">ملاحظات</label>
+                    <input type="text" name="batch_notes" placeholder="اختياري"
+                           class="w-40 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition placeholder-gray-300">
                 </div>
 
                 {{-- Apply to --}}

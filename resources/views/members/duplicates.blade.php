@@ -177,7 +177,7 @@ function memberActions($member) {
                             <a href="{{ route('members.show', $member) }}" class="text-blue-600 text-xs font-semibold">عرض</a>
                             <a href="{{ route('members.edit', $member) }}" class="text-emerald-600 text-xs font-semibold">تعديل</a>
                             <form method="POST" action="{{ route('members.destroy', $member) }}"
-                                  onsubmit="return confirm('هل أنت متأكد من حذف هذا العضو؟')">
+                                  data-confirm-name="{{ $member->full_name }}">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="text-red-500 text-xs font-semibold">حذف</button>
                             </form>
@@ -221,7 +221,7 @@ function memberActions($member) {
                                         <a href="{{ route('members.show', $member) }}" class="text-blue-600 hover:text-blue-800 text-xs font-medium">عرض</a>
                                         <a href="{{ route('members.edit', $member) }}" class="text-emerald-600 hover:text-emerald-800 text-xs font-medium">تعديل</a>
                                         <form method="POST" action="{{ route('members.destroy', $member) }}"
-                                              onsubmit="return confirm('هل أنت متأكد من حذف هذا العضو؟')">
+                                              data-confirm-name="{{ $member->full_name }}">
                                             @csrf @method('DELETE')
                                             <button type="submit" class="text-red-500 hover:text-red-700 text-xs font-medium">حذف</button>
                                         </form>
@@ -285,7 +285,7 @@ function memberActions($member) {
                             <a href="{{ route('members.show', $member) }}" class="text-blue-600 text-xs font-semibold">عرض</a>
                             <a href="{{ route('members.edit', $member) }}" class="text-emerald-600 text-xs font-semibold">تعديل</a>
                             <form method="POST" action="{{ route('members.destroy', $member) }}"
-                                  onsubmit="return confirm('هل أنت متأكد من حذف هذا العضو؟')">
+                                  data-confirm-name="{{ $member->full_name }}">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="text-red-500 text-xs font-semibold">حذف</button>
                             </form>
@@ -329,7 +329,7 @@ function memberActions($member) {
                                         <a href="{{ route('members.show', $member) }}" class="text-blue-600 hover:text-blue-800 text-xs font-medium">عرض</a>
                                         <a href="{{ route('members.edit', $member) }}" class="text-emerald-600 hover:text-emerald-800 text-xs font-medium">تعديل</a>
                                         <form method="POST" action="{{ route('members.destroy', $member) }}"
-                                              onsubmit="return confirm('هل أنت متأكد من حذف هذا العضو؟')">
+                                              data-confirm-name="{{ $member->full_name }}">
                                             @csrf @method('DELETE')
                                             <button type="submit" class="text-red-500 hover:text-red-700 text-xs font-medium">حذف</button>
                                         </form>
@@ -394,7 +394,7 @@ function memberActions($member) {
                             <a href="{{ route('members.show', $member) }}" class="text-blue-600 text-xs font-semibold">عرض</a>
                             <a href="{{ route('members.edit', $member) }}" class="text-emerald-600 text-xs font-semibold">تعديل</a>
                             <form method="POST" action="{{ route('members.destroy', $member) }}"
-                                  onsubmit="return confirm('هل أنت متأكد من حذف هذا العضو؟')">
+                                  data-confirm-name="{{ $member->full_name }}">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="text-red-500 text-xs font-semibold">حذف</button>
                             </form>
@@ -445,7 +445,7 @@ function memberActions($member) {
                                         <a href="{{ route('members.show', $member) }}" class="text-blue-600 hover:text-blue-800 text-xs font-medium">عرض</a>
                                         <a href="{{ route('members.edit', $member) }}" class="text-emerald-600 hover:text-emerald-800 text-xs font-medium">تعديل</a>
                                         <form method="POST" action="{{ route('members.destroy', $member) }}"
-                                              onsubmit="return confirm('هل أنت متأكد من حذف هذا العضو؟')">
+                                              data-confirm-name="{{ $member->full_name }}">
                                             @csrf @method('DELETE')
                                             <button type="submit" class="text-red-500 hover:text-red-700 text-xs font-medium">حذف</button>
                                         </form>

@@ -404,12 +404,13 @@ class MemberController extends Controller
                       + ($scores->illness_score          ?? 0)
                       + ($scores->special_cases_score    ?? 0);
 
-            $deduction  = (int)($scores->score_deduction ?? 0);
-            $totalScore = max(0, $rawScore + $addition - $deduction);
+            $deduction    = (int)($scores->score_deduction ?? 0);
+            $newAddition  = (int)($scores->score_addition ?? 0) + $addition;
+            $totalScore   = max(0, $rawScore + $newAddition - $deduction);
 
             $scores->fill([
                 'member_id'             => $memberId,
-                'score_addition'        => $addition,
+                'score_addition'        => $newAddition,
                 'score_addition_reason' => $reason,
                 'total_score'           => $totalScore,
             ])->save();
@@ -436,12 +437,13 @@ class MemberController extends Controller
                       + ($scores->illness_score          ?? 0)
                       + ($scores->special_cases_score    ?? 0);
 
-            $addition   = (int)($scores->score_addition ?? 0);
-            $totalScore = max(0, $rawScore + $addition - $deduction);
+            $addition     = (int)($scores->score_addition ?? 0);
+            $newDeduction = (int)($scores->score_deduction ?? 0) + $deduction;
+            $totalScore   = max(0, $rawScore + $addition - $newDeduction);
 
             $scores->fill([
                 'member_id'              => $memberId,
-                'score_deduction'        => $deduction,
+                'score_deduction'        => $newDeduction,
                 'score_deduction_reason' => $reason,
                 'total_score'            => $totalScore,
             ])->save();
@@ -541,17 +543,18 @@ class MemberController extends Controller
             'reason'     => 'nullable|string|max:500',
             'apply_to'   => 'required|in:selected,filtered',
             'member_ids' => 'array',
+            'mode'       => 'nullable|in:reduce,raise',
         ]);
 
         $percentage = (float) $request->percentage;
         $reason     = $request->reason ?: null;
         $applyTo    = $request->apply_to;
+        $mode       = $request->input('mode', 'reduce');
 
         $query = $applyTo === 'selected'
             ? Member::whereIn('id', $request->input('member_ids', []))
             : $this->buildFilteredQuery($request);
 
-        // Only affect members who actually have an amount
         $query->whereNotNull('estimated_amount')->where('estimated_amount', '>', 0);
 
         $count = $query->count();
@@ -559,15 +562,18 @@ class MemberController extends Controller
             return back()->with('error', 'لا يوجد أعضاء لديهم مبلغ مقدّر في الاختيار الحالي.');
         }
 
-        $label = "تخفيض {$percentage}% من المبلغ المقدّر لـ {$count} عضو";
+        $verb  = $mode === 'raise' ? 'رفع' : 'تخفيض';
+        $label = "{$verb} {$percentage}% من المبلغ المقدّر لـ {$count} عضو";
         if ($reason) $label .= " — السبب: {$reason}";
+
+        $action = $mode === 'raise' ? 'bulk_fv_raise' : 'bulk_fv_reduction';
 
         if (!$this->isAdmin()) {
             $memberIds = $query->pluck('id')->all();
             PendingChange::createWithSnapshots([
                 'model_type'   => 'member',
                 'model_id'     => null,
-                'action'       => 'bulk_fv_reduction',
+                'action'       => $action,
                 'payload'      => [
                     'percentage' => $percentage,
                     'reason'     => $reason,
@@ -582,10 +588,56 @@ class MemberController extends Controller
             return back()->with('success', "تم إرسال طلب ({$label}) وهو بانتظار موافقة المسؤول.");
         }
 
-        $this->applyFvReductionToIds($query->pluck('id')->all(), $percentage, $reason);
+        $ids = $query->pluck('id')->all();
+        if ($mode === 'raise') {
+            $this->applyFvRaiseToIds($ids, $percentage, $reason);
+        } else {
+            $this->applyFvReductionToIds($ids, $percentage, $reason);
+        }
 
-        ActivityLogger::log('updated', "تخفيض جماعي للمبلغ: {$label}");
-        return back()->with('success', "تم تطبيق التخفيض بنجاح: {$label}.");
+        $pastVerb = $mode === 'raise' ? 'الرفع' : 'التخفيض';
+        ActivityLogger::log('updated', "{$verb} جماعي للمبلغ: {$label}");
+        return back()->with('success', "تم تطبيق {$pastVerb} بنجاح: {$label}.");
+    }
+
+    private function applyFvRaiseToIds(array $ids, float $percentage, ?string $reason): void
+    {
+        foreach ($ids as $memberId) {
+            $member = Member::with('scores')->find($memberId);
+            if (!$member || !$member->estimated_amount) continue;
+
+            $currentAmount = (float) $member->estimated_amount;
+            $raise         = (int) floor($currentAmount * $percentage / 100);
+            $pointsAdded   = (int) floor($raise / 500);
+
+            if ($pointsAdded <= 0) continue;
+
+            $scores = $member->scores ?? new MemberScore(['member_id' => $memberId]);
+
+            $rawScore = ($scores->work_score            ?? 0)
+                      + ($scores->housing_score          ?? 0)
+                      + ($scores->dependents_score       ?? 0)
+                      + ($scores->dependent_status_score ?? 0)
+                      + ($scores->illness_score          ?? 0)
+                      + ($scores->special_cases_score    ?? 0);
+
+            $deduction   = (int)($scores->score_deduction ?? 0);
+            $newAddition = (int)($scores->score_addition  ?? 0) + $pointsAdded;
+            $totalScore  = max(0, $rawScore + $newAddition - $deduction);
+            $newAmount   = $totalScore * 500;
+
+            $scores->fill([
+                'member_id'             => $memberId,
+                'score_addition'        => $newAddition,
+                'score_addition_reason' => $reason ?? 'رفع الجولة الميدانية',
+                'total_score'           => $totalScore,
+            ])->save();
+
+            DB::table('members')->where('id', $memberId)->update([
+                'score'            => $totalScore,
+                'estimated_amount' => $newAmount,
+            ]);
+        }
     }
 
     private function applyFvReductionToIds(array $ids, float $percentage, ?string $reason): void
@@ -778,6 +830,41 @@ class MemberController extends Controller
         }
 
         $ids = $query->pluck('id')->all();
+
+        $memberData = Member::whereIn('id', $ids)->get(['id', 'payments_count', 'estimated_amount']);
+        $totalEstimated = $memberData->sum('estimated_amount');
+
+        $batch = \App\Models\PaymentBatch::create([
+            'label'                  => $request->input('batch_label') ?: $label,
+            'payment_date'           => $request->input('payment_date') ?: now()->toDateString(),
+            'operation'              => $operation,
+            'amount'                 => $amount,
+            'members_count'          => $count,
+            'total_estimated_amount' => $totalEstimated,
+            'notes'                  => $request->input('batch_notes') ?: null,
+            'applied_by'             => Auth::id(),
+        ]);
+
+        $batchMembers = $memberData->map(function ($member) use ($batch, $operation, $amount) {
+            $prev = (int)($member->payments_count ?? 0);
+            $new  = match($operation) {
+                'add'      => $prev + $amount,
+                'subtract' => max(0, $prev - $amount),
+                default    => $amount,
+            };
+            return [
+                'batch_id'         => $batch->id,
+                'member_id'        => $member->id,
+                'previous_count'   => $prev,
+                'new_count'        => $new,
+                'estimated_amount' => $member->estimated_amount ?? 0,
+                'created_at'       => now(),
+                'updated_at'       => now(),
+            ];
+        })->toArray();
+
+        \App\Models\PaymentBatchMember::insert($batchMembers);
+
         if ($operation === 'add') {
             DB::table('members')->whereIn('id', $ids)->update([
                 'payments_count' => DB::raw('COALESCE(payments_count, 0) + ' . $amount),
@@ -792,6 +879,48 @@ class MemberController extends Controller
 
         ActivityLogger::log('updated', "دفعات جماعية: {$label}");
         return back()->with('success', "تم تطبيق العملية بنجاح: {$label}.");
+    }
+
+    public function paymentBatchesIndex(Request $request)
+    {
+        $search    = trim($request->get('search', ''));
+        $operation = $request->get('operation', '');
+        $dateFrom  = $request->get('date_from', '');
+        $dateTo    = $request->get('date_to', '');
+
+        $query = \App\Models\PaymentBatch::with('appliedBy')
+            ->withCount('members');
+
+        if ($search) {
+            $query->where(fn($q) => $q->where('label', 'like', "%{$search}%")
+                                      ->orWhere('notes', 'like', "%{$search}%"));
+        }
+        if ($operation) $query->where('operation', $operation);
+        if ($dateFrom)  $query->whereDate('payment_date', '>=', $dateFrom);
+        if ($dateTo)    $query->whereDate('payment_date', '<=', $dateTo);
+
+        $batches    = $query->orderByDesc('payment_date')->orderByDesc('id')->paginate(30)->withQueryString();
+        $totalBatches = \App\Models\PaymentBatch::count();
+        $totalMembers = \App\Models\PaymentBatchMember::distinct('member_id')->count();
+        $totalAmount  = \App\Models\PaymentBatch::sum('total_estimated_amount');
+
+        return view('members.payment-batches', compact(
+            'batches', 'totalBatches', 'totalMembers', 'totalAmount',
+            'search', 'operation', 'dateFrom', 'dateTo'
+        ));
+    }
+
+    public function paymentBatchShow(\App\Models\PaymentBatch $batch)
+    {
+        $batch->load('appliedBy');
+        $members = \App\Models\PaymentBatchMember::with('member')
+            ->where('batch_id', $batch->id)
+            ->orderByRaw('CAST(members.dossier_number AS UNSIGNED)')
+            ->join('members', 'members.id', '=', 'payment_batch_members.member_id')
+            ->select('payment_batch_members.*')
+            ->paginate(60);
+
+        return view('members.payment-batch-show', compact('batch', 'members'));
     }
 
     // ───────────────────────────────────────────────────────────────────
@@ -1490,6 +1619,7 @@ class MemberController extends Controller
         }
 
         $name = $member->full_name;
+        \App\Models\DeletedMember::archive($member, Auth::id());
         $member->delete();
         ActivityLogger::log('deleted', "حذف المستفيد: {$name}");
         return redirect()->route('members.index')->with('success', 'تم حذف المستفيد بنجاح.');
@@ -1511,6 +1641,7 @@ class MemberController extends Controller
             $members = Member::whereIn('id', $ids)->get();
             foreach ($members as $member) {
                 ActivityLogger::log('deleted', "حذف المستفيد: {$member->full_name}");
+                \App\Models\DeletedMember::archive($member, Auth::id());
                 $member->delete();
             }
             return redirect()->route('members.index')->with('success', "تم حذف {$members->count()} عضو بنجاح.");

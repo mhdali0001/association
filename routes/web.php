@@ -106,8 +106,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/members/bulk-amount',     [MemberController::class, 'bulkAmountApply'])     ->name('members.bulk-amount.apply');
     Route::get('/members/fv-reduction',    [MemberController::class, 'fvReductionShow'])     ->name('members.fv-reduction');
     Route::post('/members/fv-reduction',   [MemberController::class, 'fvReductionApply'])    ->name('members.fv-reduction.apply');
-    Route::get('/members/bulk-payments',    [MemberController::class, 'bulkPaymentsShow'])    ->name('members.bulk-payments');
-    Route::post('/members/bulk-payments',   [MemberController::class, 'bulkPaymentsApply'])   ->name('members.bulk-payments.apply');
+    Route::get('/members/bulk-payments',         [MemberController::class, 'bulkPaymentsShow'])    ->name('members.bulk-payments');
+    Route::post('/members/bulk-payments',        [MemberController::class, 'bulkPaymentsApply'])   ->name('members.bulk-payments.apply');
+    Route::get('/members/payment-batches',       [MemberController::class, 'paymentBatchesIndex']) ->name('members.payment-batches');
+    Route::get('/members/payment-batches/{batch}',[MemberController::class, 'paymentBatchShow'])   ->name('members.payment-batches.show');
     Route::get('/members/score-deductions',  [MemberController::class, 'scoreDeductionsIndex']) ->name('members.score-deductions');
     Route::get('/members/score-additions',   [MemberController::class, 'scoreAdditionsIndex'])  ->name('members.score-additions');
     Route::get('/members/score-adjustments',  [MemberController::class, 'scoreAdjustmentsIndex']) ->name('members.score-adjustments');

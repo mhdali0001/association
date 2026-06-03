@@ -1,11 +1,11 @@
 @extends('layouts.app')
 
-@section('title', 'تخفيض المبلغ — مسالك النور')
+@section('title', 'رفع وتخفيض المبلغ — مسالك النور')
 
 @section('breadcrumb')
     <a href="{{ route('members.index') }}" class="text-emerald-600 hover:underline">الأعضاء</a>
     <span class="mx-2 text-gray-400">/</span>
-    <span class="text-gray-700">تخفيض المبلغ — الجولة الميدانية</span>
+    <span class="text-gray-700">رفع وتخفيض المبلغ</span>
 @endsection
 
 @section('content')
@@ -42,8 +42,8 @@
     </div>
     <div class="relative flex items-start justify-between gap-4 flex-wrap">
         <div>
-            <h1 class="text-2xl font-black text-white">تخفيض المبلغ — الجولة الميدانية</h1>
-            <p class="text-amber-100 text-sm mt-0.5">تطبيق تخفيض نسبي على المبلغ المقدّر للأعضاء الذين تعذّرت جولتهم الميدانية</p>
+            <h1 class="text-2xl font-black text-white">رفع وتخفيض المبلغ</h1>
+            <p class="text-amber-100 text-sm mt-0.5">تطبيق رفع أو تخفيض نسبي على المبلغ المقدّر للأعضاء عبر الجولة الميدانية</p>
         </div>
         <div class="flex gap-3 flex-wrap">
             <div class="bg-white/15 border border-white/25 rounded-xl px-4 py-2.5 text-center min-w-[90px]">
@@ -460,8 +460,8 @@
                         <th class="text-right font-semibold text-gray-500 px-4 py-3.5 hidden md:table-cell">الجمعية</th>
                         <th class="text-right font-semibold text-gray-500 px-4 py-3.5 hidden lg:table-cell">حالة الجولة</th>
                         <th class="text-right font-semibold text-gray-500 px-4 py-3.5">المبلغ الحالي</th>
-                        <th class="text-right font-semibold text-gray-500 px-4 py-3.5 hidden sm:table-cell">بعد التخفيض</th>
-                        <th class="text-right font-semibold text-gray-500 px-4 py-3.5 hidden lg:table-cell">نقاط تُخصم</th>
+                        <th class="text-right font-semibold text-gray-500 px-4 py-3.5 hidden sm:table-cell" id="col-after">بعد التخفيض</th>
+                        <th class="text-right font-semibold text-gray-500 px-4 py-3.5 hidden lg:table-cell" id="col-pts">نقاط تُخصم</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
@@ -541,12 +541,27 @@
     {{-- ===== STICKY ACTION BAR ===== --}}
     <div id="action-bar" class="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200">
         <input type="hidden" name="apply_to" id="apply-to-input" value="selected">
+        <input type="hidden" name="mode" id="mode-input" value="reduce">
 
         <div class="max-w-7xl mx-auto flex flex-wrap items-center gap-4 px-6 py-4">
 
+            {{-- Mode toggle --}}
+            <div class="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+                <button type="button" id="mode-reduce-btn" onclick="setMode('reduce')"
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold transition-all bg-white shadow-sm text-orange-600">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 12H5"/></svg>
+                    تخفيض
+                </button>
+                <button type="button" id="mode-raise-btn" onclick="setMode('raise')"
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold transition-all text-gray-500">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    رفع
+                </button>
+            </div>
+
             {{-- Percentage presets --}}
             <div class="flex items-center gap-1.5">
-                <span class="text-sm font-bold text-gray-600 shrink-0 ml-1">التخفيض</span>
+                <span id="pct-label" class="text-sm font-bold text-gray-600 shrink-0 ml-1">النسبة</span>
                 <div class="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
                     @foreach([25, 50, 75] as $preset)
                         <button type="button" onclick="setPercentage({{ $preset }})"
@@ -561,7 +576,7 @@
             {{-- Custom percentage --}}
             <div class="flex items-center gap-1.5">
                 <span class="text-sm text-gray-500 shrink-0">أو</span>
-                <div class="flex items-center gap-1.5 border-2 border-orange-300 rounded-xl px-3 py-1.5 focus-within:border-orange-400 transition-colors">
+                <div id="pct-border" class="flex items-center gap-1.5 border-2 border-orange-300 rounded-xl px-3 py-1.5 focus-within:border-orange-400 transition-colors">
                     <input type="number" name="percentage" id="pct-input" min="1" max="100" step="0.5" value="50"
                            class="w-16 text-center text-lg font-black focus:outline-none"
                            oninput="updatePreviews(this.value)">
@@ -578,15 +593,17 @@
             {{-- Apply buttons --}}
             <div class="flex items-center gap-2">
                 <button type="button" onclick="fvrApplySelected()"
+                        id="apply-selected-btn"
                         class="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                    تطبيق على المحدّدين
+                    <span id="apply-selected-label">تخفيض المحدّدين</span>
                     <span id="selected-count-label" class="bg-white/20 rounded-full px-2 py-0.5 text-xs">0</span>
                 </button>
                 <button type="button" onclick="fvrApplyFiltered()"
+                        id="apply-filtered-btn"
                         class="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
-                    تطبيق على الكل
+                    <span id="apply-filtered-label">تخفيض الكل</span>
                     <span class="bg-white/20 rounded-full px-2 py-0.5 text-xs">{{ $fmt($totalCount) }}</span>
                 </button>
             </div>
@@ -702,42 +719,92 @@ function updateBadge() {
     }
 }
 
+// ── Mode toggle ───────────────────────────────────────────────────────────
+let currentMode = 'reduce';
+
+function setMode(mode) {
+    currentMode = mode;
+    const isRaise = mode === 'raise';
+
+    document.getElementById('mode-input').value = mode;
+
+    // toggle buttons
+    const reduceBtn = document.getElementById('mode-reduce-btn');
+    const raiseBtn  = document.getElementById('mode-raise-btn');
+    reduceBtn.classList.toggle('bg-white',       !isRaise);
+    reduceBtn.classList.toggle('shadow-sm',      !isRaise);
+    reduceBtn.classList.toggle('text-orange-600', !isRaise);
+    reduceBtn.classList.toggle('text-gray-500',   isRaise);
+    raiseBtn.classList.toggle('bg-white',        isRaise);
+    raiseBtn.classList.toggle('shadow-sm',       isRaise);
+    raiseBtn.classList.toggle('text-emerald-600', isRaise);
+    raiseBtn.classList.toggle('text-gray-500',   !isRaise);
+
+    // update preset active color
+    const activeColor = isRaise ? 'text-emerald-600' : 'text-orange-600';
+    const inactiveColor = isRaise ? 'text-orange-600' : 'text-emerald-600';
+
+    // column headers
+    document.getElementById('col-after').textContent = isRaise ? 'بعد الرفع' : 'بعد التخفيض';
+    document.getElementById('col-pts').textContent   = isRaise ? 'نقاط تُضاف' : 'نقاط تُخصم';
+
+    // button labels
+    document.getElementById('apply-selected-label').textContent = isRaise ? 'رفع المحدّدين'  : 'تخفيض المحدّدين';
+    document.getElementById('apply-filtered-label').textContent = isRaise ? 'رفع الكل' : 'تخفيض الكل';
+
+    // button colors
+    const selBtn = document.getElementById('apply-selected-btn');
+    const filBtn = document.getElementById('apply-filtered-btn');
+    selBtn.className = selBtn.className
+        .replace(/bg-\w+-500|hover:bg-\w+-600/g, '')
+        .trim()
+        + (isRaise ? ' bg-emerald-500 hover:bg-emerald-600' : ' bg-orange-500 hover:bg-orange-600');
+
+    // re-run previews
+    updatePreviews(document.getElementById('pct-input').value);
+}
+
 // ── Percentage presets & live preview ─────────────────────────────────────
 function setPercentage(pct) {
     document.getElementById('pct-input').value = pct;
     document.querySelectorAll('.preset-btn').forEach(btn => {
         const active = parseInt(btn.dataset.pct) === pct;
-        btn.classList.toggle('bg-white',       active);
-        btn.classList.toggle('shadow-sm',      active);
-        btn.classList.toggle('text-orange-600', active);
-        btn.classList.toggle('text-gray-500',  !active);
+        const color  = currentMode === 'raise' ? 'text-emerald-600' : 'text-orange-600';
+        btn.classList.toggle('bg-white',  active);
+        btn.classList.toggle('shadow-sm', active);
+        btn.classList.remove('text-orange-600', 'text-emerald-600', 'text-gray-500');
+        btn.classList.add(active ? color : 'text-gray-500');
     });
     updatePreviews(pct);
 }
 
 function updatePreviews(pct) {
-    const p = parseFloat(pct || 0);
+    const p       = parseFloat(pct || 0);
+    const isRaise = currentMode === 'raise';
+
     document.querySelectorAll('.preview-amt').forEach(el => {
-        const amt       = parseFloat(el.dataset.amount || 0);
-        const visitAmt  = parseFloat(el.dataset.visit  || 0);
-        const reduction = Math.floor(amt * p / 100);
-        const pts       = Math.floor(reduction / 500);
+        const amt      = parseFloat(el.dataset.amount || 0);
+        const visitAmt = parseFloat(el.dataset.visit  || 0);
+        const delta    = Math.floor(amt * p / 100);
+        const pts      = Math.floor(delta / 500);
         if (pts > 0) {
-            const newAmt   = Math.max(0, amt - pts * 500) + visitAmt;
+            const newAmt   = isRaise
+                ? (amt + pts * 500) + visitAmt
+                : Math.max(0, amt - pts * 500) + visitAmt;
             el.textContent = newAmt.toLocaleString('ar-SA');
-            el.className   = 'preview-amt font-bold text-orange-600';
+            el.className   = isRaise ? 'preview-amt font-bold text-emerald-600' : 'preview-amt font-bold text-orange-600';
         } else {
             el.textContent = 'لا تغيير';
             el.className   = 'preview-amt text-gray-300 text-xs italic';
         }
     });
     document.querySelectorAll('.preview-pts').forEach(el => {
-        const amt       = parseFloat(el.dataset.amount || 0);
-        const reduction = Math.floor(amt * p / 100);
-        const pts       = Math.floor(reduction / 500);
+        const amt   = parseFloat(el.dataset.amount || 0);
+        const delta = Math.floor(amt * p / 100);
+        const pts   = Math.floor(delta / 500);
         if (pts > 0) {
-            el.textContent = pts;
-            el.className   = 'preview-pts font-bold text-red-600';
+            el.textContent = (isRaise ? '+' : '') + pts;
+            el.className   = isRaise ? 'preview-pts font-bold text-emerald-600' : 'preview-pts font-bold text-red-600';
         } else {
             el.textContent = 'لا تغيير';
             el.className   = 'preview-pts text-gray-300 text-xs italic';
@@ -746,10 +813,11 @@ function updatePreviews(pct) {
     // sync presets
     document.querySelectorAll('.preset-btn').forEach(btn => {
         const active = parseFloat(btn.dataset.pct) === p;
-        btn.classList.toggle('bg-white',       active);
-        btn.classList.toggle('shadow-sm',      active);
-        btn.classList.toggle('text-orange-600', active);
-        btn.classList.toggle('text-gray-500',  !active);
+        const color  = currentMode === 'raise' ? 'text-emerald-600' : 'text-orange-600';
+        btn.classList.toggle('bg-white',  active);
+        btn.classList.toggle('shadow-sm', active);
+        btn.classList.remove('text-orange-600', 'text-emerald-600', 'text-gray-500');
+        btn.classList.add(active ? color : 'text-gray-500');
     });
 }
 
@@ -765,8 +833,9 @@ function fvrApplySelected() {
 }
 
 function fvrApplyFiltered() {
-    const pct = parseFloat(document.getElementById('pct-input').value);
-    if (!confirm(`سيتم تخفيض ${pct}% من المبلغ المقدّر لجميع الأعضاء المفلترين. هل أنت متأكد؟`)) return;
+    const pct  = parseFloat(document.getElementById('pct-input').value);
+    const verb = currentMode === 'raise' ? 'رفع' : 'تخفيض';
+    if (!confirm(`سيتم ${verb} ${pct}% من المبلغ المقدّر لجميع الأعضاء المفلترين. هل أنت متأكد؟`)) return;
     document.getElementById('apply-to-input').value = 'filtered';
     document.getElementById('fvr-bulk-form').submit();
 }

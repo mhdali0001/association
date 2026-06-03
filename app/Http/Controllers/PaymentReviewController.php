@@ -163,10 +163,10 @@ class PaymentReviewController extends Controller
 
     public function duplicateIbans(Request $request)
     {
-        $search        = trim($request->get('search', ''));
-        $finalStatusId = $request->get('final_status_id', '');
-        $dateFrom      = $request->get('date_from', '');
-        $dateTo        = $request->get('date_to', '');
+        $search         = trim($request->get('search', ''));
+        $finalStatusIds = array_filter((array) $request->get('final_status_id', []));
+        $dateFrom       = $request->get('date_from', '');
+        $dateTo         = $request->get('date_to', '');
 
         // Find IBANs that appear more than once in payment_info
         $duplicateIbans = DB::table('payment_info')
@@ -200,17 +200,21 @@ class PaymentReviewController extends Controller
             $membersByIban[$iban] = $members;
         }
 
-        // Filter: keep only IBAN groups that contain at least one member with the selected final status
-        if ($finalStatusId !== '') {
-            if ($finalStatusId === 'none') {
-                $membersByIban = $membersByIban->filter(
-                    fn($members) => $members->contains(fn($m) => is_null($m->final_status_id))
-                );
-            } else {
-                $membersByIban = $membersByIban->filter(
-                    fn($members) => $members->contains('final_status_id', (int) $finalStatusId)
-                );
-            }
+        // Stats before filters (for hero badges)
+        $rawTotalDuplicateIbans  = $membersByIban->count();
+        $rawTotalAffectedMembers = $membersByIban->flatten()->count();
+
+        // Filter: keep only IBAN groups that contain at least one member with a selected final status
+        if (!empty($finalStatusIds)) {
+            $includeNone    = in_array('none', $finalStatusIds);
+            $numericIds     = array_values(array_filter($finalStatusIds, fn($v) => $v !== 'none'));
+            $membersByIban  = $membersByIban->filter(function ($members) use ($includeNone, $numericIds) {
+                return $members->contains(function ($m) use ($includeNone, $numericIds) {
+                    if ($includeNone && is_null($m->final_status_id)) return true;
+                    if (!empty($numericIds) && in_array($m->final_status_id, array_map('intval', $numericIds))) return true;
+                    return false;
+                });
+            });
         }
 
         // Filter: keep only IBAN groups where at least one payment_info was added in the date range
@@ -231,8 +235,9 @@ class PaymentReviewController extends Controller
         $finalStatusList       = \App\Models\FinalStatus::active()->orderBy('name')->get();
 
         return view('payment-review.duplicate-ibans', compact(
-            'membersByIban', 'search', 'finalStatusId', 'finalStatusList',
+            'membersByIban', 'search', 'finalStatusIds', 'finalStatusList',
             'totalDuplicateIbans', 'totalAffectedMembers',
+            'rawTotalDuplicateIbans', 'rawTotalAffectedMembers',
             'dateFrom', 'dateTo'
         ));
     }

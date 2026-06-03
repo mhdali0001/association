@@ -1969,7 +1969,8 @@ function toggleDuplicates() {
         {{-- Actions row --}}
         <div class="flex items-center gap-3 px-5 py-3 bg-red-50">
             <span id="bulk-count" class="text-sm font-bold text-red-700"></span>
-            <form id="bulk-delete-form" method="POST" action="{{ route('members.bulk-destroy') }}">
+            <form id="bulk-delete-form" method="POST" action="{{ route('members.bulk-destroy') }}"
+                  data-confirm="هل أنت متأكد من حذف الأعضاء المحددين؟">
                 @csrf
                 @method('DELETE')
                 <div id="bulk-ids-container"></div>
@@ -1984,7 +1985,6 @@ function toggleDuplicates() {
                     @endif
                 @endforeach
                 <button type="submit"
-                        onclick="return confirm('هل أنت متأكد من حذف الأعضاء المحددين؟ لا يمكن التراجع عن هذا الإجراء.')"
                         class="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -2081,7 +2081,7 @@ function toggleDuplicates() {
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                             </a>
                             <form method="POST" action="{{ route('members.destroy', $member) }}"
-                                  onsubmit="return confirm('هل أنت متأكد من حذف هذا العضو؟')">
+                                  data-confirm-name="{{ $member->full_name }}">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -2528,7 +2528,7 @@ function toggleDuplicates() {
                                         تعديل
                                     </a>
                                     <form method="POST" action="{{ route('members.destroy', $member) }}"
-                                          onsubmit="return confirm('هل أنت متأكد من حذف هذا العضو؟')">
+                                          data-confirm-name="{{ $member->full_name }}">
                                         @csrf @method('DELETE')
                                         <button type="submit" title="حذف"
                                                 class="inline-flex items-center p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 transition-colors">

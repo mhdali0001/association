@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Association;
+use App\Models\DeletedMember;
 use App\Models\Donation;
 use App\Models\MaritalStatus;
 use App\Models\MemberImage;
@@ -174,6 +175,7 @@ class PendingChange extends Model
             'delete'       => 'حذف',
             'bulk_amount'           => 'تعديل جماعي للمبلغ',
             'bulk_fv_reduction'     => 'تخفيض جماعي للمبلغ',
+            'bulk_fv_raise'         => 'رفع جماعي للمبلغ',
             'bulk_score_deduction'  => 'انقاص جماعي للنقاط',
             'bulk_score_addition'   => 'إضافة جماعية للنقاط',
             'bulk_score_equalize'   => 'تسوية جماعية للنقاط',
@@ -202,7 +204,7 @@ class PendingChange extends Model
     /** A short description for list views */
     public function summary(): string
     {
-        if (in_array($this->action, ['bulk_amount', 'bulk_fv_reduction', 'bulk_score_deduction', 'bulk_score_addition', 'bulk_score_equalize'])) {
+        if (in_array($this->action, ['bulk_amount', 'bulk_fv_reduction', 'bulk_fv_raise', 'bulk_score_deduction', 'bulk_score_addition', 'bulk_score_equalize'])) {
             return "{$this->actionLabel()}: " . ($this->payload['label'] ?? '');
         }
 
@@ -245,6 +247,8 @@ class PendingChange extends Model
             $this->applyBulkAmount();
         } elseif ($this->action === 'bulk_fv_reduction') {
             $this->applyBulkFvReduction();
+        } elseif ($this->action === 'bulk_fv_raise') {
+            $this->applyBulkFvRaise();
         } elseif ($this->action === 'bulk_score_deduction') {
             $this->applyBulkScoreDeduction();
         } elseif ($this->action === 'bulk_score_addition') {
@@ -280,7 +284,11 @@ class PendingChange extends Model
     {
         $ids = $this->payload['member_ids'] ?? [];
         if (empty($ids)) return;
-        Member::whereIn('id', $ids)->delete();
+
+        Member::whereIn('id', $ids)->get()->each(function (Member $member) {
+            DeletedMember::archive($member, Auth::id());
+            $member->delete();
+        });
     }
 
     private function applyBulkUpdate(): void
@@ -391,6 +399,53 @@ class PendingChange extends Model
                 'score_deduction'        => $newDeduction,
                 'score_deduction_reason' => $reason ?? 'تخفيض الجولة الميدانية',
                 'total_score'            => $totalScore,
+            ])->save();
+
+            DB::table('members')->where('id', $memberId)->update([
+                'score'            => $totalScore,
+                'estimated_amount' => $newAmount,
+            ]);
+        }
+    }
+
+    private function applyBulkFvRaise(): void
+    {
+        $p          = $this->payload ?? [];
+        $percentage = (float) ($p['percentage'] ?? 0);
+        $reason     = $p['reason'] ?? null;
+        $ids        = $p['member_ids'] ?? [];
+
+        if (empty($ids) || $percentage <= 0) return;
+
+        foreach ($ids as $memberId) {
+            $member = Member::with('scores')->find($memberId);
+            if (!$member || !$member->estimated_amount) continue;
+
+            $currentAmount = (float) $member->estimated_amount;
+            $raise         = (int) floor($currentAmount * $percentage / 100);
+            $pointsAdded   = (int) floor($raise / 500);
+
+            if ($pointsAdded <= 0) continue;
+
+            $scores = $member->scores ?? new MemberScore(['member_id' => $memberId]);
+
+            $rawScore = ($scores->work_score            ?? 0)
+                      + ($scores->housing_score          ?? 0)
+                      + ($scores->dependents_score       ?? 0)
+                      + ($scores->dependent_status_score ?? 0)
+                      + ($scores->illness_score          ?? 0)
+                      + ($scores->special_cases_score    ?? 0);
+
+            $deduction   = (int)($scores->score_deduction ?? 0);
+            $newAddition = (int)($scores->score_addition  ?? 0) + $pointsAdded;
+            $totalScore  = max(0, $rawScore + $newAddition - $deduction);
+            $newAmount   = $totalScore * 500;
+
+            $scores->fill([
+                'member_id'             => $memberId,
+                'score_addition'        => $newAddition,
+                'score_addition_reason' => $reason ?? 'رفع الجولة الميدانية',
+                'total_score'           => $totalScore,
             ])->save();
 
             DB::table('members')->where('id', $memberId)->update([
@@ -531,7 +586,7 @@ class PendingChange extends Model
      */
     public function undo(): void
     {
-        if (in_array($this->action, ['bulk_amount', 'bulk_fv_reduction', 'bulk_score_deduction', 'bulk_score_addition', 'bulk_score_equalize', 'bulk_delete', 'bulk_update'])) {
+        if (in_array($this->action, ['bulk_amount', 'bulk_fv_reduction', 'bulk_fv_raise', 'bulk_score_deduction', 'bulk_score_addition', 'bulk_score_equalize', 'bulk_delete', 'bulk_update'])) {
             return; // bulk operations are not automatically reversible
         }
 
@@ -685,7 +740,11 @@ class PendingChange extends Model
         $p = $this->payload ?? [];
 
         if ($this->action === 'delete') {
-            Member::find($this->model_id)?->delete();
+            $member = Member::find($this->model_id);
+            if ($member) {
+                DeletedMember::archive($member, Auth::id());
+                $member->delete();
+            }
             return;
         }
 

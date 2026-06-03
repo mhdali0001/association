@@ -201,7 +201,8 @@
                         ['members.import.show', 'استيراد Excel',        'M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
                         ['members.bulk-amount',       'إضافة وانقاص النقاط',     'M20 12H4'],
                         ['members.bulk-payments',     'الدفعات الجماعية',  'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z'],
-                        ['members.fv-reduction',      'تخفيض الجولة الميدانية', 'M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z'],
+                        ['members.payment-batches',  'سجل الدفعات',       'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'],
+                        ['members.fv-reduction',      'رفع وتخفيض المبلغ', 'M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z'],
                         ['members.score-adjustments', 'تعديلات النقاط',    'M3 6h18M3 12h18M3 18h18'],
                         ['members.score-equalizer',  'تسوية النقاط',      'M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4'],
                         ['members.score-manager',   'إدارة النقاط',      'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'],
@@ -528,5 +529,90 @@ document.addEventListener('click', (e) => {
 });
 </script>
 @stack('scripts')
+
+{{-- ===== Global Delete Confirmation Modal ===== --}}
+<div id="del-modal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+    <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" id="del-modal-backdrop"></div>
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <div class="flex flex-col items-center text-center">
+            <div class="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center mb-4">
+                <svg class="w-7 h-7 text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+            </div>
+            <h3 class="text-lg font-black text-gray-900 mb-1.5">تأكيد الحذف</h3>
+            <p id="del-modal-msg" class="text-gray-500 text-sm leading-relaxed mb-6"></p>
+        </div>
+        <div class="flex gap-3">
+            <button id="del-modal-cancel" type="button"
+                    class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition-colors">
+                إلغاء
+            </button>
+            <button id="del-modal-ok" type="button"
+                    class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+                تأكيد الحذف
+            </button>
+        </div>
+    </div>
+</div>
+<script>
+(function () {
+    var pendingForm = null;
+    var modal    = document.getElementById('del-modal');
+    var msgEl    = document.getElementById('del-modal-msg');
+    var okBtn    = document.getElementById('del-modal-ok');
+    var cancelBtn= document.getElementById('del-modal-cancel');
+    var backdrop = document.getElementById('del-modal-backdrop');
+
+    function showModal(form) {
+        pendingForm = form;
+        var name   = (form.dataset.confirmName || '').trim();
+        var custom = (form.dataset.confirm     || '').trim();
+        if (custom) {
+            msgEl.innerHTML = custom + '<br><span class="text-xs text-red-500 mt-1 block">لا يمكن التراجع عن هذا الإجراء.</span>';
+        } else if (name) {
+            msgEl.innerHTML = 'هل أنت متأكد من حذف <span class="font-bold text-gray-900">' + name + '</span>؟<br><span class="text-xs text-red-500 mt-1 block">لا يمكن التراجع عن هذا الإجراء.</span>';
+        } else {
+            msgEl.innerHTML = 'هل أنت متأكد من الحذف؟<br><span class="text-xs text-red-500 mt-1 block">لا يمكن التراجع عن هذا الإجراء.</span>';
+        }
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function hideModal() {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+        pendingForm = null;
+    }
+
+    // Intercept all DELETE form submissions (capture phase = before onsubmit)
+    document.addEventListener('submit', function (e) {
+        var form = e.target;
+        if (form._delConfirmed) return;
+        var mi = form.querySelector('input[name="_method"]');
+        if (!mi || mi.value.toUpperCase() !== 'DELETE') return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        showModal(form);
+    }, true);
+
+    okBtn.addEventListener('click', function () {
+        hideModal();
+        if (pendingForm) {
+            pendingForm._delConfirmed = true;
+            pendingForm.submit();
+        }
+    });
+
+    cancelBtn.addEventListener('click', hideModal);
+    backdrop.addEventListener('click', hideModal);
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !modal.classList.contains('hidden')) hideModal();
+    });
+})();
+</script>
 </body>
 </html>
