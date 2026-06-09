@@ -1574,12 +1574,14 @@ document.addEventListener('DOMContentLoaded', function () {
             e.stopPropagation();
             const isOpen = !panel.classList.contains('hidden');
             document.querySelectorAll('.ms-panel').forEach(function (p) {
+                resetMobilePanel(p);
                 p.classList.add('hidden');
                 p.closest('.ms-dropdown').querySelector('.ms-arrow').classList.remove('rotate-180');
             });
             if (!isOpen) {
                 panel.classList.remove('hidden');
                 arrow.classList.add('rotate-180');
+                positionMobilePanel(btn, panel);
                 // Reset search and show all options when opening
                 if (searchInput) {
                     searchInput.value = '';
@@ -1594,8 +1596,55 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // Mobile: position panel as fixed so it's never clipped by parent overflow
+    function positionMobilePanel(btn, panel) {
+        if (window.innerWidth >= 640) return;
+        const rect = btn.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom - 8;
+        const spaceAbove = rect.top - 8;
+        panel.style.position = 'fixed';
+        panel.style.left     = rect.left + 'px';
+        panel.style.width    = rect.width + 'px';
+        panel.style.zIndex   = '9999';
+        if (spaceBelow >= 220 || spaceBelow >= spaceAbove) {
+            panel.style.top        = (rect.bottom + 4) + 'px';
+            panel.style.bottom     = '';
+            panel.style.maxHeight  = Math.min(spaceBelow, window.innerHeight * 0.55) + 'px';
+        } else {
+            panel.style.bottom     = (window.innerHeight - rect.top + 4) + 'px';
+            panel.style.top        = '';
+            panel.style.maxHeight  = Math.min(spaceAbove, window.innerHeight * 0.55) + 'px';
+        }
+        // make inner scroll div fill the fixed panel
+        const inner = panel.querySelector('[style*="max-height:200px"], [style*="max-height: 200px"]');
+        if (inner) inner.style.maxHeight = 'calc(100% - 80px)';
+        panel.style.overflowY = 'auto';
+    }
+
+    function resetMobilePanel(panel) {
+        if (window.innerWidth >= 640) return;
+        panel.style.position  = '';
+        panel.style.left      = '';
+        panel.style.width     = '';
+        panel.style.zIndex    = '';
+        panel.style.top       = '';
+        panel.style.bottom    = '';
+        panel.style.maxHeight = '';
+        panel.style.overflowY = '';
+        const inner = panel.querySelector('[style*="max-height"]');
+        if (inner) inner.style.maxHeight = '';
+    }
+
+    window.addEventListener('scroll', function () {
+        document.querySelectorAll('.ms-panel:not(.hidden)').forEach(function (p) {
+            const btn = p.closest('.ms-dropdown').querySelector('.ms-btn');
+            if (btn) positionMobilePanel(btn, p);
+        });
+    }, { passive: true });
+
     document.addEventListener('click', function () {
         document.querySelectorAll('.ms-panel').forEach(function (p) {
+            resetMobilePanel(p);
             p.classList.add('hidden');
             p.closest('.ms-dropdown').querySelector('.ms-arrow').classList.remove('rotate-180');
         });

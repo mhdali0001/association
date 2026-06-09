@@ -49,7 +49,7 @@
         'housing_score'          => ['label' => 'السكن',    'max' => 4,  'labelActive' => 'text-teal-600',   'active' => 'bg-teal-50 text-teal-700 border-teal-300'],
         'dependents_score'       => ['label' => 'المعالون', 'max' => 20, 'labelActive' => 'text-amber-600',  'active' => 'bg-amber-50 text-amber-700 border-amber-300'],
         'dependent_status_score' => ['label' => 'الإعالة',  'max' => 2,  'labelActive' => 'text-orange-600', 'active' => 'bg-orange-50 text-orange-700 border-orange-300'],
-        'illness_score'          => ['label' => 'المرض',    'max' => 5,  'labelActive' => 'text-rose-600',   'active' => 'bg-rose-50 text-rose-700 border-rose-300'],
+        'illness_score'          => ['label' => 'المرض',    'max' => 10, 'labelActive' => 'text-rose-600',   'active' => 'bg-rose-50 text-rose-700 border-rose-300'],
         'special_cases_score'    => ['label' => 'الخاصة',   'max' => 10, 'labelActive' => 'text-purple-600', 'active' => 'bg-purple-50 text-purple-700 border-purple-300'],
     ];
     $hasActiveScoreFilter = collect($scoreFilters)->contains(fn($v) => !empty($v));
@@ -192,7 +192,7 @@
                 </div>
                 <div class="flex flex-col gap-0.5">
                     <label class="text-[10px] font-bold text-rose-600 text-center">مرض /5</label>
-                    <input type="number" name="illness_score" min="0" max="5" placeholder="—"
+                    <input type="number" name="illness_score" min="0" max="10" placeholder="—"
                            class="w-14 text-center text-xs border border-rose-200 bg-rose-50 rounded-lg px-1 py-1.5 focus:ring-2 focus:ring-rose-400 focus:outline-none">
                 </div>
                 <div class="flex flex-col gap-0.5">
@@ -587,8 +587,8 @@
                                class="w-full border border-orange-200 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-orange-400 focus:outline-none" oninput="calcPreview()">
                     </div>
                     <div class="bg-rose-50/50 border border-rose-100 rounded-xl p-3">
-                        <label class="block text-xs font-bold text-rose-600 mb-1.5">المرض <span class="text-rose-300 font-normal">(0 – 5)</span></label>
-                        <input type="number" name="illness_score" id="f-illness" min="0" max="5"
+                        <label class="block text-xs font-bold text-rose-600 mb-1.5">المرض <span class="text-rose-300 font-normal">(0 – 10)</span></label>
+                        <input type="number" name="illness_score" id="f-illness" min="0" max="10"
                                class="w-full border border-rose-200 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-rose-400 focus:outline-none" oninput="calcPreview()">
                     </div>
                     <div class="bg-purple-50/50 border border-purple-100 rounded-xl p-3">

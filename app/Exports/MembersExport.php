@@ -2,13 +2,11 @@
 
 namespace App\Exports;
 
-use App\Models\Member;
 use Illuminate\Database\Eloquent\Builder;
 use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
@@ -20,14 +18,13 @@ use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
-use PhpOffice\PhpSpreadsheet\Style\Color;
 
 class MembersExport extends DefaultValueBinder implements FromQuery, WithHeadings, WithMapping, WithStyles, WithTitle, ShouldAutoSize, WithCustomValueBinder, WithEvents
 {
     protected Builder $query;
 
     // Columns that must always be written as strings
-    private const STRING_COLUMNS = ['AH', 'AI'];
+    private const STRING_COLUMNS = ['AH', 'AI', 'BK', 'BL'];
 
     public function __construct(Builder $query)
     {
@@ -47,7 +44,8 @@ class MembersExport extends DefaultValueBinder implements FromQuery, WithHeading
     {
         return $this->query->with([
             'verificationStatus', 'finalStatus', 'association',
-            'housingStatus', 'region', 'paymentInfo', 'paymentReview',
+            'housingStatus', 'region', 'sector', 'paymentInfo', 'paymentInfoAI', 'paymentReview',
+            'scores',
             'fieldVisits' => fn($q) => $q->latest()->with(['status', 'houseType', 'houseCondition']),
         ]);
     }
@@ -110,6 +108,22 @@ class MembersExport extends DefaultValueBinder implements FromQuery, WithHeading
             'يوجد فيديو',
             'حالة خاصة (الجولة)',
             'تاريخ الإضافة',
+            // New columns
+            'القطاع',
+            'نقاط العمل',
+            'نقاط السكن',
+            'نقاط المعالين',
+            'نقاط الإعالة',
+            'نقاط المرض',
+            'نقاط الحالات الخاصة',
+            'إضافة نقاط',
+            'سبب الإضافة',
+            'انقاص نقاط',
+            'سبب الانقاص',
+            'إجمالي النقاط',
+            'آيبان (AI)',
+            'باركود (AI)',
+            'اسم المستلم (AI)',
         ];
     }
 
@@ -176,6 +190,22 @@ class MembersExport extends DefaultValueBinder implements FromQuery, WithHeading
             $lastVisit?->has_video    ? 'نعم' : ($lastVisit ? 'لا' : ''),
             $lastVisit?->has_special_case ? 'نعم' : ($lastVisit ? 'لا' : ''),
             $member->created_at?->format('Y-m-d') ?? '',
+            // New columns
+            $member->sector?->name                          ?? '',
+            $member->scores?->work_score                    ?? '',
+            $member->scores?->housing_score                 ?? '',
+            $member->scores?->dependents_score              ?? '',
+            $member->scores?->dependent_status_score        ?? '',
+            $member->scores?->illness_score                 ?? '',
+            $member->scores?->special_cases_score           ?? '',
+            $member->scores?->score_addition                ?? '',
+            $member->scores?->score_addition_reason         ?? '',
+            $member->scores?->score_deduction               ?? '',
+            $member->scores?->score_deduction_reason        ?? '',
+            $member->scores?->total_score                   ?? '',
+            $member->paymentInfoAI?->iban                   ?? '',
+            $member->paymentInfoAI?->barcode                ?? '',
+            $member->paymentInfoAI?->recipient_name         ?? '',
         ];
     }
 
@@ -188,11 +218,11 @@ class MembersExport extends DefaultValueBinder implements FromQuery, WithHeading
                 if ($lastRow < 2) return;
                 foreach (self::STRING_COLUMNS as $col) {
                     for ($row = 2; $row <= $lastRow; $row++) {
-                        $sheet->getCell("{$col}{$row}")
-                              ->getIgnoredErrors()
-                              ->setNumberStoredAsText(true);
+                        $cell = $sheet->getCell("{$col}{$row}");
+                        $cell->getIgnoredErrors()->setNumberStoredAsText(true);
                     }
                 }
+                $sheet->setRightToLeft(true);
             },
         ];
     }

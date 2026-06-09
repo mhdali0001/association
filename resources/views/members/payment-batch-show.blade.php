@@ -24,10 +24,11 @@
     $lightBg  = $isAdd ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                        : ($isSub ? 'bg-red-50 text-red-600 border-red-200'
                                  : 'bg-blue-50 text-blue-700 border-blue-200');
+    $hasFilters = $search || $diffFilter || $amountFrom !== '' || $amountTo !== '';
 @endphp
 
 {{-- Back button --}}
-<div class="mb-5">
+<div class="mb-4">
     <a href="{{ route('members.payment-batches') }}"
        class="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 transition-colors">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -37,26 +38,25 @@
     </a>
 </div>
 
-{{-- Batch Header Card --}}
-<div class="relative bg-gradient-to-l {{ $grad }} rounded-3xl overflow-hidden shadow-xl mb-6">
-    {{-- Background circles --}}
+{{-- ══════════════ Batch Header ══════════════ --}}
+<div class="relative bg-gradient-to-l {{ $grad }} rounded-3xl overflow-hidden shadow-xl mb-5">
     <div class="absolute inset-0 opacity-10 pointer-events-none">
         <div class="absolute -top-8 -right-8 w-48 h-48 bg-white rounded-full"></div>
         <div class="absolute -bottom-12 right-24 w-64 h-64 bg-white rounded-full"></div>
         <div class="absolute top-4 -left-6 w-32 h-32 bg-white rounded-full"></div>
     </div>
 
-    <div class="relative p-6 sm:p-8">
-        {{-- Top row: title + operation badge --}}
-        <div class="flex items-start justify-between flex-wrap gap-4 mb-6">
+    <div class="relative p-5 sm:p-8">
+        {{-- Title row --}}
+        <div class="flex items-start justify-between flex-wrap gap-3 mb-5">
             <div>
                 <p class="text-white/60 text-xs font-semibold uppercase tracking-widest mb-1">دفعة #{{ $batch->id }}</p>
-                <h1 class="text-white font-black text-2xl sm:text-3xl">{{ $batch->label ?: 'دفعة بدون اسم' }}</h1>
+                <h1 class="text-white font-black text-xl sm:text-3xl">{{ $batch->label ?: 'دفعة بدون اسم' }}</h1>
                 @if($batch->notes)
-                    <p class="text-white/70 text-sm mt-1.5">{{ $batch->notes }}</p>
+                    <p class="text-white/70 text-sm mt-1">{{ $batch->notes }}</p>
                 @endif
             </div>
-            <span class="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-black rounded-2xl px-4 py-2">
+            <span class="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-black rounded-2xl px-4 py-2 shrink-0">
                 @if($isAdd)
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                     إضافة {{ $batch->amount }} دفعة
@@ -70,83 +70,70 @@
             </span>
         </div>
 
-        {{-- Stats row --}}
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div class="bg-white/15 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+        {{-- Stats --}}
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="bg-white/15 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-white/20">
                 <p class="text-white/60 text-xs font-semibold mb-1">تاريخ الدفعة</p>
-                <p class="text-white font-black text-xl">{{ $batch->payment_date?->format('Y/m/d') ?? '—' }}</p>
+                <p class="text-white font-black text-lg sm:text-xl">{{ $batch->payment_date?->format('d/m/Y') ?? '—' }}</p>
             </div>
-            <div class="bg-white/15 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+            <div class="bg-white/15 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-white/20">
                 <p class="text-white/60 text-xs font-semibold mb-1">عدد الأعضاء</p>
-                <p class="text-white font-black text-xl">{{ $fmt($batch->members_count) }}</p>
+                <p class="text-white font-black text-lg sm:text-xl">{{ $fmt($batch->members_count) }}</p>
             </div>
-            <div class="bg-white/15 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
-                <p class="text-white/60 text-xs font-semibold mb-1">إجمالي المبلغ النهائي</p>
-                <p class="text-white font-black text-lg leading-tight">{{ $fmtMoney($batch->total_estimated_amount) }}</p>
+            <div class="bg-white/15 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-white/20">
+                <p class="text-white/60 text-xs font-semibold mb-1">إجمالي المبلغ</p>
+                <p class="text-white font-black text-base sm:text-lg leading-tight">{{ $fmtMoney($batch->total_estimated_amount) }}</p>
             </div>
-            <div class="bg-white/15 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+            <div class="bg-white/15 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-white/20">
                 <p class="text-white/60 text-xs font-semibold mb-1">طبّقها</p>
                 <p class="text-white font-black text-base">{{ $batch->appliedBy?->name ?? '—' }}</p>
-                <p class="text-white/50 text-xs mt-0.5 font-mono">{{ $batch->created_at->format('Y/m/d H:i') }}</p>
+                <p class="text-white/50 text-xs mt-0.5 font-mono">{{ $batch->created_at->format('d/m/Y H:i') }}</p>
             </div>
         </div>
     </div>
 </div>
 
-{{-- Filters --}}
-<div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-4 overflow-hidden">
-    <form method="GET" action="{{ route('members.payment-batches.show', $batch) }}">
-        <div class="flex flex-wrap items-end gap-3 p-4">
+{{-- ══════════════ FILTER BAR (members style) ══════════════ --}}
+<div class="bg-white border border-gray-100 rounded-2xl shadow-sm mb-4">
+    <form method="GET" action="{{ route('members.payment-batches.show', $batch) }}" id="batch-show-filter-form">
 
-            {{-- Search --}}
-            <div class="flex-1 min-w-48">
-                <label class="block text-xs font-bold text-gray-500 mb-1.5">بحث</label>
-                <div class="relative">
-                    <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        {{-- Always visible: search + toggle --}}
+        <div class="px-4 pt-4 pb-3 border-b border-gray-100 space-y-2.5">
+            <div class="relative">
+                <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
                     </svg>
-                    <input type="text" name="search" value="{{ $search }}" placeholder="اسم العضو أو رقم الملف..."
-                           class="w-full border border-gray-200 rounded-xl pr-9 pl-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition placeholder-gray-300">
-                </div>
+                </span>
+                <input type="text" name="search" value="{{ $search }}"
+                       placeholder="بحث باسم العضو أو رقم الملف أو الرقم الوطني..."
+                       class="w-full pr-10 pl-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-50
+                              focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition placeholder-gray-300">
             </div>
-
-            {{-- Diff filter --}}
-            <div class="min-w-36">
-                <label class="block text-xs font-bold text-gray-500 mb-1.5">التغيير</label>
-                <select name="diff" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-400 transition">
-                    <option value="">الكل</option>
-                    <option value="added"      {{ $diffFilter === 'added'      ? 'selected' : '' }}>مضاف</option>
-                    <option value="subtracted" {{ $diffFilter === 'subtracted' ? 'selected' : '' }}>منقوص</option>
-                    <option value="same"       {{ $diffFilter === 'same'       ? 'selected' : '' }}>بدون تغيير</option>
-                </select>
-            </div>
-
-            {{-- Amount range --}}
-            <div class="flex items-end gap-2">
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1.5">المبلغ من</label>
-                    <input type="number" name="amount_from" value="{{ $amountFrom }}" placeholder="0" min="0"
-                           class="w-28 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-400 transition placeholder-gray-300">
-                </div>
-                <span class="text-gray-400 pb-2">—</span>
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1.5">إلى</label>
-                    <input type="number" name="amount_to" value="{{ $amountTo }}" placeholder="∞" min="0"
-                           class="w-28 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-400 transition placeholder-gray-300">
-                </div>
-            </div>
-
             <div class="flex items-center gap-2">
                 <button type="submit"
-                        class="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-bold rounded-xl transition-colors">
+                        class="flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-sm font-bold rounded-xl transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
                     </svg>
                     بحث
                 </button>
-                @if($search || $diffFilter || $amountFrom !== '' || $amountTo !== '')
+                <button type="button" onclick="toggleBatchShowFilters()"
+                        class="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 hover:bg-white hover:border-teal-300 transition-colors text-sm font-bold text-gray-600">
+                    <svg class="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
+                    </svg>
+                    الفلاتر
+                    @if($hasFilters)
+                        <span class="w-2 h-2 bg-teal-500 rounded-full"></span>
+                    @endif
+                    <svg id="batch-show-filter-arrow" class="w-4 h-4 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                @if($hasFilters)
                     <a href="{{ route('members.payment-batches.show', $batch) }}"
-                       class="flex items-center gap-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium rounded-xl transition-colors">
+                       class="flex items-center gap-1.5 px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-500 text-sm font-semibold rounded-xl transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
@@ -155,13 +142,71 @@
                 @endif
             </div>
         </div>
+
+        {{-- Collapsible advanced filters --}}
+        <div id="batch-show-filter-body" class="{{ $hasFilters ? '' : 'hidden' }}">
+            <div class="p-4 space-y-3">
+
+                {{-- Row 1: diff + amount range --}}
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {{-- Diff --}}
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1.5">التغيير</label>
+                        <select name="diff" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-400 transition">
+                            <option value="">— الكل —</option>
+                            <option value="added"      {{ $diffFilter === 'added'      ? 'selected' : '' }}>مضاف ↑</option>
+                            <option value="subtracted" {{ $diffFilter === 'subtracted' ? 'selected' : '' }}>منقوص ↓</option>
+                            <option value="same"       {{ $diffFilter === 'same'       ? 'selected' : '' }}>بدون تغيير</option>
+                        </select>
+                    </div>
+
+                    {{-- Amount range --}}
+                    <div class="sm:col-span-2 flex items-end gap-2">
+                        <div class="flex-1">
+                            <label class="block text-xs font-bold text-gray-500 mb-1.5">المبلغ النهائي من (ل.س)</label>
+                            <input type="number" name="amount_from" value="{{ $amountFrom }}" placeholder="0" min="0"
+                                   class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-400 transition placeholder-gray-300">
+                        </div>
+                        <span class="text-gray-400 pb-2.5 shrink-0">—</span>
+                        <div class="flex-1">
+                            <label class="block text-xs font-bold text-gray-500 mb-1.5">إلى</label>
+                            <input type="number" name="amount_to" value="{{ $amountTo }}" placeholder="∞" min="0"
+                                   class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-400 transition placeholder-gray-300">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Active filter chips --}}
+            @if($hasFilters)
+            <div class="flex flex-wrap items-center gap-2 px-4 pb-3 border-t border-gray-50 pt-3">
+                <span class="text-xs text-gray-400 font-medium shrink-0">نشط:</span>
+                @if($search)
+                    <span class="inline-flex items-center text-xs font-bold bg-teal-50 text-teal-700 border border-teal-100 rounded-full px-2.5 py-1">
+                        <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/></svg>
+                        {{ $search }}
+                    </span>
+                @endif
+                @if($diffFilter)
+                    <span class="inline-flex items-center text-xs font-bold bg-violet-50 text-violet-700 border border-violet-100 rounded-full px-2.5 py-1">
+                        {{ match($diffFilter) { 'added' => 'مضاف ↑', 'subtracted' => 'منقوص ↓', default => 'بدون تغيير' } }}
+                    </span>
+                @endif
+                @if($amountFrom !== '' || $amountTo !== '')
+                    <span class="inline-flex items-center text-xs font-bold bg-amber-50 text-amber-700 border border-amber-100 rounded-full px-2.5 py-1">
+                        مبلغ: {{ $amountFrom ?: '0' }} — {{ $amountTo ?: '∞' }} ل.س
+                    </span>
+                @endif
+            </div>
+            @endif
+        </div>
     </form>
 </div>
 
-{{-- Members Table --}}
+{{-- ══════════════ MEMBERS TABLE / CARDS ══════════════ --}}
 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
     {{-- Table header --}}
-    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
         <div class="flex items-center gap-3">
             <div class="w-8 h-8 bg-gray-50 rounded-xl flex items-center justify-center">
                 <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -177,10 +222,17 @@
 
     @if($members->isEmpty())
         <div class="flex flex-col items-center justify-center py-16">
-            <p class="text-gray-300 font-semibold">لا يوجد أعضاء في هذه الدفعة</p>
+            <div class="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center mb-3">
+                <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+            </div>
+            <p class="text-gray-400 text-sm font-semibold">لا يوجد أعضاء مطابقون</p>
         </div>
     @else
-        <div class="overflow-x-auto">
+
+        {{-- ── Desktop table ── --}}
+        <div class="hidden sm:block overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>
                     <tr class="bg-gray-50/80 text-gray-500 text-xs font-semibold border-b border-gray-100">
@@ -194,60 +246,103 @@
                 </thead>
                 <tbody class="divide-y divide-gray-50">
                     @foreach($members as $line)
-                        @php
-                            $diff     = $line->new_count - $line->previous_count;
-                            $diffPos  = $diff > 0;
-                            $diffNeg  = $diff < 0;
-                        @endphp
-                        <tr class="hover:bg-gray-50/50 transition-colors">
-                            <td class="px-5 py-3.5">
-                                @if($line->member)
-                                    <a href="{{ route('members.show', $line->member) }}"
-                                       class="font-mono text-xs text-teal-600 hover:text-teal-800 bg-teal-50 hover:bg-teal-100 border border-teal-100 rounded-lg px-2 py-0.5 transition-colors">
-                                        {{ $line->member->dossier_number ?? '—' }}
-                                    </a>
-                                @else
-                                    <span class="font-mono text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-lg px-2 py-0.5">—</span>
-                                @endif
-                            </td>
-                            <td class="px-5 py-3.5">
-                                @if($line->member)
-                                    <a href="{{ route('members.show', $line->member) }}"
-                                       class="font-semibold text-gray-800 hover:text-teal-700 transition-colors">
-                                        {{ $line->member->full_name }}
-                                    </a>
-                                @else
-                                    <span class="text-gray-300 italic text-xs">محذوف</span>
-                                @endif
-                            </td>
-                            <td class="px-5 py-3.5 text-center">
-                                <span class="font-mono text-gray-400 text-sm">{{ $line->previous_count }}</span>
-                            </td>
-                            <td class="px-5 py-3.5 text-center">
-                                <span class="font-black text-gray-800 text-sm">{{ $line->new_count }}</span>
-                            </td>
-                            <td class="px-5 py-3.5 text-center">
-                                @if($diffPos)
-                                    <span class="inline-flex items-center justify-center gap-0.5 text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg w-12 py-1">
-                                        +{{ $diff }}
-                                    </span>
-                                @elseif($diffNeg)
-                                    <span class="inline-flex items-center justify-center gap-0.5 text-xs font-black text-red-600 bg-red-50 border border-red-100 rounded-lg w-12 py-1">
-                                        {{ $diff }}
-                                    </span>
-                                @else
-                                    <span class="text-gray-300 text-xs">—</span>
-                                @endif
-                            </td>
-                            <td class="px-5 py-3.5">
-                                <span class="font-mono text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1">
-                                    {{ $fmtMoney($line->estimated_amount) }}
-                                </span>
-                            </td>
-                        </tr>
+                    @php
+                        $diff    = $line->new_count - $line->previous_count;
+                        $diffPos = $diff > 0;
+                        $diffNeg = $diff < 0;
+                    @endphp
+                    <tr class="hover:bg-gray-50/50 transition-colors">
+                        <td class="px-5 py-3.5">
+                            @if($line->member)
+                                <a href="{{ route('members.show', $line->member) }}"
+                                   class="font-mono text-xs text-teal-600 hover:text-teal-800 bg-teal-50 hover:bg-teal-100 border border-teal-100 rounded-lg px-2 py-0.5 transition-colors">
+                                    {{ $line->member->dossier_number ?? '—' }}
+                                </a>
+                            @else
+                                <span class="font-mono text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-lg px-2 py-0.5">—</span>
+                            @endif
+                        </td>
+                        <td class="px-5 py-3.5">
+                            @if($line->member)
+                                <a href="{{ route('members.show', $line->member) }}"
+                                   class="font-semibold text-gray-800 hover:text-teal-700 transition-colors">
+                                    {{ $line->member->full_name }}
+                                </a>
+                            @else
+                                <span class="text-gray-300 italic text-xs">محذوف</span>
+                            @endif
+                        </td>
+                        <td class="px-5 py-3.5 text-center">
+                            <span class="font-mono text-gray-400 text-sm">{{ $line->previous_count }}</span>
+                        </td>
+                        <td class="px-5 py-3.5 text-center">
+                            <span class="font-black text-gray-800 text-sm">{{ $line->new_count }}</span>
+                        </td>
+                        <td class="px-5 py-3.5 text-center">
+                            @if($diffPos)
+                                <span class="inline-flex items-center justify-center text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg w-12 py-1">+{{ $diff }}</span>
+                            @elseif($diffNeg)
+                                <span class="inline-flex items-center justify-center text-xs font-black text-red-600 bg-red-50 border border-red-100 rounded-lg w-12 py-1">{{ $diff }}</span>
+                            @else
+                                <span class="text-gray-300 text-xs">—</span>
+                            @endif
+                        </td>
+                        <td class="px-5 py-3.5">
+                            <span class="font-mono text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1">
+                                {{ $fmtMoney($line->estimated_amount) }}
+                            </span>
+                        </td>
+                    </tr>
                     @endforeach
                 </tbody>
             </table>
+        </div>
+
+        {{-- ── Mobile cards ── --}}
+        <div class="sm:hidden divide-y divide-gray-100">
+            @foreach($members as $line)
+            @php
+                $diff    = $line->new_count - $line->previous_count;
+                $diffPos = $diff > 0;
+                $diffNeg = $diff < 0;
+            @endphp
+            <div class="flex items-center gap-3 px-4 py-3.5">
+                {{-- Change indicator --}}
+                <div class="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center
+                    {{ $diffPos ? 'bg-emerald-50 border border-emerald-100' : ($diffNeg ? 'bg-red-50 border border-red-100' : 'bg-gray-50 border border-gray-100') }}">
+                    @if($diffPos)
+                        <span class="text-xs font-black text-emerald-700">+{{ $diff }}</span>
+                    @elseif($diffNeg)
+                        <span class="text-xs font-black text-red-600">{{ $diff }}</span>
+                    @else
+                        <span class="text-xs font-bold text-gray-400">—</span>
+                    @endif
+                </div>
+
+                {{-- Member info --}}
+                <div class="flex-1 min-w-0">
+                    @if($line->member)
+                        <a href="{{ route('members.show', $line->member) }}"
+                           class="font-bold text-sm text-gray-900 hover:text-teal-700 transition-colors block truncate">
+                            {{ $line->member->full_name }}
+                        </a>
+                        <p class="text-xs text-gray-400 font-mono mt-0.5">ملف: {{ $line->member->dossier_number ?? '—' }}</p>
+                    @else
+                        <p class="text-sm text-gray-300 italic">عضو محذوف</p>
+                    @endif
+                </div>
+
+                {{-- Stats --}}
+                <div class="shrink-0 text-left">
+                    <p class="text-xs text-gray-400 font-mono">
+                        <span class="text-gray-500">{{ $line->previous_count }}</span>
+                        <span class="text-gray-300 mx-1">→</span>
+                        <span class="font-black text-gray-800">{{ $line->new_count }}</span>
+                    </p>
+                    <p class="text-xs font-bold text-amber-600 mt-1">{{ $fmtMoney($line->estimated_amount) }}</p>
+                </div>
+            </div>
+            @endforeach
         </div>
 
         @if($members->hasPages())
@@ -257,5 +352,20 @@
         @endif
     @endif
 </div>
+
+@push('scripts')
+<script>
+function toggleBatchShowFilters() {
+    const body  = document.getElementById('batch-show-filter-body');
+    const arrow = document.getElementById('batch-show-filter-arrow');
+    const hidden = body.classList.toggle('hidden');
+    arrow.style.transform = hidden ? '' : 'rotate(180deg)';
+}
+
+@if($hasFilters)
+document.getElementById('batch-show-filter-arrow').style.transform = 'rotate(180deg)';
+@endif
+</script>
+@endpush
 
 @endsection

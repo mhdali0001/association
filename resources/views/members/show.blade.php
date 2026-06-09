@@ -535,7 +535,7 @@
                         ['label' => 'نقاط العمل',           'value' => $member->scores->work_score,             'max' => 2,  'color' => '#f59e0b'],
                         ['label' => 'نقاط السكن', 'value' => $member->scores->housing_score, 'max' => 4, 'color' => '#06b6d4'],
                         ['label' => 'نقاط عدد الأفراد',    'value' => $member->scores->dependents_score,       'max' => 20, 'color' => '#06b6d4'],
-                        ['label' => 'نقاط المرض',           'value' => $member->scores->illness_score,          'max' => 5,  'color' => '#ef4444'],
+                        ['label' => 'نقاط المرض',           'value' => $member->scores->illness_score,          'max' => 10, 'color' => '#ef4444'],
                         ['label' => 'نقاط الحالات الخاصة', 'value' => $member->scores->special_cases_score,   'max' => 10, 'color' => '#f97316'],
                     ];
                 @endphp

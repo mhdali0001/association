@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\BulkRevertController;
 use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\DelegateController;
 use App\Http\Controllers\PaymentReviewController;
@@ -49,13 +50,16 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/dashboard',                        [DashboardController::class,  'index'])           ->name('dashboard');
     Route::get('/dashboard/user-activity/{user}',   [DashboardController::class,  'userWeekActivity'])->name('dashboard.user-activity');
+    Route::post('/dashboard/revert-activity/{log}', [DashboardController::class,  'revertActivity'])  ->name('dashboard.revert-activity');
     Route::get('/statistics',                       [StatisticsController::class, 'index'])            ->name('statistics');
     Route::middleware('admin')->group(function () {
         Route::get('/users',           [UserController::class,  'index'])        ->name('users.index');
         Route::get('/users/create',    [AuthController::class,  'showRegister']) ->name('users.create');
         Route::post('/users',          [AuthController::class,  'register'])     ->name('users.store');
         Route::delete('/users/{user}', [UserController::class,  'destroy'])      ->name('users.destroy');
-        Route::get('/activity-logs',   [ActivityLogController::class, 'index'])  ->name('activity-logs.index');
+        Route::get('/activity-logs',                          [ActivityLogController::class,  'index'])  ->name('activity-logs.index');
+        Route::get('/bulk-revert',                            [BulkRevertController::class,   'index'])  ->name('bulk-revert.index');
+        Route::post('/bulk-revert/{session}',                 [BulkRevertController::class,   'revert']) ->name('bulk-revert.revert');
         Route::get('/archive',         [\App\Http\Controllers\ArchiveController::class, 'index'])->name('archive.index');
         Route::resource('expenses',    ExpenseController::class);
         // Budget & Beneficiaries
@@ -97,6 +101,10 @@ Route::middleware('auth')->group(function () {
     Route::resource('verification-statuses', VerificationStatusController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('final-statuses',        \App\Http\Controllers\FinalStatusController::class)->only(['index', 'store', 'update', 'destroy']);
 
+    Route::get('/members/national-ids',              [MemberController::class, 'nationalIdsIndex'])      ->name('members.national-ids');
+    Route::get('/members/national-ids/export',       [MemberController::class, 'nationalIdsExport'])     ->name('members.national-ids.export');
+    Route::post('/members/national-ids/import',      [MemberController::class, 'nationalIdsImportStore'])->name('members.national-ids.import');
+    Route::patch('/members/{member}/national-id',    [MemberController::class, 'updateNationalId'])      ->name('members.national-id.update');
     Route::get('/members/map',                       [MemberController::class, 'mapIndex'])           ->name('members.map');
     Route::get('/members/export',                   [MemberController::class, 'export'])             ->name('members.export');
     Route::delete('/members/bulk-destroy',          [MemberController::class, 'bulkDestroy'])        ->name('members.bulk-destroy');

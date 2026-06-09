@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'مسالك النور')</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,9 +17,7 @@
             width: 256px;
             transition: width 0.25s ease, transform 0.25s ease;
         }
-        #sidebar.collapsed {
-            width: 68px;
-        }
+        #sidebar.collapsed { width: 68px; }
         #sidebar .sidebar-label,
         #sidebar .sidebar-group-label,
         #sidebar .sidebar-arrow {
@@ -27,94 +26,54 @@
         #sidebar.collapsed .sidebar-label,
         #sidebar.collapsed .sidebar-group-label,
         #sidebar.collapsed .sidebar-arrow {
-            opacity: 0;
-            width: 0;
-            overflow: hidden;
-            white-space: nowrap;
+            opacity: 0; width: 0; overflow: hidden; white-space: nowrap;
         }
         #sidebar.collapsed .sidebar-logo-text { display: none; }
         #sidebar .nav-link {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 12px;
-            border-radius: 10px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: #4b5563;
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 12px; border-radius: 10px;
+            font-size: 0.875rem; font-weight: 500; color: #4b5563;
             transition: background 0.15s, color 0.15s;
-            white-space: nowrap;
-            overflow: hidden;
+            white-space: nowrap; overflow: hidden;
         }
         #sidebar .nav-link:hover { background: #f0fdf4; color: #059669; }
         #sidebar .nav-link.active { background: #ecfdf5; color: #047857; font-weight: 700; }
-        #sidebar .nav-link .nav-icon { width: 18px; height: 18px; shrink: 0; flex-shrink: 0; }
+        #sidebar .nav-link .nav-icon { width: 18px; height: 18px; flex-shrink: 0; }
         #sidebar.collapsed .nav-link { justify-content: center; padding: 10px; }
         #sidebar.collapsed .nav-link .nav-icon { width: 20px; height: 20px; }
 
         /* ── Overlay ── */
         #sidebar-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.4);
+            display: none; position: fixed; inset: 0;
+            background: rgba(15,23,42,0.5);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
             z-index: 39;
+            transition: opacity 0.25s ease;
         }
         #sidebar-overlay.show { display: block; }
 
-        /* ── Mobile ── */
-        @media (max-width: 1024px) {
-            #sidebar {
-                position: fixed;
-                top: 0;
-                right: 0;
-                height: 100%;
-                z-index: 40;
-                transform: translateX(100%);
-                width: 256px !important;
-            }
-            #sidebar.mobile-open { transform: translateX(0); }
-            #sidebar.collapsed { width: 256px !important; }
-            #sidebar.collapsed .sidebar-label,
-            #sidebar.collapsed .sidebar-group-label,
-            #sidebar.collapsed .sidebar-arrow { opacity: 1; width: auto; overflow: visible; }
-            #sidebar.collapsed .sidebar-logo-text { display: block; }
-            #sidebar.collapsed .nav-link { justify-content: flex-start; padding: 8px 12px; }
-            #sidebar.collapsed .nav-link .nav-icon { width: 18px; height: 18px; }
-        }
-
-        /* ── Tooltip on collapsed ── */
+        /* ── Desktop tooltip on collapsed ── */
         #sidebar.collapsed .nav-link { position: relative; }
         #sidebar.collapsed .nav-link[data-tip]:hover::after {
             content: attr(data-tip);
-            position: absolute;
-            right: calc(100% + 8px);
-            top: 50%;
+            position: absolute; right: calc(100% + 8px); top: 50%;
             transform: translateY(-50%);
-            background: #1f2937;
-            color: white;
-            font-size: 0.75rem;
-            padding: 4px 10px;
-            border-radius: 6px;
-            white-space: nowrap;
-            pointer-events: none;
-            z-index: 99;
+            background: #1f2937; color: white;
+            font-size: 0.75rem; padding: 4px 10px;
+            border-radius: 6px; white-space: nowrap;
+            pointer-events: none; z-index: 99;
         }
 
         /* ── User dropdown ── */
         .user-dropdown { position: relative; }
         .user-dropdown-menu {
-            display: none;
-            position: absolute;
-            top: calc(100% + 10px);
-            left: 0;
-            min-width: 200px;
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
+            display: none; position: absolute;
+            top: calc(100% + 10px); left: 0;
+            min-width: 200px; background: white;
+            border: 1px solid #e5e7eb; border-radius: 12px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.12);
-            z-index: 100;
-            overflow: hidden;
+            z-index: 100; overflow: hidden;
             animation: slideDown 0.15s ease;
         }
         .user-dropdown:hover .user-dropdown-menu,
@@ -128,6 +87,84 @@
         #sidebar-nav::-webkit-scrollbar { width: 3px; }
         #sidebar-nav::-webkit-scrollbar-track { background: transparent; }
         #sidebar-nav::-webkit-scrollbar-thumb { background: #d1fae5; border-radius: 99px; }
+
+        /* ══════════════════════════════════════════
+           MOBILE
+        ══════════════════════════════════════════ */
+        @media (max-width: 1024px) {
+            /* Full-height drawer from right */
+            #sidebar {
+                position: fixed; top: 0; right: 0;
+                height: 100%; z-index: 40;
+                transform: translateX(110%);
+                width: 300px !important;
+                box-shadow: -8px 0 32px rgba(0,0,0,0.18);
+                border-radius: 0 0 0 24px;
+                transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+            }
+            #sidebar.mobile-open { transform: translateX(0); }
+            #sidebar.collapsed { width: 300px !important; }
+            #sidebar.collapsed .sidebar-label,
+            #sidebar.collapsed .sidebar-group-label,
+            #sidebar.collapsed .sidebar-arrow { opacity: 1; width: auto; overflow: visible; }
+            #sidebar.collapsed .sidebar-logo-text { display: block; }
+            #sidebar.collapsed .nav-link { justify-content: flex-start; padding: 8px 12px; }
+            #sidebar.collapsed .nav-link .nav-icon { width: 18px; height: 18px; }
+            /* Bigger tap targets on mobile */
+            #sidebar .nav-link { padding: 10px 14px; font-size: 0.9rem; gap: 12px; border-radius: 12px; }
+            #sidebar .nav-link .nav-icon { width: 20px; height: 20px; }
+            /* No tooltip on mobile */
+            #sidebar.collapsed .nav-link[data-tip]:hover::after { display: none; }
+            /* Content bottom padding for bottom nav */
+            main { padding-bottom: 80px !important; }
+        }
+
+        /* ── Bottom Navigation Bar ── */
+        #mobile-bottom-nav {
+            display: none !important;
+        }
+        @media (max-width: 1024px) {
+            #mobile-bottom-nav {
+                display: flex !important;
+                position: fixed !important;
+                bottom: 0 !important; left: 0 !important; right: 0 !important;
+                height: 64px;
+                background: white;
+                border-top: 1px solid #f3f4f6;
+                box-shadow: 0 -4px 24px rgba(0,0,0,0.08);
+                z-index: 100;
+                align-items: stretch;
+                padding: 0;
+                padding-bottom: env(safe-area-inset-bottom, 0px);
+            }
+        }
+        .mobile-nav-btn {
+            flex: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 3px;
+            color: #9ca3af; font-size: 10px; font-weight: 600;
+            text-decoration: none; transition: color 0.15s;
+            padding: 6px 4px;
+            border: none; background: none; cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .mobile-nav-btn:hover { color: #059669; }
+        .mobile-nav-btn.active { color: #047857; }
+        .mobile-nav-btn svg { width: 22px; height: 22px; flex-shrink: 0; }
+        .mobile-nav-btn span { line-height: 1; }
+        /* Active pip above icon */
+        .mobile-nav-btn.active::before {
+            content: '';
+            position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+            width: 24px; height: 3px;
+            background: #047857; border-radius: 0 0 4px 4px;
+        }
+        .mobile-nav-btn { position: relative; }
+
+        /* Mobile sidebar user card */
+        #mobile-user-card { display: none; }
+        @media (max-width: 1024px) {
+            #mobile-user-card { display: flex; }
+        }
     </style>
 </head>
 <body class="min-h-screen bg-slate-50">
@@ -143,8 +180,8 @@
     <aside id="sidebar" class="bg-white border-l border-gray-100 flex flex-col shrink-0"
            style="box-shadow: -1px 0 0 #f3f4f6, -4px 0 20px rgba(0,0,0,0.04);">
 
-        {{-- Logo --}}
-        <div class="flex items-center gap-3 px-4 h-[62px] border-b border-gray-100 shrink-0">
+        {{-- Logo (desktop) --}}
+        <div class="flex items-center justify-between px-4 h-[62px] border-b border-gray-100 shrink-0">
             <a href="{{ route('dashboard') }}" class="flex items-center gap-3 min-w-0 group">
                 <div class="relative w-9 h-9 shrink-0">
                     <div class="absolute inset-0 bg-emerald-600 rounded-xl rotate-6 opacity-20 group-hover:rotate-12 transition-transform"></div>
@@ -157,6 +194,27 @@
                     <p class="text-[10px] text-emerald-600 font-medium leading-none whitespace-nowrap">نظام إدارة الجمعية</p>
                 </div>
             </a>
+            {{-- Mobile close button --}}
+            <button onclick="closeMobileSidebar()"
+                    class="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        {{-- Mobile user card --}}
+        <div id="mobile-user-card" class="items-center gap-3 px-4 py-3.5 bg-gradient-to-l from-emerald-50 to-teal-50 border-b border-emerald-100/60">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-sm shrink-0">
+                <span class="text-white font-black text-base">{{ mb_substr(Auth::user()->name, 0, 1) }}</span>
+            </div>
+            <div class="min-w-0">
+                <p class="text-sm font-bold text-gray-800 truncate">{{ Auth::user()->name }}</p>
+                <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mt-0.5
+                    {{ Auth::user()->role === 'admin' ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-700' }}">
+                    {{ Auth::user()->role === 'admin' ? 'مدير النظام' : (Auth::user()->role === 'representative' ? 'ممثل' : 'عضو') }}
+                </span>
+            </div>
         </div>
 
         {{-- Nav --}}
@@ -197,6 +255,7 @@
                         ['members.index',       'الأعضاء',              'M17 20h5v-2a4 4 0 00-5-3.87M9 20H4v-2a4 4 0 015-3.87m6-4.13a4 4 0 11-8 0 4 4 0 018 0zm6-4a3 3 0 11-6 0 3 3 0 016 0z', 'members.index'],
                         ['members.map',         'خريطة الأعضاء',       'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z'],
                         ['members.create',      'إضافة عضو',            'M18 9v3m0 0v3m0-3h3m-3 0h-3m-5-3a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z'],
+                        ['members.national-ids','دراسة أرقام الهوية',  'M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0'],
                         ['members.duplicates',  'التكرارات',            'M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z'],
                         ['members.import.show', 'استيراد Excel',        'M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
                         ['members.bulk-amount',       'إضافة وانقاص النقاط',     'M20 12H4'],
@@ -289,6 +348,13 @@
                         <svg class="nav-icon shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
                         <span class="sidebar-label">سجل النشاط</span>
                     </a>
+                    @if(Auth::user()->role === 'admin')
+                    <a href="{{ route('bulk-revert.index') }}" data-tip="التراجع الجماعي"
+                       class="nav-link {{ request()->routeIs('bulk-revert.*') ? 'active' : '' }}">
+                        <svg class="nav-icon shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                        <span class="sidebar-label">التراجع الجماعي</span>
+                    </a>
+                    @endif
                     <a href="{{ route('archive.index') }}" data-tip="الأرشيف"
                        class="nav-link {{ request()->routeIs('archive.*') ? 'active' : '' }}">
                         <svg class="nav-icon shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
@@ -382,15 +448,8 @@
                 style="box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
             <div class="flex items-center justify-between h-[62px] px-5 gap-3">
 
-                {{-- Left: Toggle + Breadcrumb --}}
+                {{-- Left: Breadcrumb --}}
                 <div class="flex items-center gap-3 min-w-0">
-                    {{-- Mobile toggle --}}
-                    <button onclick="openMobileSidebar()"
-                            class="lg:hidden p-2 rounded-lg hover:bg-gray-50 border border-gray-100 transition-colors shrink-0">
-                        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
-                        </svg>
-                    </button>
 
                     {{-- Breadcrumb --}}
                     @hasSection('breadcrumb')
@@ -493,6 +552,57 @@
 
     </div>
 </div>
+
+{{-- ══════════════════════════════════════════════════════════════════ --}}
+{{--  MOBILE BOTTOM NAVIGATION BAR                                    --}}
+{{-- ══════════════════════════════════════════════════════════════════ --}}
+@php
+    $isHome     = request()->routeIs('dashboard');
+    $isMembers  = request()->routeIs('members.*');
+    $isPayments = request()->routeIs('members.bulk-payments') || request()->routeIs('members.payment-batches*');
+    $isActivity = request()->routeIs('activity-logs.*');
+@endphp
+<nav id="mobile-bottom-nav" role="navigation" aria-label="التنقل السريع">
+    {{-- الرئيسية --}}
+    <a href="{{ route('dashboard') }}" class="mobile-nav-btn {{ $isHome ? 'active' : '' }}">
+        <svg fill="none" stroke="currentColor" stroke-width="{{ $isHome ? '2.5' : '1.8' }}" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+        </svg>
+        <span>الرئيسية</span>
+    </a>
+
+    {{-- الأعضاء --}}
+    <a href="{{ route('members.index') }}" class="mobile-nav-btn {{ $isMembers ? 'active' : '' }}">
+        <svg fill="none" stroke="currentColor" stroke-width="{{ $isMembers ? '2.5' : '1.8' }}" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-5-3.87M9 20H4v-2a4 4 0 015-3.87m6-4.13a4 4 0 11-8 0 4 4 0 018 0zm6-4a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        <span>الأعضاء</span>
+    </a>
+
+    {{-- الدفعات --}}
+    <a href="{{ route('members.bulk-payments') }}" class="mobile-nav-btn {{ $isPayments ? 'active' : '' }}">
+        <svg fill="none" stroke="currentColor" stroke-width="{{ $isPayments ? '2.5' : '1.8' }}" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+        </svg>
+        <span>الدفعات</span>
+    </a>
+
+    {{-- النشاط --}}
+    <a href="{{ route('activity-logs.index') }}" class="mobile-nav-btn {{ $isActivity ? 'active' : '' }}">
+        <svg fill="none" stroke="currentColor" stroke-width="{{ $isActivity ? '2.5' : '1.8' }}" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+        </svg>
+        <span>النشاط</span>
+    </a>
+
+    {{-- القائمة --}}
+    <button onclick="openMobileSidebar()" class="mobile-nav-btn">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+        <span>القائمة</span>
+    </button>
+</nav>
 
 <script>
 const sidebar  = document.getElementById('sidebar');

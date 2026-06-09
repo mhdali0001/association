@@ -103,7 +103,7 @@ class MemberRowImporter
             $housingScore         = min(4,  $this->toInt($row['درجة_السكن']           ?? $row['housing_score']          ?? null) ?? 0);
             $dependentsScore      = min(20, $this->toInt($row['درجة_المعالين']        ?? $row['dependents_score']       ?? null) ?? 0);
             $dependentStatusScore = min(2,  $this->toInt($row['درجة_حالة_المعيل']    ?? $row['dependent_status_score'] ?? null) ?? 0);
-            $illnessScore         = min(5,  $this->toInt($row['درجة_المرض']           ?? $row['illness_score']          ?? null) ?? 0);
+            $illnessScore         = min(10, $this->toInt($row['درجة_المرض']           ?? $row['illness_score']          ?? null) ?? 0);
             $specialScore         = min(10, $this->toInt($row['درجة_الحالات_الخاصة'] ?? $row['special_cases_score']    ?? null) ?? 0);
             $scoreDeduction       = max(0,  $this->toInt($row['انقاص_النقاط']        ?? $row['score_deduction']        ?? null) ?? 0);
             $deductionReason      = trim($row['سبب_الانقاص'] ?? $row['score_deduction_reason'] ?? '') ?: null;

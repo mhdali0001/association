@@ -17,6 +17,7 @@ use App\Models\MaritalStatus;
 use App\Models\Association;
 use App\Models\User;
 use App\Services\ActivityLogger;
+use App\Services\BulkRevertService;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Auth;
@@ -354,7 +355,9 @@ class MemberController extends Controller
                 return back()->with('success', "تم إرسال طلب إضافة النقاط ({$label}) وهو بانتظار موافقة المسؤول.");
             }
 
-            $this->applyBulkScoreAdditionToIds($query->pluck('id')->all(), $addition, $reason);
+            $ids = $query->pluck('id')->all();
+            BulkRevertService::capture($ids, 'score_addition', "إضافة جماعية للنقاط: {$label}");
+            $this->applyBulkScoreAdditionToIds($ids, $addition, $reason);
             ActivityLogger::log('updated', "إضافة جماعية للنقاط: {$label}");
             return back()->with('success', "تم تطبيق إضافة النقاط بنجاح: {$label}.");
         }
@@ -384,7 +387,9 @@ class MemberController extends Controller
             return back()->with('success', "تم إرسال طلب انقاص النقاط ({$label}) وهو بانتظار موافقة المسؤول.");
         }
 
-        $this->applyBulkScoreDeductionToIds($query->pluck('id')->all(), $deduction, $reason);
+        $ids = $query->pluck('id')->all();
+        BulkRevertService::capture($ids, 'score_deduction', "انقاص جماعي للنقاط: {$label}");
+        $this->applyBulkScoreDeductionToIds($ids, $deduction, $reason);
         ActivityLogger::log('updated', "انقاص جماعي للنقاط: {$label}");
         return back()->with('success', "تم تطبيق انقاص النقاط بنجاح: {$label}.");
     }
@@ -589,6 +594,7 @@ class MemberController extends Controller
         }
 
         $ids = $query->pluck('id')->all();
+        BulkRevertService::capture($ids, $action, "{$verb} جماعي للمبلغ: {$label}");
         if ($mode === 'raise') {
             $this->applyFvRaiseToIds($ids, $percentage, $reason);
         } else {
@@ -886,30 +892,63 @@ class MemberController extends Controller
 
     public function paymentBatchesIndex(Request $request)
     {
-        $search    = trim($request->get('search', ''));
-        $operation = $request->get('operation', '');
-        $dateFrom  = $request->get('date_from', '');
-        $dateTo    = $request->get('date_to', '');
+        $search        = trim($request->get('search', ''));
+        $operation     = $request->get('operation', '');
+        $dateFrom      = $request->get('date_from', '');
+        $dateTo        = $request->get('date_to', '');
+        $appliedBy     = $request->get('applied_by', '');
+        $amountMin     = $request->get('amount_min', '');
+        $amountMax     = $request->get('amount_max', '');
+        $membersMin    = $request->get('members_min', '');
+        $membersMax    = $request->get('members_max', '');
+        $totalMin      = $request->get('total_min', '');
+        $totalMax      = $request->get('total_max', '');
+        $filterYear    = $request->get('year', '');
+        $filterMonth   = $request->get('month', '');
+        $memberSearch  = trim($request->get('member_search', ''));
+        $hasNotes      = $request->get('has_notes', '');
 
-        $query = \App\Models\PaymentBatch::with('appliedBy')
-            ->withCount('members');
+        $query = \App\Models\PaymentBatch::with('appliedBy')->withCount('members');
 
-        if ($search) {
-            $query->where(fn($q) => $q->where('label', 'like', "%{$search}%")
-                                      ->orWhere('notes', 'like', "%{$search}%"));
-        }
+        if ($search)    $query->where(fn($q) => $q->where('label', 'like', "%{$search}%")->orWhere('notes', 'like', "%{$search}%"));
         if ($operation) $query->where('operation', $operation);
         if ($dateFrom)  $query->whereDate('payment_date', '>=', $dateFrom);
         if ($dateTo)    $query->whereDate('payment_date', '<=', $dateTo);
+        if ($appliedBy) $query->where('applied_by', $appliedBy);
+        if ($amountMin !== '') $query->where('amount', '>=', (int) $amountMin);
+        if ($amountMax !== '') $query->where('amount', '<=', (int) $amountMax);
+        if ($membersMin !== '') $query->where('members_count', '>=', (int) $membersMin);
+        if ($membersMax !== '') $query->where('members_count', '<=', (int) $membersMax);
+        if ($totalMin !== '') $query->where('total_estimated_amount', '>=', (float) $totalMin);
+        if ($totalMax !== '') $query->where('total_estimated_amount', '<=', (float) $totalMax);
+        if ($filterYear)  $query->whereYear('payment_date', $filterYear);
+        if ($filterMonth) $query->whereMonth('payment_date', $filterMonth);
+        if ($hasNotes === 'yes') $query->whereNotNull('notes')->where('notes', '!=', '');
+        if ($hasNotes === 'no')  $query->where(fn($q) => $q->whereNull('notes')->orWhere('notes', ''));
+        if ($memberSearch) {
+            $query->whereHas('members', fn($q) =>
+                $q->where(fn($q2) => $q2->where('full_name', 'like', "%{$memberSearch}%")
+                                        ->orWhere('national_id', 'like', "%{$memberSearch}%")
+                                        ->orWhere('dossier_number', 'like', "%{$memberSearch}%"))
+            );
+        }
 
-        $batches    = $query->orderByDesc('payment_date')->orderByDesc('id')->paginate(30)->withQueryString();
+        $batches      = $query->orderByDesc('payment_date')->orderByDesc('id')->paginate(30)->withQueryString();
         $totalBatches = \App\Models\PaymentBatch::count();
         $totalMembers = \App\Models\PaymentBatchMember::distinct('member_id')->count();
         $totalAmount  = \App\Models\PaymentBatch::sum('total_estimated_amount');
+        $userList     = User::orderBy('name')->get(['id', 'name']);
+        $availableYears = \App\Models\PaymentBatch::selectRaw('YEAR(payment_date) as yr')
+            ->whereNotNull('payment_date')
+            ->distinct()->orderByDesc('yr')->pluck('yr');
 
         return view('members.payment-batches', compact(
             'batches', 'totalBatches', 'totalMembers', 'totalAmount',
-            'search', 'operation', 'dateFrom', 'dateTo'
+            'search', 'operation', 'dateFrom', 'dateTo',
+            'appliedBy', 'amountMin', 'amountMax',
+            'membersMin', 'membersMax', 'totalMin', 'totalMax',
+            'filterYear', 'filterMonth', 'memberSearch', 'hasNotes',
+            'userList', 'availableYears'
         ));
     }
 
@@ -1176,7 +1215,7 @@ class MemberController extends Controller
                          + min(4,  (int)($request->housing_score ?? 0))
                          + min(20, (int)($request->dependents_score ?? 0))
                          + min(2,  (int)($request->dependent_status_score ?? 0))
-                         + min(5,  (int)($request->illness_score ?? 0))
+                         + min(10, (int)($request->illness_score ?? 0))
                          + min(10, (int)($request->special_cases_score ?? 0));
         $deductionPayload = max(0, (int)($request->score_deduction ?? 0));
         $additionPayload  = max(0, (int)($request->score_addition ?? 0));
@@ -1185,7 +1224,7 @@ class MemberController extends Controller
             'housing_score'          => min(4,  (int)($request->housing_score ?? 0)),
             'dependents_score'       => min(20, (int)($request->dependents_score ?? 0)),
             'dependent_status_score' => min(2,  (int)($request->dependent_status_score ?? 0)),
-            'illness_score'          => min(5,  (int)($request->illness_score ?? 0)),
+            'illness_score'          => min(10, (int)($request->illness_score ?? 0)),
             'special_cases_score'    => min(10, (int)($request->special_cases_score ?? 0)),
             'score_deduction'        => $deductionPayload,
             'score_deduction_reason' => $request->score_deduction_reason ?? null,
@@ -1322,7 +1361,7 @@ class MemberController extends Controller
             'housing_score'              => 'nullable|integer|min:0|max:4',
             'dependents_score'           => 'nullable|integer|min:0|max:20',
             'dependent_status_score'     => 'nullable|integer|min:0|max:2',
-            'illness_score'              => 'nullable|integer|min:0|max:5',
+            'illness_score'              => 'nullable|integer|min:0|max:10',
             'special_cases_score'        => 'nullable|integer|min:0|max:10',
             'score_deduction'            => 'nullable|integer|min:0',
             'score_deduction_reason'     => 'nullable|string|max:500',
@@ -1358,7 +1397,7 @@ class MemberController extends Controller
         $housingScore           = min(4,  (int)($request->housing_score ?? 0));
         $dependentsScore        = min(20, (int)($request->dependents_score ?? 0));
         $dependentStatusScore   = min(2,  (int)($request->dependent_status_score ?? 0));
-        $illnessScore           = min(5,  (int)($request->illness_score ?? 0));
+        $illnessScore           = min(10, (int)($request->illness_score ?? 0));
         $specialScore           = min(10, (int)($request->special_cases_score ?? 0));
         $scoreDeduction         = max(0,  (int)($request->score_deduction ?? 0));
         $scoreDeductionReason   = $request->score_deduction_reason ?? null;
@@ -1503,7 +1542,7 @@ class MemberController extends Controller
             'housing_score'              => 'nullable|integer|min:0|max:4',
             'dependents_score'           => 'nullable|integer|min:0|max:20',
             'dependent_status_score'     => 'nullable|integer|min:0|max:2',
-            'illness_score'              => 'nullable|integer|min:0|max:5',
+            'illness_score'              => 'nullable|integer|min:0|max:10',
             'special_cases_score'        => 'nullable|integer|min:0|max:10',
             'score_deduction'            => 'nullable|integer|min:0',
             'score_deduction_reason'     => 'nullable|string|max:500',
@@ -1537,11 +1576,19 @@ class MemberController extends Controller
                              ->with('pending', 'تم إرسال طلب التعديل — بانتظار موافقة المسؤول.');
         }
 
+        // Capture old values for potential revert
+        $member->loadMissing(['scores', 'paymentInfo']);
+        $oldSnapshot = [
+            'member'  => $member->only($member->getFillable()),
+            'scores'  => $member->scores?->only($member->scores->getFillable()),
+            'payment' => $member->paymentInfo ? $member->paymentInfo->only(['iban','barcode','recipient_name','data_entry_name']) : null,
+        ];
+
         $workScore            = min(2,  (int)($request->work_score ?? 0));
         $housingScore         = min(4,  (int)($request->housing_score ?? 0));
         $dependentsScore      = min(20, (int)($request->dependents_score ?? 0));
         $dependentStatusScore = min(2,  (int)($request->dependent_status_score ?? 0));
-        $illnessScore         = min(5,  (int)($request->illness_score ?? 0));
+        $illnessScore         = min(10, (int)($request->illness_score ?? 0));
         $specialScore         = min(10, (int)($request->special_cases_score ?? 0));
         $scoreDeduction       = max(0,  (int)($request->score_deduction ?? 0));
         $scoreDeductionReason = $request->score_deduction_reason ?? null;
@@ -1632,7 +1679,7 @@ class MemberController extends Controller
 
         $member->associations()->sync($request->input('association_ids', []));
 
-        ActivityLogger::log('updated', "تعديل بيانات المستفيد: {$member->full_name}", $member);
+        ActivityLogger::log('updated', "تعديل بيانات المستفيد: {$member->full_name}", $member, ['old' => $oldSnapshot]);
 
         return redirect()->route('members.edit', $member)->with('success', 'تم تحديث بيانات المستفيد بنجاح.');
     }
@@ -1744,6 +1791,7 @@ class MemberController extends Controller
         }
 
         if ($this->isAdmin()) {
+            BulkRevertService::capture($ids, 'bulk_update', "تعديل جماعي على " . count($ids) . " مستفيد: " . implode('، ', $fields));
             // Handle field_visit_status_id separately (stored in field_visits table)
             if (array_key_exists('field_visit_status_id', $data)) {
                 $fvsId = $data['field_visit_status_id'];
@@ -1875,6 +1923,7 @@ class MemberController extends Controller
             return back()->with('pending', "تم إرسال طلب {$label} — بانتظار موافقة المسؤول.");
         }
 
+        BulkRevertService::capture($ids, 'score_equalize', "تسوية نقاط: {$label}");
         $this->applyScoreEqualizationToIds($ids, $target, $reason);
         ActivityLogger::log('updated', "تسوية نقاط: {$label}");
         return back()->with('success', "تم تطبيق {$label} بنجاح.");
@@ -1960,6 +2009,8 @@ class MemberController extends Controller
             return back()->with('pending', "تم إرسال طلب {$label} — بانتظار موافقة المسؤول.");
         }
 
+        $opType = $mode === 'addition' ? 'score_addition' : 'score_deduction';
+        BulkRevertService::capture($ids, $opType, "تعيين جماعي للنقاط: {$label}");
         if ($mode === 'addition') {
             $this->applyBulkScoreAdditionToIds($ids, $amount, $reason);
         } else {
@@ -2156,7 +2207,7 @@ class MemberController extends Controller
             'housing_score'          => 4,
             'dependents_score'       => 20,
             'dependent_status_score' => 2,
-            'illness_score'          => 5,
+            'illness_score'          => 10,
             'special_cases_score'    => 10,
         ];
 
@@ -2259,7 +2310,7 @@ class MemberController extends Controller
             'housing_score'          => 'nullable|integer|min:0|max:4',
             'dependents_score'       => 'nullable|integer|min:0|max:20',
             'dependent_status_score' => 'nullable|integer|min:0|max:2',
-            'illness_score'          => 'nullable|integer|min:0|max:5',
+            'illness_score'          => 'nullable|integer|min:0|max:10',
             'special_cases_score'    => 'nullable|integer|min:0|max:10',
             'score_addition'         => 'nullable|integer|min:0',
             'score_deduction'        => 'nullable|integer|min:0',
@@ -2279,6 +2330,7 @@ class MemberController extends Controller
         }
 
         $members = Member::whereIn('id', $request->ids)->get();
+        BulkRevertService::capture($request->ids, 'bulk_score_update', "تعديل جماعي لنقاط " . count($request->ids) . " مستفيد");
 
         foreach ($members as $member) {
             $score = \App\Models\MemberScore::firstOrNew(['member_id' => $member->id]);
@@ -2336,7 +2388,7 @@ class MemberController extends Controller
             'housing_score'          => 'required|integer|min:0|max:4',
             'dependents_score'       => 'required|integer|min:0|max:20',
             'dependent_status_score' => 'required|integer|min:0|max:2',
-            'illness_score'          => 'required|integer|min:0|max:5',
+            'illness_score'          => 'required|integer|min:0|max:10',
             'special_cases_score'    => 'required|integer|min:0|max:10',
             'score_addition'         => 'required|integer|min:0',
             'score_addition_reason'  => 'nullable|string|max:1000',
@@ -2359,6 +2411,188 @@ class MemberController extends Controller
         ActivityLogger::log('updated', "تعديل نقاط المستفيد: {$member->full_name} → {$total} نقطة", $member);
 
         return back()->with('success', "تم تحديث نقاط {$member->full_name} بنجاح — المجموع: {$total}");
+    }
+
+    public function nationalIdsIndex(Request $request)
+    {
+        $search  = trim($request->get('search', ''));
+        $filter  = $request->get('filter', 'missing'); // missing | invalid | duplicates | all
+        $region  = $request->get('region_id', '');
+
+        $query = Member::query()->with('region');
+
+        if ($filter === 'missing') {
+            $query->where(fn($q) => $q->whereNull('national_id')->orWhere('national_id', ''));
+            $query->orderByRaw('CAST(dossier_number AS UNSIGNED) ASC');
+        } elseif ($filter === 'invalid') {
+            $query->whereNotNull('national_id')
+                  ->where('national_id', '!=', '')
+                  ->whereRaw('LENGTH(national_id) != 11')
+                  ->orderByRaw('CAST(dossier_number AS UNSIGNED) ASC');
+        } elseif ($filter === 'duplicates') {
+            $dupNids = Member::select('national_id')
+                ->whereNotNull('national_id')->where('national_id', '!=', '')
+                ->groupBy('national_id')->havingRaw('COUNT(*) > 1')->pluck('national_id');
+            $query->whereIn('national_id', $dupNids)
+                  ->orderBy('national_id')
+                  ->orderByRaw('CAST(dossier_number AS UNSIGNED) ASC');
+        } else {
+            $query->orderByRaw('CAST(dossier_number AS UNSIGNED) ASC');
+        }
+
+        if ($search) {
+            $query->where(fn($q) =>
+                $q->where('full_name', 'like', "%{$search}%")
+                  ->orWhere('dossier_number', 'like', "%{$search}%")
+                  ->orWhere('national_id', 'like', "%{$search}%")
+            );
+        }
+
+        if ($region) {
+            $query->where('region_id', $region);
+        }
+
+        // Global counts
+        $totalMissing    = Member::where(fn($q) => $q->whereNull('national_id')->orWhere('national_id', ''))->count();
+        $totalInvalid    = Member::whereNotNull('national_id')->where('national_id','!=','')->whereRaw('LENGTH(national_id) != 11')->count();
+        $totalAll        = Member::count();
+        $totalDuplicates = Member::select('national_id')
+            ->whereNotNull('national_id')->where('national_id', '!=', '')
+            ->groupBy('national_id')->havingRaw('COUNT(*) > 1')
+            ->get()->sum(fn($r) => 1); // count of distinct duplicated IDs (not members)
+
+        // Count of members affected by duplicates
+        $totalDupMembers = Member::whereIn('national_id',
+            Member::select('national_id')->whereNotNull('national_id')->where('national_id','!=','')
+                  ->groupBy('national_id')->havingRaw('COUNT(*) > 1')->pluck('national_id')
+        )->count();
+
+        // Region breakdown
+        $regionStats = \App\Models\Region::query()
+            ->withCount([
+                'members as total_members',
+                'members as missing_members' => fn($q) => $q->where(fn($q2) =>
+                    $q2->whereNull('national_id')->orWhere('national_id', '')
+                ),
+            ])
+            ->having('total_members', '>', 0)
+            ->orderByDesc('missing_members')
+            ->get(['id', 'name']);
+
+        $regions = \App\Models\Region::active()->orderBy('name')->get(['id','name']);
+
+        $members = $query->paginate(50)->withQueryString();
+
+        return view('members.national-ids', compact(
+            'members', 'search', 'filter', 'region',
+            'totalMissing', 'totalInvalid', 'totalAll',
+            'totalDuplicates', 'totalDupMembers',
+            'regionStats', 'regions'
+        ));
+    }
+
+    public function nationalIdsExport(Request $request)
+    {
+        $filter = $request->get('filter', 'missing');
+        $region = $request->get('region_id', '');
+
+        $query = Member::query();
+
+        if ($filter === 'missing') {
+            $query->where(fn($q) => $q->whereNull('national_id')->orWhere('national_id', ''));
+        } elseif ($filter === 'invalid') {
+            $query->whereNotNull('national_id')->where('national_id','!=','')->whereRaw('LENGTH(national_id) != 11');
+        } elseif ($filter === 'duplicates') {
+            $dupNids = Member::select('national_id')->whereNotNull('national_id')->where('national_id','!=','')
+                ->groupBy('national_id')->havingRaw('COUNT(*) > 1')->pluck('national_id');
+            $query->whereIn('national_id', $dupNids);
+        }
+
+        if ($region) $query->where('region_id', $region);
+
+        $labels   = ['missing'=>'ناقص','invalid'=>'غير_صحيح','duplicates'=>'مكرر','all'=>'الكل'];
+        $label    = $labels[$filter] ?? 'export';
+        $filename = 'أرقام-الهوية-' . $label . '-' . now()->format('Y-m-d') . '.xlsx';
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\NationalIdExport($query, 'أرقام الهوية — ' . ($labels[$filter] ?? '')),
+            $filename
+        );
+    }
+
+    public function nationalIdsImportStore(Request $request)
+    {
+        $request->validate(['file' => 'required|file|mimes:xlsx,xls,csv|max:10240'], [
+            'file.required' => 'يرجى اختيار ملف Excel.',
+            'file.mimes'    => 'يجب أن يكون الملف من نوع Excel (xlsx, xls) أو CSV.',
+            'file.max'      => 'حجم الملف يتجاوز الحد المسموح (10 MB).',
+        ]);
+
+        $rows = \Maatwebsite\Excel\Facades\Excel::toArray([], $request->file('file'))[0] ?? [];
+
+        $updated = 0;
+        $skipped = 0;
+        $errors  = [];
+
+        foreach ($rows as $i => $row) {
+            if ($i === 0) continue; // skip header
+
+            $dossier    = trim((string)($row[0] ?? ''));
+            // Column E (index 4) is the "new" column; fall back to column D (index 3) if E is empty
+            $rawNid     = trim(str_replace([' ', '-', '.'], '', (string)($row[4] ?? '')));
+            if ($rawNid === '') $rawNid = trim(str_replace([' ', '-', '.'], '', (string)($row[3] ?? '')));
+
+            if ($dossier === '' || $rawNid === '') { $skipped++; continue; }
+
+            if (!preg_match('/^\d{11}$/', $rawNid)) {
+                $errors[] = "سطر " . ($i + 1) . ": رقم الهوية [{$rawNid}] غير صحيح — يجب أن يكون 11 رقماً.";
+                continue;
+            }
+
+            $member = Member::where('dossier_number', $dossier)->first();
+            if (!$member) {
+                $errors[] = "سطر " . ($i + 1) . ": ملف رقم [{$dossier}] غير موجود في قاعدة البيانات.";
+                continue;
+            }
+
+            if ($member->national_id === $rawNid) { $skipped++; continue; }
+
+            $old = $member->national_id;
+            $member->update(['national_id' => $rawNid]);
+
+            ActivityLogger::log('updated',
+                "استيراد Excel: تحديث رقم الهوية للمستفيد {$member->full_name} ({$dossier}) من [{$old}] إلى [{$rawNid}]",
+                $member
+            );
+            $updated++;
+        }
+
+        return back()->with('import_results', [
+            'updated' => $updated,
+            'skipped' => $skipped,
+            'errors'  => $errors,
+        ]);
+    }
+
+    public function updateNationalId(Request $request, Member $member)
+    {
+        $request->validate([
+            'national_id' => ['nullable', 'string', 'regex:/^\d{11}$/'],
+        ], [
+            'national_id.regex' => 'رقم الهوية يجب أن يكون 11 رقماً بالضبط.',
+        ]);
+
+        $old = $member->national_id;
+        $new = $request->national_id;
+
+        $member->update(['national_id' => $new ?: null]);
+
+        ActivityLogger::log('updated',
+            "تحديث رقم الهوية للمستفيد: {$member->full_name} ({$member->dossier_number}) من [{$old}] إلى [{$new}]",
+            $member
+        );
+
+        return response()->json(['success' => true, 'national_id' => $member->fresh()->national_id]);
     }
 
     public function resetMemberScore(Member $member)

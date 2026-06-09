@@ -667,7 +667,7 @@
             ['name' => 'work_score',              'label' => 'نقاط العمل',        'max' => 2,  'color' => 'amber'],
             ['name' => 'housing_score',           'label' => 'نقاط السكن',        'max' => 4,  'color' => 'blue'],
             ['name' => 'dependents_score',        'label' => 'نقاط عدد الأفراد', 'max' => 20, 'color' => 'cyan'],
-            ['name' => 'illness_score',           'label' => 'نقاط المرض',        'max' => 5,  'color' => 'red'],
+            ['name' => 'illness_score',           'label' => 'نقاط المرض',        'max' => 10, 'color' => 'red'],
             ['name' => 'special_cases_score',     'label' => 'نقاط الحالات الخاصة','max' => 10,'color' => 'orange'],
         ];
         $colorBorder = ['violet'=>'border-violet-200','amber'=>'border-amber-200','blue'=>'border-blue-200','cyan'=>'border-cyan-200','red'=>'border-red-200','orange'=>'border-orange-200'];

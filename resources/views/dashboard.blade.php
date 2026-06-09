@@ -428,6 +428,8 @@ const ACTION_META = {
     deleted: { label:'حذف',   bg:'#fef2f2', text:'#b91c1c', border:'#fecaca', icon:'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16' },
 };
 
+const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
 let allLogs = [];
 let currentFilter = 'all';
 
@@ -503,6 +505,15 @@ function renderLogs() {
 
     body.innerHTML = filtered.map(log => {
         const m = ACTION_META[log.action] || ACTION_META.updated;
+        const revertBtn = log.can_revert ? `
+            <button onclick="revertActivity(${log.id}, '${(log.revert_url||'').replace(/'/g,"\\'")}', this)"
+                    title="تراجع عن هذا التعديل"
+                    class="shrink-0 flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg border border-rose-200 text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                </svg>
+                تراجع
+            </button>` : '';
         return `
         <div class="px-6 py-3.5 flex items-center gap-3 hover:bg-gray-50/60 transition-colors">
             <span style="background:${m.bg};color:${m.text};border:1px solid ${m.border}"
@@ -517,11 +528,43 @@ function renderLogs() {
                 <p class="text-xs text-gray-400 whitespace-nowrap">${log.diff}</p>
                 <p class="text-[10px] text-gray-300 whitespace-nowrap">${log.time}</p>
             </div>
+            ${revertBtn}
         </div>`;
     }).join('');
 }
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeUserModal(); });
+
+function revertActivity(logId, url, btn) {
+    if (!confirm('هل أنت متأكد من التراجع عن هذا التعديل؟ سيتم استعادة البيانات السابقة.')) return;
+
+    btn.disabled = true;
+    btn.innerHTML = '<svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>';
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': CSRF_TOKEN,
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+        },
+    })
+    .then(r => r.json().catch(() => ({ success: r.ok })))
+    .then(data => {
+        if (data.success !== false) {
+            btn.closest('div.px-6').style.opacity = '0.4';
+            btn.outerHTML = '<span class="text-xs text-emerald-600 font-semibold">تم التراجع ✓</span>';
+        } else {
+            alert(data.message || 'حدث خطأ أثناء التراجع.');
+            btn.disabled = false;
+            btn.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg> تراجع';
+        }
+    })
+    .catch(() => {
+        // fallback: redirect
+        window.location.href = url.replace('POST','') ;
+    });
+}
 </script>
 @endpush
 

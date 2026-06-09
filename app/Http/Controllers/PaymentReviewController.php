@@ -168,71 +168,98 @@ class PaymentReviewController extends Controller
         $dateFrom       = $request->get('date_from', '');
         $dateTo         = $request->get('date_to', '');
 
-        // Find IBANs that appear more than once in payment_info
-        $duplicateIbans = DB::table('payment_info')
-            ->select('iban', DB::raw('COUNT(*) as count'))
+        $includeNone = in_array('none', $finalStatusIds);
+        $numericIds  = array_map('intval', array_filter($finalStatusIds, fn($v) => $v !== 'none'));
+
+        // Step 1: find all duplicate IBANs
+        $allDuplicateIbans = DB::table('payment_info')
+            ->select('iban', DB::raw('COUNT(*) as cnt'))
             ->whereNotNull('iban')
             ->where('iban', '!=', '')
             ->groupBy('iban')
-            ->having('count', '>', 1)
-            ->orderByDesc('count')
-            ->pluck('count', 'iban');
+            ->having('cnt', '>', 1)
+            ->pluck('cnt', 'iban');
 
-        // Load all members that have those IBANs, with full info
-        $membersByIban = collect();
-
-        foreach ($duplicateIbans as $iban => $count) {
-            if ($search && stripos($iban, $search) === false) {
-                // also check member names
-                $members = Member::whereHas('paymentInfo', fn($q) => $q->where('iban', $iban))
-                    ->where('full_name', 'like', "%{$search}%")
-                    ->with(['paymentInfo', 'verificationStatus', 'finalStatus', 'association', 'latestFieldVisit'])
-                    ->orderBy('full_name')
-                    ->get();
-                if ($members->isEmpty()) continue;
-            } else {
-                $members = Member::whereHas('paymentInfo', fn($q) => $q->where('iban', $iban))
-                    ->with(['paymentInfo', 'verificationStatus', 'finalStatus', 'association', 'latestFieldVisit'])
-                    ->orderBy('full_name')
-                    ->get();
-            }
-
-            $membersByIban[$iban] = $members;
+        if ($allDuplicateIbans->isEmpty()) {
+            return view('payment-review.duplicate-ibans', [
+                'membersByIban'          => collect(),
+                'search'                 => $search,
+                'finalStatusIds'         => $finalStatusIds,
+                'finalStatusList'        => \App\Models\FinalStatus::active()->orderBy('name')->get(),
+                'totalDuplicateIbans'    => 0,
+                'totalAffectedMembers'   => 0,
+                'rawTotalDuplicateIbans' => 0,
+                'rawTotalAffectedMembers'=> 0,
+                'dateFrom'               => $dateFrom,
+                'dateTo'                 => $dateTo,
+            ]);
         }
 
-        // Stats before filters (for hero badges)
-        $rawTotalDuplicateIbans  = $membersByIban->count();
-        $rawTotalAffectedMembers = $membersByIban->flatten()->count();
+        // Step 2: if a status filter is active, narrow the IBAN list via SQL
+        $ibanPool = $allDuplicateIbans->keys();
 
-        // Filter: keep only IBAN groups that contain at least one member with a selected final status
         if (!empty($finalStatusIds)) {
-            $includeNone    = in_array('none', $finalStatusIds);
-            $numericIds     = array_values(array_filter($finalStatusIds, fn($v) => $v !== 'none'));
-            $membersByIban  = $membersByIban->filter(function ($members) use ($includeNone, $numericIds) {
-                return $members->contains(function ($m) use ($includeNone, $numericIds) {
-                    if ($includeNone && is_null($m->final_status_id)) return true;
-                    if (!empty($numericIds) && in_array($m->final_status_id, array_map('intval', $numericIds))) return true;
-                    return false;
+            $statusIbansQuery = DB::table('payment_info')
+                ->join('members', 'members.id', '=', 'payment_info.member_id')
+                ->whereIn('payment_info.iban', $ibanPool)
+                ->where(function ($q) use ($includeNone, $numericIds) {
+                    if ($includeNone)        $q->orWhereNull('members.final_status_id');
+                    if (!empty($numericIds)) $q->orWhereIn('members.final_status_id', $numericIds);
                 });
+
+            $ibanPool = $statusIbansQuery->pluck('payment_info.iban')->unique()->values();
+
+            if ($ibanPool->isEmpty()) {
+                return view('payment-review.duplicate-ibans', [
+                    'membersByIban'           => collect(),
+                    'search'                  => $search,
+                    'finalStatusIds'          => $finalStatusIds,
+                    'finalStatusList'         => \App\Models\FinalStatus::active()->orderBy('name')->get(),
+                    'totalDuplicateIbans'     => 0,
+                    'totalAffectedMembers'    => 0,
+                    'rawTotalDuplicateIbans'  => $allDuplicateIbans->count(),
+                    'rawTotalAffectedMembers' => 0,
+                    'dateFrom'                => $dateFrom,
+                    'dateTo'                  => $dateTo,
+                ]);
+            }
+        }
+
+        // Step 3: load ALL members for the remaining IBans in one query
+        $memberQuery = Member::whereHas('paymentInfo', fn($q) => $q->whereIn('iban', $ibanPool))
+            ->with(['paymentInfo', 'verificationStatus', 'finalStatus', 'association', 'latestFieldVisit'])
+            ->orderBy('full_name');
+
+        // Date filter applied in SQL
+        if ($dateFrom || $dateTo) {
+            $memberQuery->whereHas('paymentInfo', function ($q) use ($dateFrom, $dateTo) {
+                if ($dateFrom) $q->whereDate('created_at', '>=', $dateFrom);
+                if ($dateTo)   $q->whereDate('created_at', '<=', $dateTo);
             });
         }
 
-        // Filter: keep only IBAN groups where at least one payment_info was added in the date range
-        if ($dateFrom !== '' || $dateTo !== '') {
-            $membersByIban = $membersByIban->filter(function ($members) use ($dateFrom, $dateTo) {
-                return $members->contains(function ($member) use ($dateFrom, $dateTo) {
-                    $date = optional($member->paymentInfo)->created_at;
-                    if (!$date) return false;
-                    if ($dateFrom !== '' && $date->startOfDay()->lt(\Carbon\Carbon::parse($dateFrom)->startOfDay())) return false;
-                    if ($dateTo   !== '' && $date->startOfDay()->gt(\Carbon\Carbon::parse($dateTo)->startOfDay()))   return false;
-                    return true;
-                });
-            });
+        $allMembers = $memberQuery->get();
+
+        // Apply name/IBAN search filter
+        if ($search) {
+            $allMembers = $allMembers->filter(fn($m) =>
+                stripos($m->paymentInfo?->iban ?? '', $search) !== false ||
+                stripos($m->full_name, $search)                !== false
+            );
         }
 
-        $totalDuplicateIbans   = $membersByIban->count();
-        $totalAffectedMembers  = $membersByIban->flatten()->count();
-        $finalStatusList       = \App\Models\FinalStatus::active()->orderBy('name')->get();
+        // Group by IBAN — keep only groups with 2+ members
+        $membersByIban = $allMembers
+            ->groupBy(fn($m) => $m->paymentInfo?->iban ?? '')
+            ->filter(fn($members, $iban) => $iban !== '' && $members->count() >= 2)
+            ->sortByDesc(fn($members) => $members->count());
+
+        // Stats
+        $rawTotalDuplicateIbans  = $allDuplicateIbans->count();
+        $rawTotalAffectedMembers = $allDuplicateIbans->sum();   // total entries across all dup IBans
+        $totalDuplicateIbans     = $membersByIban->count();
+        $totalAffectedMembers    = $membersByIban->flatten(1)->count();
+        $finalStatusList         = \App\Models\FinalStatus::active()->orderBy('name')->get();
 
         return view('payment-review.duplicate-ibans', compact(
             'membersByIban', 'search', 'finalStatusIds', 'finalStatusList',
