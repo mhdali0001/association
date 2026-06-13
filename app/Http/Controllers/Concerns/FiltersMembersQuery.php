@@ -42,6 +42,7 @@ trait FiltersMembersQuery
         $paymentDataEntries  = array_filter((array) $request->get('payment_data_entry', []));
         $regionIds           = array_filter((array) $request->get('region_id', []));
         $sectorIds           = array_filter((array) $request->get('sector_id', []));
+        $representativeIds   = array_filter((array) $request->get('representative_id', []));
         $housingStatusIds    = array_filter((array) $request->get('housing_status_id', []));
         $estimatedFrom       = trim($request->get('estimated_from', ''));
         $estimatedTo         = trim($request->get('estimated_to', ''));
@@ -146,6 +147,7 @@ trait FiltersMembersQuery
         }
         $this->applyNoneFilter($query, 'region_id', $regionIds);
         $this->applyNoneFilter($query, 'sector_id', $sectorIds);
+        $this->applyNoneFilter($query, 'representative_id', $representativeIds);
         $this->applyNoneFilter($query, 'housing_status_id', $housingStatusIds);
         if ($estimatedFrom !== '') $query->where('estimated_amount', '>=', (float) str_replace(',', '', $estimatedFrom));
         if ($estimatedTo   !== '') $query->where('estimated_amount', '<=', (float) str_replace(',', '', $estimatedTo));
@@ -190,6 +192,7 @@ trait FiltersMembersQuery
             'paymentDataEntries'  => array_filter((array) $request->get('payment_data_entry', [])),
             'regionIds'           => array_filter((array) $request->get('region_id', [])),
             'sectorIds'           => array_filter((array) $request->get('sector_id', [])),
+            'representativeIds'   => array_filter((array) $request->get('representative_id', [])),
             'housingStatusIds'    => array_filter((array) $request->get('housing_status_id', [])),
             'estimatedFrom'       => trim($request->get('estimated_from', '')),
             'estimatedTo'         => trim($request->get('estimated_to', '')),
@@ -220,6 +223,7 @@ trait FiltersMembersQuery
             'associationList'       => \App\Models\Association::active()->orderBy('name')->get(),
             'regionList'            => \App\Models\Region::active()->orderBy('name')->get(),
             'sectorList'            => \App\Models\Sector::active()->orderBy('name')->get(),
+            'representativeList'    => \App\Models\User::whereIn('id', Member::whereNotNull('representative_id')->distinct()->pluck('representative_id'))->orderBy('name')->get(['id', 'name']),
             'houseTypes'            => \App\Models\HouseType::active()->orderBy('id')->get(),
             'houseConditions'       => \App\Models\HouseCondition::active()->orderBy('name')->get(),
             'housingStatusList'     => \App\Models\HousingStatus::active()->orderBy('name')->get(),
@@ -234,3 +238,5 @@ trait FiltersMembersQuery
         ];
     }
 }
+
+

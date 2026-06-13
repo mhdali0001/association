@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', 'الأعضاء — مسالك النور')
 
@@ -435,6 +435,41 @@
                         <p class="px-3 py-2 text-sm text-gray-400">لا توجد قطاعات</p>
                     @endforelse
                     </div>
+                </div>
+            </div>
+
+            {{-- Representative filter --}}
+            <div class="ms-dropdown relative">
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">المندوب المسؤول</label>
+                <button type="button"
+                        class="ms-btn w-full flex items-center justify-between text-base border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50
+                               hover:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 transition text-right">
+                    <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                    <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-56 overflow-y-auto">
+                    <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-500 border-b border-gray-100">
+                        <input type="checkbox" name="representative_id[]" value="none"
+                               {{ in_array('none', $representativeIds) ? 'checked' : '' }}
+                               class="ms-check rounded border-gray-300 text-gray-500 focus:ring-gray-400">
+                        <span class="inline-block w-2 h-2 rounded-full flex-shrink-0 bg-gray-300"></span>
+                        بدون
+                    </label>
+                    @forelse($representativeList as $rep)
+                        <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-base text-gray-700">
+                            <input type="checkbox" name="representative_id[]" value="{{ $rep->id }}"
+                                   {{ in_array($rep->id, $representativeIds) ? 'checked' : '' }}
+                                   class="ms-check rounded border-gray-300 text-emerald-600 focus:ring-emerald-400">
+                            <svg class="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                            </svg>
+                            {{ $rep->name }}
+                        </label>
+                    @empty
+                        <p class="px-3 py-2 text-xs text-gray-400">لا يوجد مندوبون مسؤولون</p>
+                    @endforelse
                 </div>
             </div>
 
@@ -967,7 +1002,7 @@
             </button>
 
             @php
-                $hasFilters = $search || $dossierFrom !== '' || $dossierTo !== '' || !empty($verificationIds) || !empty($finalStatusIds) || !empty($maritalStatuses) || !empty($genders) || !empty($delegates) || !empty($secondPersons) || $specialCases !== '' || !empty($specialDescriptions) || !empty($addresses) || !empty($associationIds) || !empty($networks) || !empty($housingStatusIds) || !empty($paymentDataEntries) || $hasFvFilters;
+                $hasFilters = $search || $dossierFrom !== '' || $dossierTo !== '' || !empty($verificationIds) || !empty($finalStatusIds) || !empty($maritalStatuses) || !empty($genders) || !empty($delegates) || !empty($secondPersons) || $specialCases !== '' || !empty($specialDescriptions) || !empty($addresses) || !empty($associationIds) || !empty($networks) || !empty($housingStatusIds) || !empty($representativeIds) || !empty($paymentDataEntries) || $hasFvFilters;
             @endphp
 
             @if($hasFilters)
@@ -1085,6 +1120,13 @@
                 @foreach($housingStatusIds as $hsId)
                     <a href="{{ badgeRemoveUrl('housing_status_id', $hsId) }}" class="inline-flex items-center gap-1 text-sm bg-lime-50 text-lime-700 border border-lime-200 rounded-full px-3 py-1 font-medium hover:bg-lime-100 transition-colors">
                         وضع السكن: {{ $housingStatusList->firstWhere('id', $hsId)?->name }}
+                        <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </a>
+                @endforeach
+                @foreach($representativeIds as $repId)
+                    <a href="{{ badgeRemoveUrl('representative_id', $repId) }}" class="inline-flex items-center gap-1 text-sm bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-3 py-1 font-medium hover:bg-emerald-100 transition-colors">
+                        <svg class="w-3 h-3 opacity-70" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                        {{ $repId === 'none' ? 'بدون مندوب' : $representativeList->firstWhere('id', $repId)?->name }}
                         <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                     </a>
                 @endforeach
@@ -2618,3 +2660,5 @@ tr:hover td:first-child {
 </style>
 
 @endsection
+
+

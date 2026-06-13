@@ -22,6 +22,7 @@ use App\Http\Controllers\MemberImportController;
 use App\Http\Controllers\VerificationStatusController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeePortalController;
+use App\Http\Controllers\CustomExportController;
 use Illuminate\Support\Facades\Route;
 
 // Welcome
@@ -106,7 +107,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/members/national-ids/import',      [MemberController::class, 'nationalIdsImportStore'])->name('members.national-ids.import');
     Route::patch('/members/{member}/national-id',    [MemberController::class, 'updateNationalId'])      ->name('members.national-id.update');
     Route::get('/members/map',                       [MemberController::class, 'mapIndex'])           ->name('members.map');
-    Route::get('/members/export',                   [MemberController::class, 'export'])             ->name('members.export');
+    Route::get('/members/export',                    [MemberController::class, 'export'])              ->name('members.export');
+    Route::get('/members/custom-export',             [CustomExportController::class, 'show'])          ->name('members.custom-export');
+    Route::post('/members/custom-export/download',   [CustomExportController::class, 'download'])      ->name('members.custom-export.download');
     Route::delete('/members/bulk-destroy',          [MemberController::class, 'bulkDestroy'])        ->name('members.bulk-destroy');
     Route::patch('/members/bulk-update',            [MemberController::class, 'bulkUpdate'])          ->name('members.bulk-update');
     Route::patch('/members/{member}/final-status', [MemberController::class, 'updateFinalStatus'])->name('members.final-status.update');
@@ -116,8 +119,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/members/fv-reduction',   [MemberController::class, 'fvReductionApply'])    ->name('members.fv-reduction.apply');
     Route::get('/members/bulk-payments',         [MemberController::class, 'bulkPaymentsShow'])    ->name('members.bulk-payments');
     Route::post('/members/bulk-payments',        [MemberController::class, 'bulkPaymentsApply'])   ->name('members.bulk-payments.apply');
-    Route::get('/members/payment-batches',       [MemberController::class, 'paymentBatchesIndex']) ->name('members.payment-batches');
-    Route::get('/members/payment-batches/{batch}',[MemberController::class, 'paymentBatchShow'])   ->name('members.payment-batches.show');
+    Route::get('/members/payment-batches',          [MemberController::class, 'paymentBatchesIndex'])  ->name('members.payment-batches');
+    Route::get('/members/payment-batches/{batch}',  [MemberController::class, 'paymentBatchShow'])     ->name('members.payment-batches.show');
+    Route::patch('/members/payment-batches/{batch}',[MemberController::class, 'updatePaymentBatch'])   ->name('members.payment-batches.update');
     Route::get('/members/score-deductions',  [MemberController::class, 'scoreDeductionsIndex']) ->name('members.score-deductions');
     Route::get('/members/score-additions',   [MemberController::class, 'scoreAdditionsIndex'])  ->name('members.score-additions');
     Route::get('/members/score-adjustments',  [MemberController::class, 'scoreAdjustmentsIndex']) ->name('members.score-adjustments');

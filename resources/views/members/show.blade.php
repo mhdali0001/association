@@ -680,6 +680,96 @@
 
 </div>
 
+{{-- ── سجل الدفعات السابقة ── --}}
+@if($member->paymentBatchEntries->isNotEmpty())
+<div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mt-6">
+    <div class="flex items-center gap-2.5 bg-gradient-to-l from-emerald-50 to-teal-50 border-b border-emerald-100 px-6 py-3.5">
+        <div class="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center">
+            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+        </div>
+        <h2 class="text-sm font-bold text-emerald-700">سجل الدفعات</h2>
+        <span class="text-xs text-emerald-600 bg-emerald-100 rounded-full px-2 py-0.5 font-semibold">{{ $member->paymentBatchEntries->count() }}</span>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-50 border-b border-gray-100">
+                    <th class="text-right px-4 py-3 text-xs font-bold text-gray-500 whitespace-nowrap">الدفعة</th>
+                    <th class="text-right px-4 py-3 text-xs font-bold text-gray-500 whitespace-nowrap">تاريخ الدفع</th>
+                    <th class="text-right px-4 py-3 text-xs font-bold text-gray-500 whitespace-nowrap">العملية</th>
+                    <th class="text-center px-4 py-3 text-xs font-bold text-gray-500 whitespace-nowrap">قبل</th>
+                    <th class="text-center px-4 py-3 text-xs font-bold text-gray-500 whitespace-nowrap">بعد</th>
+                    <th class="text-right px-4 py-3 text-xs font-bold text-gray-500 whitespace-nowrap">المبلغ المقدّر</th>
+                    <th class="text-right px-4 py-3 text-xs font-bold text-gray-500 whitespace-nowrap">بواسطة</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                @foreach($member->paymentBatchEntries as $entry)
+                @php
+                    $batch = $entry->batch;
+                    $isAdd = $batch?->operation === 'add';
+                    $isSub = $batch?->operation === 'subtract';
+                @endphp
+                <tr class="hover:bg-gray-50/60 transition-colors">
+                    <td class="px-4 py-3">
+                        @if($batch)
+                        <a href="{{ route('members.payment-batches.show', $batch->id) }}"
+                           class="font-semibold text-gray-800 hover:text-emerald-700 transition-colors">
+                            {{ $batch->label ?: 'دفعة #' . $batch->id }}
+                        </a>
+                        @if($batch->notes)
+                            <p class="text-xs text-gray-400 mt-0.5 truncate max-w-xs">{{ $batch->notes }}</p>
+                        @endif
+                        @else
+                        <span class="text-gray-400">—</span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-3 text-gray-600 whitespace-nowrap">
+                        {{ $batch?->payment_date?->format('d/m/Y') ?? '—' }}
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        @if($batch)
+                        <span class="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full
+                            {{ $isAdd ? 'bg-emerald-100 text-emerald-700' : ($isSub ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-700') }}">
+                            @if($isAdd)
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                                إضافة {{ $batch->amount }}
+                            @elseif($isSub)
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4"/></svg>
+                                طرح {{ $batch->amount }}
+                            @else
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                تعيين {{ $batch->amount }}
+                            @endif
+                        </span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="inline-block text-xs font-bold text-gray-500 bg-gray-100 rounded-lg px-2.5 py-1">{{ $entry->previous_count ?? '—' }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="inline-block text-xs font-bold rounded-lg px-2.5 py-1
+                            {{ $isAdd ? 'text-emerald-700 bg-emerald-100' : ($isSub ? 'text-red-600 bg-red-100' : 'text-blue-700 bg-blue-100') }}">
+                            {{ $entry->new_count ?? '—' }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-gray-700 font-semibold whitespace-nowrap">
+                        {{ $entry->estimated_amount ? number_format($entry->estimated_amount, 0) . ' ل.س' : '—' }}
+                    </td>
+                    <td class="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
+                        {{ $batch?->appliedBy?->name ?? '—' }}
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+@endif
+
 {{-- ── الجولات الميدانية ── --}}
 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mt-6">
     <div class="flex items-center gap-2.5 bg-gradient-to-l from-indigo-50 to-violet-50 border-b border-indigo-100 px-6 py-3.5">

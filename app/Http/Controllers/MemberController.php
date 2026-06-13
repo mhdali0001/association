@@ -83,6 +83,7 @@ class MemberController extends Controller
             ->toArray();
         $regionIds            = array_filter((array) $request->get('region_id', []));
         $sectorIds            = array_filter((array) $request->get('sector_id', []));
+        $representativeIds    = array_filter((array) $request->get('representative_id', []));
         $housingStatusIds     = array_filter((array) $request->get('housing_status_id', []));
         $fieldVisitStatusIds  = array_filter((array) $request->get('field_visit_status_id', []));
         $fvHouseTypeIds       = array_filter((array) $request->get('fv_house_type_id', []));
@@ -103,6 +104,7 @@ class MemberController extends Controller
         $paymentsCountTo      = trim($request->get('payments_count_to', ''));
         $regionList           = \App\Models\Region::active()->orderBy('name')->get();
         $sectorList           = \App\Models\Sector::active()->orderBy('name')->get();
+        $representativeList   = \App\Models\User::whereIn('id', Member::whereNotNull('representative_id')->distinct()->pluck('representative_id'))->orderBy('name')->get(['id', 'name']);
         $verificationStatuses = VerificationStatus::active()->orderBy('name')->get();
         $finalStatusList      = FinalStatus::active()->orderBy('name')->get();
         $maritalStatusList    = MaritalStatus::active()->orderBy('id')->get();
@@ -151,11 +153,11 @@ class MemberController extends Controller
 
         return view('members.index', compact(
             'members', 'search', 'dossierSearch', 'dossierFrom', 'dossierTo', 'totalAmount', 'totalFinalAmount',
-            'verificationIds', 'finalStatusIds', 'maritalStatuses', 'genders', 'delegates', 'secondPersons', 'specialCases', 'specialDescriptions', 'addresses', 'associationIds', 'networks', 'fieldVisitStatusIds', 'regionIds', 'sectorIds', 'housingStatusIds',
+            'verificationIds', 'finalStatusIds', 'maritalStatuses', 'genders', 'delegates', 'secondPersons', 'specialCases', 'specialDescriptions', 'addresses', 'associationIds', 'networks', 'fieldVisitStatusIds', 'regionIds', 'sectorIds', 'representativeIds', 'housingStatusIds',
             'estimatedFrom', 'estimatedTo', 'paymentsCountFrom', 'paymentsCountTo',
             'fvHouseTypeIds', 'fvHouseConditionIds', 'fvVisitors', 'fvVisitorList', 'fvCreatedByIds', 'fvCreatedByList', 'fvDateFrom', 'fvDateTo', 'fvAmountFrom', 'fvAmountTo', 'fvNotes', 'fvHasVideo', 'fvHasSpecialCase', 'fvCount',
             'verificationStatuses', 'finalStatusList', 'maritalStatusList', 'delegateList', 'secondPersonList', 'specialDescriptionList', 'addressList', 'associationList',
-            'duplicateIbans', 'fieldVisitStatuses', 'regionList', 'sectorList', 'houseTypes', 'houseConditions', 'housingStatusList',
+            'duplicateIbans', 'fieldVisitStatuses', 'regionList', 'sectorList', 'representativeList', 'houseTypes', 'houseConditions', 'housingStatusList',
             'paymentDataEntries', 'paymentDataEntryList'
         ));
     }
@@ -194,7 +196,7 @@ class MemberController extends Controller
 
     public function show(Member $member)
     {
-        $member->load(['scores', 'paymentInfo', 'paymentInfoAI', 'association', 'associations', 'verificationStatus', 'representative', 'images.uploader', 'fieldVisits.status', 'fieldVisits.houseType', 'fieldVisits.houseCondition']);
+        $member->load(['scores', 'paymentInfo', 'paymentInfoAI', 'association', 'associations', 'verificationStatus', 'representative', 'images.uploader', 'fieldVisits.status', 'fieldVisits.houseType', 'fieldVisits.houseCondition', 'paymentBatchEntries.batch.appliedBy']);
         $fieldVisitStatuses = \App\Models\FieldVisitStatus::active()->orderBy('id')->get();
         $houseTypes         = \App\Models\HouseType::active()->orderBy('id')->get();
         $houseConditions    = \App\Models\HouseCondition::active()->orderBy('name')->get();
@@ -729,10 +731,43 @@ class MemberController extends Controller
         $fvHasVideo          = $request->get('fv_has_video', '');
         $fvHasSpecialCase    = $request->get('fv_has_special_case', '');
         $fvCount             = $request->get('fv_count', '');
+        // Payment-specific filters
+        $hasIban             = $request->get('has_iban', '');
+        $hasBarcode          = $request->get('has_barcode', '');
+        $paymentReviewStatus = array_filter((array) $request->get('payment_review_status', []));
+        $lastBatchDateFrom   = trim($request->get('last_batch_date_from', ''));
+        $lastBatchDateTo     = trim($request->get('last_batch_date_to', ''));
+        $batchIds            = array_filter((array) $request->get('batch_id', []));
 
         $base = $this->buildFilteredQuery($request);
         if ($hasPayments === '1') $base->whereNotNull('payments_count');
         if ($hasPayments === '0') $base->whereNull('payments_count');
+        // IBAN
+        if ($hasIban === '1') $base->whereHas('paymentInfo', fn($q) => $q->whereNotNull('iban')->where('iban', '!=', ''));
+        if ($hasIban === '0') $base->where(fn($q) => $q->doesntHave('paymentInfo')->orWhereHas('paymentInfo', fn($qi) => $qi->where(fn($s) => $s->whereNull('iban')->orWhere('iban', ''))));
+        // Barcode
+        if ($hasBarcode === '1') $base->whereHas('paymentInfo', fn($q) => $q->whereNotNull('barcode')->where('barcode', '!=', ''));
+        if ($hasBarcode === '0') $base->where(fn($q) => $q->doesntHave('paymentInfo')->orWhereHas('paymentInfo', fn($qi) => $qi->where(fn($s) => $s->whereNull('barcode')->orWhere('barcode', ''))));
+        // Payment review status
+        if (!empty($paymentReviewStatus)) {
+            $inclNone    = in_array('none', $paymentReviewStatus);
+            $realStatuses = array_values(array_filter($paymentReviewStatus, fn($s) => $s !== 'none'));
+            $base->where(function ($q) use ($inclNone, $realStatuses) {
+                if (!empty($realStatuses)) $q->whereHas('paymentReview', fn($qi) => $qi->whereIn('status', $realStatuses));
+                if ($inclNone) $q->orDoesntHave('paymentReview');
+            });
+        }
+        // Last batch date range
+        if ($lastBatchDateFrom !== '' || $lastBatchDateTo !== '') {
+            $base->whereHas('paymentBatchEntries', fn($q) => $q->whereHas('batch', function ($bq) use ($lastBatchDateFrom, $lastBatchDateTo) {
+                if ($lastBatchDateFrom !== '') $bq->whereDate('payment_date', '>=', $lastBatchDateFrom);
+                if ($lastBatchDateTo   !== '') $bq->whereDate('payment_date', '<=', $lastBatchDateTo);
+            }));
+        }
+        // Specific batch
+        if (!empty($batchIds)) {
+            $base->whereHas('paymentBatchEntries', fn($q) => $q->whereIn('batch_id', $batchIds));
+        }
 
         $totalCount    = (clone $base)->count();
         $withPayments  = (clone $base)->whereNotNull('payments_count')->count();
@@ -759,6 +794,7 @@ class MemberController extends Controller
         $paymentDataEntryList   = \App\Models\PaymentInfo::whereNotNull('data_entry_name')->where('data_entry_name','!=','')->distinct()->orderBy('data_entry_name')->pluck('data_entry_name');
         $fvVisitorList          = \App\Models\FieldVisit::whereNotNull('visitor')->where('visitor','!=','')->distinct()->orderBy('visitor')->pluck('visitor');
         $fvCreatedByList        = \App\Models\User::whereIn('id', \App\Models\FieldVisit::whereNotNull('created_by')->distinct()->pluck('created_by'))->orderBy('name')->get(['id', 'name']);
+        $batchList              = \App\Models\PaymentBatch::orderByDesc('payment_date')->orderByDesc('id')->limit(100)->get(['id','label','payment_date','amount','operation']);
 
         $hasFvFilters = !empty($fieldVisitStatusIds) || !empty($fvHouseTypeIds) || !empty($fvHouseConditionIds)
             || !empty($fvVisitors) || !empty($fvCreatedByIds)
@@ -775,10 +811,11 @@ class MemberController extends Controller
             'fieldVisitStatusIds', 'fvHouseTypeIds', 'fvHouseConditionIds', 'fvVisitors', 'fvCreatedByIds',
             'fvDateFrom', 'fvDateTo', 'fvAmountFrom', 'fvAmountTo', 'fvNotes', 'fvHasVideo', 'fvHasSpecialCase', 'fvCount',
             'hasFvFilters',
+            'hasIban', 'hasBarcode', 'paymentReviewStatus', 'lastBatchDateFrom', 'lastBatchDateTo', 'batchIds',
             'verificationStatuses', 'finalStatusList', 'maritalStatusList', 'housingStatusList',
             'regionList', 'sectorList', 'associationList', 'fieldVisitStatuses', 'houseTypes', 'houseConditions',
             'delegateList', 'secondPersonList', 'specialDescriptionList', 'addressList',
-            'paymentDataEntryList', 'fvVisitorList', 'fvCreatedByList'
+            'paymentDataEntryList', 'fvVisitorList', 'fvCreatedByList', 'batchList'
         ));
     }
 
@@ -996,6 +1033,21 @@ class MemberController extends Controller
         return view('members.payment-batch-show', compact(
             'batch', 'members', 'search', 'amountFrom', 'amountTo', 'diffFilter'
         ));
+    }
+
+    public function updatePaymentBatch(Request $request, \App\Models\PaymentBatch $batch)
+    {
+        $data = $request->validate([
+            'label'        => 'nullable|string|max:255',
+            'payment_date' => 'nullable|date',
+            'notes'        => 'nullable|string|max:1000',
+        ]);
+
+        $batch->update($data);
+
+        ActivityLogger::log('updated', "تعديل بيانات الدفعة: " . ($batch->label ?: 'دفعة #' . $batch->id), $batch);
+
+        return back()->with('success', 'تم تحديث بيانات الدفعة بنجاح.');
     }
 
     // ───────────────────────────────────────────────────────────────────
@@ -2415,59 +2467,101 @@ class MemberController extends Controller
 
     public function nationalIdsIndex(Request $request)
     {
-        $search  = trim($request->get('search', ''));
-        $filter  = $request->get('filter', 'missing'); // missing | invalid | duplicates | all
-        $region  = $request->get('region_id', '');
+        $search = trim($request->get('search', ''));
+        $region = $request->get('region_id', ''); // kept as single for top-bar + region stats links
 
-        $query = Member::query()->with('region');
+        // All filter vars for view binding
+        $dossierFrom         = trim($request->get('dossier_from', ''));
+        $dossierTo           = trim($request->get('dossier_to', ''));
+        $estimatedFrom       = trim($request->get('estimated_from', ''));
+        $estimatedTo         = trim($request->get('estimated_to', ''));
+        $paymentsCountFrom   = trim($request->get('payments_count_from', ''));
+        $paymentsCountTo     = trim($request->get('payments_count_to', ''));
+        $verificationIds     = array_filter((array) $request->get('verification_status_id', []));
+        $finalStatusIds      = array_filter((array) $request->get('final_status_id', []));
+        $maritalStatuses     = array_filter((array) $request->get('marital_status', []));
+        $genders             = array_filter((array) $request->get('gender', []));
+        $delegates           = array_filter((array) $request->get('delegate', []));
+        $secondPersons       = array_filter((array) $request->get('second_person', []));
+        $specialCases        = $request->get('special_cases', '');
+        $specialDescriptions = array_filter((array) $request->get('special_cases_description', []));
+        $addresses           = array_filter((array) $request->get('current_address', []));
+        $associationIds      = array_filter((array) $request->get('association_id', []));
+        $networks            = array_filter((array) $request->get('network', []));
+        $shamCash            = array_filter((array) $request->get('sham_cash', []));
+        $paymentDataEntries  = array_filter((array) $request->get('payment_data_entry', []));
+        $sectorIds           = array_filter((array) $request->get('sector_id', []));
+        $representativeIds   = array_filter((array) $request->get('representative_id', []));
+        $housingStatusIds    = array_filter((array) $request->get('housing_status_id', []));
+        $fieldVisitStatusIds = array_filter((array) $request->get('field_visit_status_id', []));
+        $fvHouseTypeIds      = array_filter((array) $request->get('fv_house_type_id', []));
+        $fvVisitors          = array_filter((array) $request->get('fv_visitors', []));
+        $fvCreatedByIds      = array_filter((array) $request->get('fv_created_by', []));
+        $fvDateFrom          = trim($request->get('fv_date_from', ''));
+        $fvDateTo            = trim($request->get('fv_date_to', ''));
+        $fvAmountFrom        = trim($request->get('fv_amount_from', ''));
+        $fvAmountTo          = trim($request->get('fv_amount_to', ''));
+        $fvHouseConditionIds = array_filter((array) $request->get('fv_house_condition_id', []));
+        $fvNotes             = trim($request->get('fv_notes', ''));
+        $fvHasVideo          = $request->get('fv_has_video', '');
+        $fvHasSpecialCase    = $request->get('fv_has_special_case', '');
+        $fvCount             = trim($request->get('fv_count', ''));
 
-        if ($filter === 'missing') {
-            $query->where(fn($q) => $q->whereNull('national_id')->orWhere('national_id', ''));
-            $query->orderByRaw('CAST(dossier_number AS UNSIGNED) ASC');
-        } elseif ($filter === 'invalid') {
-            $query->whereNotNull('national_id')
-                  ->where('national_id', '!=', '')
-                  ->whereRaw('LENGTH(national_id) != 11')
-                  ->orderByRaw('CAST(dossier_number AS UNSIGNED) ASC');
-        } elseif ($filter === 'duplicates') {
-            $dupNids = Member::select('national_id')
-                ->whereNotNull('national_id')->where('national_id', '!=', '')
-                ->groupBy('national_id')->havingRaw('COUNT(*) > 1')->pluck('national_id');
-            $query->whereIn('national_id', $dupNids)
-                  ->orderBy('national_id')
-                  ->orderByRaw('CAST(dossier_number AS UNSIGNED) ASC');
+        // national-ids tab filter
+        $filters = array_values(array_filter((array) $request->get('filters', [])));
+        if (empty($filters)) {
+            $legacy  = $request->get('filter', '');
+            $filters = $legacy ? [$legacy] : ['missing'];
+        }
+
+        $isAll         = in_array('all', $filters);
+        $hasMissing    = in_array('missing', $filters);
+        $hasInvalid    = in_array('invalid', $filters);
+        $hasDuplicates = in_array('duplicates', $filters);
+
+        // Base query: reuse the shared filter trait (handles all generic filters)
+        $query = $this->buildFilteredQuery($request)->with('region');
+
+        // Layer national_id-specific conditions on top
+        if (!$isAll) {
+            $dupNids = $hasDuplicates
+                ? Member::select('national_id')->whereNotNull('national_id')->where('national_id', '!=', '')
+                      ->groupBy('national_id')->havingRaw('COUNT(*) > 1')->pluck('national_id')
+                : collect();
+
+            $query->where(function ($q) use ($hasMissing, $hasInvalid, $hasDuplicates, $dupNids) {
+                if ($hasMissing) {
+                    $q->orWhere(fn($q2) => $q2->whereNull('national_id')->orWhere('national_id', ''));
+                }
+                if ($hasInvalid) {
+                    $q->orWhere(fn($q2) => $q2->whereNotNull('national_id')
+                        ->where('national_id', '!=', '')
+                        ->whereRaw('LENGTH(national_id) != 11'));
+                }
+                if ($hasDuplicates && $dupNids->isNotEmpty()) {
+                    $q->orWhereIn('national_id', $dupNids);
+                }
+            });
+        }
+
+        if ($hasDuplicates && !$hasMissing && !$hasInvalid && !$isAll) {
+            $query->orderBy('national_id')->orderByRaw('CAST(dossier_number AS UNSIGNED) ASC');
         } else {
             $query->orderByRaw('CAST(dossier_number AS UNSIGNED) ASC');
         }
 
-        if ($search) {
-            $query->where(fn($q) =>
-                $q->where('full_name', 'like', "%{$search}%")
-                  ->orWhere('dossier_number', 'like', "%{$search}%")
-                  ->orWhere('national_id', 'like', "%{$search}%")
-            );
-        }
-
-        if ($region) {
-            $query->where('region_id', $region);
-        }
-
-        // Global counts
+        // Global stats (always full table, ignoring current filters)
         $totalMissing    = Member::where(fn($q) => $q->whereNull('national_id')->orWhere('national_id', ''))->count();
-        $totalInvalid    = Member::whereNotNull('national_id')->where('national_id','!=','')->whereRaw('LENGTH(national_id) != 11')->count();
+        $totalInvalid    = Member::whereNotNull('national_id')->where('national_id', '!=', '')->whereRaw('LENGTH(national_id) != 11')->count();
         $totalAll        = Member::count();
         $totalDuplicates = Member::select('national_id')
             ->whereNotNull('national_id')->where('national_id', '!=', '')
-            ->groupBy('national_id')->havingRaw('COUNT(*) > 1')
-            ->get()->sum(fn($r) => 1); // count of distinct duplicated IDs (not members)
-
-        // Count of members affected by duplicates
+            ->groupBy('national_id')->havingRaw('COUNT(*) > 1')->count();
         $totalDupMembers = Member::whereIn('national_id',
-            Member::select('national_id')->whereNotNull('national_id')->where('national_id','!=','')
+            Member::select('national_id')->whereNotNull('national_id')->where('national_id', '!=', '')
                   ->groupBy('national_id')->havingRaw('COUNT(*) > 1')->pluck('national_id')
         )->count();
 
-        // Region breakdown
         $regionStats = \App\Models\Region::query()
             ->withCount([
                 'members as total_members',
@@ -2479,39 +2573,80 @@ class MemberController extends Controller
             ->orderByDesc('missing_members')
             ->get(['id', 'name']);
 
-        $regions = \App\Models\Region::active()->orderBy('name')->get(['id','name']);
+        // Dropdown lists
+        $regions                = \App\Models\Region::active()->orderBy('name')->get(['id', 'name']);
+        $regionList             = \App\Models\Region::active()->orderBy('name')->get();
+        $sectorList             = \App\Models\Sector::active()->orderBy('name')->get();
+        $representativeList     = User::whereIn('id', Member::whereNotNull('representative_id')->distinct()->pluck('representative_id'))->orderBy('name')->get(['id', 'name']);
+        $verificationStatuses   = VerificationStatus::active()->orderBy('name')->get();
+        $finalStatusList        = FinalStatus::active()->orderBy('name')->get();
+        $maritalStatusList      = \App\Models\MaritalStatus::active()->orderBy('id')->get();
+        $associationList        = Association::active()->orderBy('name')->get();
+        $delegateList           = Delegate::orderBy('name')->pluck('name');
+        $housingStatusList      = \App\Models\HousingStatus::active()->orderBy('name')->get();
+        $houseTypes             = \App\Models\HouseType::active()->orderBy('id')->get();
+        $houseConditions        = \App\Models\HouseCondition::active()->orderBy('name')->get();
+        $fieldVisitStatuses     = FieldVisitStatus::active()->orderBy('id')->get();
+        $fvVisitorList          = FieldVisit::whereNotNull('visitor')->where('visitor', '!=', '')->distinct()->orderBy('visitor')->pluck('visitor');
+        $fvCreatedByList        = User::whereIn('id', FieldVisit::whereNotNull('created_by')->distinct()->pluck('created_by'))->orderBy('name')->get(['id', 'name']);
+        $secondPersonList       = Member::whereNotNull('second_person')->where('second_person', '!=', '')->distinct()->orderBy('second_person')->pluck('second_person');
+        $specialDescriptionList = Member::whereNotNull('special_cases_description')->where('special_cases_description', '!=', '')->distinct()->orderBy('special_cases_description')->pluck('special_cases_description');
+        $addressList            = Member::whereNotNull('current_address')->where('current_address', '!=', '')->distinct()->orderBy('current_address')->pluck('current_address');
+        $paymentDataEntryList   = \App\Models\PaymentInfo::whereNotNull('data_entry_name')->where('data_entry_name', '!=', '')->distinct()->orderBy('data_entry_name')->pluck('data_entry_name');
 
         $members = $query->paginate(50)->withQueryString();
 
         return view('members.national-ids', compact(
-            'members', 'search', 'filter', 'region',
-            'totalMissing', 'totalInvalid', 'totalAll',
-            'totalDuplicates', 'totalDupMembers',
-            'regionStats', 'regions'
+            'members', 'search', 'filters', 'region',
+            'dossierFrom', 'dossierTo', 'estimatedFrom', 'estimatedTo', 'paymentsCountFrom', 'paymentsCountTo',
+            'verificationIds', 'finalStatusIds', 'maritalStatuses', 'genders', 'delegates', 'secondPersons',
+            'specialCases', 'specialDescriptions', 'addresses', 'associationIds', 'networks', 'shamCash',
+            'paymentDataEntries', 'sectorIds', 'representativeIds', 'housingStatusIds',
+            'fieldVisitStatusIds', 'fvHouseTypeIds', 'fvVisitors', 'fvCreatedByIds',
+            'fvDateFrom', 'fvDateTo', 'fvAmountFrom', 'fvAmountTo', 'fvHouseConditionIds',
+            'fvNotes', 'fvHasVideo', 'fvHasSpecialCase', 'fvCount',
+            'totalMissing', 'totalInvalid', 'totalAll', 'totalDuplicates', 'totalDupMembers',
+            'regionStats', 'regions', 'regionList', 'sectorList', 'representativeList',
+            'verificationStatuses', 'finalStatusList', 'maritalStatusList', 'associationList',
+            'delegateList', 'housingStatusList', 'houseTypes', 'houseConditions',
+            'fieldVisitStatuses', 'fvVisitorList', 'fvCreatedByList',
+            'secondPersonList', 'specialDescriptionList', 'addressList', 'paymentDataEntryList'
         ));
     }
 
     public function nationalIdsExport(Request $request)
     {
-        $filter = $request->get('filter', 'missing');
+        $filters = array_values(array_filter((array) $request->get('filters', [])));
+        if (empty($filters)) {
+            $legacy  = $request->get('filter', '');
+            $filters = $legacy ? [$legacy] : ['missing'];
+        }
         $region = $request->get('region_id', '');
+
+        $isAll        = in_array('all', $filters);
+        $hasMissing   = in_array('missing', $filters);
+        $hasInvalid   = in_array('invalid', $filters);
+        $hasDuplicates= in_array('duplicates', $filters);
 
         $query = Member::query();
 
-        if ($filter === 'missing') {
-            $query->where(fn($q) => $q->whereNull('national_id')->orWhere('national_id', ''));
-        } elseif ($filter === 'invalid') {
-            $query->whereNotNull('national_id')->where('national_id','!=','')->whereRaw('LENGTH(national_id) != 11');
-        } elseif ($filter === 'duplicates') {
-            $dupNids = Member::select('national_id')->whereNotNull('national_id')->where('national_id','!=','')
-                ->groupBy('national_id')->havingRaw('COUNT(*) > 1')->pluck('national_id');
-            $query->whereIn('national_id', $dupNids);
+        if (!$isAll) {
+            $dupNids = $hasDuplicates
+                ? Member::select('national_id')->whereNotNull('national_id')->where('national_id','!=','')
+                      ->groupBy('national_id')->havingRaw('COUNT(*) > 1')->pluck('national_id')
+                : collect();
+
+            $query->where(function ($q) use ($hasMissing, $hasInvalid, $hasDuplicates, $dupNids) {
+                if ($hasMissing)    $q->orWhere(fn($q2) => $q2->whereNull('national_id')->orWhere('national_id', ''));
+                if ($hasInvalid)    $q->orWhere(fn($q2) => $q2->whereNotNull('national_id')->where('national_id','!=','')->whereRaw('LENGTH(national_id) != 11'));
+                if ($hasDuplicates && $dupNids->isNotEmpty()) $q->orWhereIn('national_id', $dupNids);
+            });
         }
 
         if ($region) $query->where('region_id', $region);
 
-        $labels   = ['missing'=>'ناقص','invalid'=>'غير_صحيح','duplicates'=>'مكرر','all'=>'الكل'];
-        $label    = $labels[$filter] ?? 'export';
+        $labels   = ['missing'=>'لا_يوجد','invalid'=>'غير_صحيح','duplicates'=>'مكرر','all'=>'الكل'];
+        $label    = implode('-', array_map(fn($f) => $labels[$f] ?? $f, $filters));
         $filename = 'أرقام-الهوية-' . $label . '-' . now()->format('Y-m-d') . '.xlsx';
 
         return \Maatwebsite\Excel\Facades\Excel::download(

@@ -628,6 +628,15 @@
                    class="w-full border border-blue-200 bg-gradient-to-l from-blue-50 to-indigo-50 text-blue-700 font-black rounded-xl px-4 py-2.5 cursor-not-allowed text-center">
         </div>
 
+        @if($isEdit)
+        <div>
+            <label class="{{ $labelClass }}">المبلغ النهائي <span class="text-emerald-500 normal-case font-medium">(شامل الجولات)</span></label>
+            <div class="w-full border border-emerald-200 bg-gradient-to-l from-emerald-50 to-teal-50 text-emerald-700 font-black rounded-xl px-4 py-2.5 text-center">
+                {{ number_format($member->final_amount) }} ل.س
+            </div>
+        </div>
+        @endif
+
         <div>
             <label class="{{ $labelClass }}">عدد الدفعات</label>
             <input type="number" name="payments_count" min="0" step="1"

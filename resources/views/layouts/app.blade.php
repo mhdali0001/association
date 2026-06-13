@@ -48,7 +48,7 @@
             background: rgba(15,23,42,0.5);
             backdrop-filter: blur(2px);
             -webkit-backdrop-filter: blur(2px);
-            z-index: 39;
+            z-index: 60;
             transition: opacity 0.25s ease;
         }
         #sidebar-overlay.show { display: block; }
@@ -95,7 +95,7 @@
             /* Full-height drawer from right */
             #sidebar {
                 position: fixed; top: 0; right: 0;
-                height: 100%; z-index: 40;
+                height: 100%; z-index: 70;
                 transform: translateX(110%);
                 width: 300px !important;
                 box-shadow: -8px 0 32px rgba(0,0,0,0.18);
@@ -132,10 +132,16 @@
                 background: white;
                 border-top: 1px solid #f3f4f6;
                 box-shadow: 0 -4px 24px rgba(0,0,0,0.08);
-                z-index: 100;
+                z-index: 50;
                 align-items: stretch;
                 padding: 0;
                 padding-bottom: env(safe-area-inset-bottom, 0px);
+                transition: transform 0.25s ease, opacity 0.25s ease;
+            }
+            #mobile-bottom-nav.sidebar-open {
+                transform: translateY(100%);
+                opacity: 0;
+                pointer-events: none;
             }
         }
         .mobile-nav-btn {
@@ -257,7 +263,8 @@
                         ['members.create',      'إضافة عضو',            'M18 9v3m0 0v3m0-3h3m-3 0h-3m-5-3a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z'],
                         ['members.national-ids','دراسة أرقام الهوية',  'M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0'],
                         ['members.duplicates',  'التكرارات',            'M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z'],
-                        ['members.import.show', 'استيراد Excel',        'M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
+                        ['members.import.show',    'استيراد Excel',        'M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
+                        ['members.custom-export',  'تصدير مخصص',           'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4'],
                         ['members.bulk-amount',       'إضافة وانقاص النقاط',     'M20 12H4'],
                         ['members.bulk-payments',     'الدفعات الجماعية',  'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z'],
                         ['members.payment-batches',  'سجل الدفعات',       'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'],
@@ -563,6 +570,15 @@
     $isActivity = request()->routeIs('activity-logs.*');
 @endphp
 <nav id="mobile-bottom-nav" role="navigation" aria-label="التنقل السريع">
+
+    {{-- القائمة --}}
+    <button onclick="openMobileSidebar()" class="mobile-nav-btn">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+        <span>القائمة</span>
+    </button>
+
     {{-- الرئيسية --}}
     <a href="{{ route('dashboard') }}" class="mobile-nav-btn {{ $isHome ? 'active' : '' }}">
         <svg fill="none" stroke="currentColor" stroke-width="{{ $isHome ? '2.5' : '1.8' }}" viewBox="0 0 24 24">
@@ -595,13 +611,6 @@
         <span>النشاط</span>
     </a>
 
-    {{-- القائمة --}}
-    <button onclick="openMobileSidebar()" class="mobile-nav-btn">
-        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
-        </svg>
-        <span>القائمة</span>
-    </button>
 </nav>
 
 <script>
@@ -621,15 +630,41 @@ function toggleSidebar() {
     if (colIcon) colIcon.style.transform = isCollapsed ? 'rotate(180deg)' : '';
 }
 
+const bottomNav = document.getElementById('mobile-bottom-nav');
+
 function openMobileSidebar() {
     sidebar.classList.add('mobile-open');
     overlay.classList.add('show');
+    document.body.style.overflow = 'hidden';
+    if (bottomNav) bottomNav.classList.add('sidebar-open');
 }
 
 function closeMobileSidebar() {
     sidebar.classList.remove('mobile-open');
     overlay.classList.remove('show');
+    document.body.style.overflow = '';
+    if (bottomNav) bottomNav.classList.remove('sidebar-open');
 }
+
+// Swipe right to close sidebar
+(function () {
+    var startX = 0, startY = 0, dragging = false;
+    sidebar.addEventListener('touchstart', function (e) {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        dragging = true;
+    }, { passive: true });
+    sidebar.addEventListener('touchmove', function (e) {
+        if (!dragging) return;
+        var dx = e.touches[0].clientX - startX;
+        var dy = Math.abs(e.touches[0].clientY - startY);
+        if (dx > 60 && dy < 60) {
+            dragging = false;
+            closeMobileSidebar();
+        }
+    }, { passive: true });
+    sidebar.addEventListener('touchend', function () { dragging = false; }, { passive: true });
+})();
 
 // Close user dropdown when clicking outside
 document.addEventListener('click', (e) => {

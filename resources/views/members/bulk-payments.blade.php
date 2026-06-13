@@ -42,8 +42,16 @@
         + (!empty($paymentDataEntries) ? 1 : 0)
         + ($specialCases  !== '' ? 1 : 0)
         + ($hasPayments   !== '' ? 1 : 0);
-    // Panel auto-opens for any active filter (main OR field-visit)
-    $hasMainFilters = $mainActiveCount > 0 || $fvActiveCount > 0;
+
+    $paymentActiveCount =
+        ($hasIban !== '' ? 1 : 0)
+        + ($hasBarcode !== '' ? 1 : 0)
+        + (!empty($paymentReviewStatus) ? 1 : 0)
+        + ($lastBatchDateFrom !== '' || $lastBatchDateTo !== '' ? 1 : 0)
+        + (!empty($batchIds) ? 1 : 0);
+
+    // Panel auto-opens for any active filter
+    $hasMainFilters = $mainActiveCount > 0 || $fvActiveCount > 0 || $paymentActiveCount > 0;
 @endphp
 
 <style>
@@ -148,8 +156,9 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
                     </svg>
                     الفلاتر
-                    @if($mainActiveCount > 0)
-                        <span class="text-xs bg-teal-600 text-white rounded-full px-1.5 py-0.5 font-black">{{ $mainActiveCount }}</span>
+                    @php $totalActiveCount = $mainActiveCount + $fvActiveCount + $paymentActiveCount; @endphp
+                    @if($totalActiveCount > 0)
+                        <span class="text-xs bg-teal-600 text-white rounded-full px-1.5 py-0.5 font-black">{{ $totalActiveCount }}</span>
                     @endif
                     <svg id="bp-filter-arrow" class="w-4 h-4 text-gray-400 transition-transform duration-200 {{ $hasMainFilters ? 'rotate-180' : '' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
@@ -790,6 +799,116 @@
             </div>
         </div>
 
+        {{-- Payment-specific filters --}}
+        <div class="border border-emerald-100 rounded-2xl mb-4">
+            <button type="button" onclick="toggleBpPayFilters()"
+                    class="w-full flex items-center justify-between gap-3 px-5 py-3 bg-emerald-50/60 hover:bg-emerald-50 transition-colors text-right rounded-t-2xl">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-6 h-6 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                        <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                        </svg>
+                    </div>
+                    <span class="text-sm font-bold text-emerald-700">فلاتر خاصة بالدفعات</span>
+                    @if($paymentActiveCount > 0)
+                        <span class="text-xs bg-emerald-600 text-white rounded-full px-2 py-0.5 font-bold">{{ $paymentActiveCount }} فعّال</span>
+                    @endif
+                </div>
+                <svg id="bp-pay-filter-arrow" class="w-4 h-4 text-emerald-400 transition-transform duration-200 {{ $paymentActiveCount > 0 ? 'rotate-180' : '' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
+            <div id="bp-pay-filter-body" class="{{ $paymentActiveCount > 0 ? '' : 'hidden' }} px-5 pb-5 pt-4 bg-emerald-50/20 rounded-b-2xl">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
+
+                    {{-- IBAN --}}
+                    <div>
+                        <label class="block text-xs font-bold text-emerald-600 uppercase tracking-wide mb-1.5">يوجد IBAN</label>
+                        <select name="has_iban" onwheel="this.blur()"
+                                class="w-full text-sm border border-emerald-200 rounded-xl px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 transition text-gray-500">
+                            <option value="">— الكل —</option>
+                            <option value="1" {{ $hasIban === '1' ? 'selected' : '' }}>نعم</option>
+                            <option value="0" {{ $hasIban === '0' ? 'selected' : '' }}>لا</option>
+                        </select>
+                    </div>
+
+                    {{-- Barcode --}}
+                    <div>
+                        <label class="block text-xs font-bold text-emerald-600 uppercase tracking-wide mb-1.5">يوجد باركود</label>
+                        <select name="has_barcode" onwheel="this.blur()"
+                                class="w-full text-sm border border-emerald-200 rounded-xl px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 transition text-gray-500">
+                            <option value="">— الكل —</option>
+                            <option value="1" {{ $hasBarcode === '1' ? 'selected' : '' }}>نعم</option>
+                            <option value="0" {{ $hasBarcode === '0' ? 'selected' : '' }}>لا</option>
+                        </select>
+                    </div>
+
+                    {{-- Payment review status --}}
+                    <div class="ms-dropdown relative">
+                        <label class="block text-xs font-bold text-emerald-600 uppercase tracking-wide mb-1.5">حالة مراجعة الدفع</label>
+                        <button type="button" class="ms-btn w-full flex items-center justify-between text-sm border border-emerald-200 rounded-xl px-3 py-2.5 bg-white hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition text-right">
+                            <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                            <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-emerald-100 rounded-xl shadow-lg py-1">
+                            @foreach(['none' => 'بدون مراجعة', 'pending' => 'قيد المراجعة', 'match' => 'متطابق', 'mismatch' => 'غير متطابق'] as $val => $lbl)
+                                <label class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-emerald-50 cursor-pointer text-sm text-gray-700">
+                                    <input type="checkbox" name="payment_review_status[]" value="{{ $val }}" {{ in_array($val, $paymentReviewStatus) ? 'checked' : '' }} class="ms-check rounded border-gray-300 text-emerald-600 focus:ring-emerald-400">
+                                    <span class="inline-block w-2 h-2 rounded-full shrink-0 @if($val==='match') bg-green-500 @elseif($val==='mismatch') bg-red-500 @elseif($val==='pending') bg-amber-500 @else bg-gray-300 @endif"></span>
+                                    {{ $lbl }}
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+                    {{-- Last batch date range --}}
+                    <div>
+                        <label class="block text-xs font-bold text-emerald-600 uppercase tracking-wide mb-1.5">تاريخ الدفعة (من — إلى)</label>
+                        <div class="flex items-center gap-1.5">
+                            <input type="date" name="last_batch_date_from" value="{{ $lastBatchDateFrom }}"
+                                   class="flex-1 min-w-0 text-sm border border-emerald-200 rounded-xl px-2.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 transition">
+                            <span class="text-xs text-emerald-400 shrink-0">—</span>
+                            <input type="date" name="last_batch_date_to" value="{{ $lastBatchDateTo }}"
+                                   class="flex-1 min-w-0 text-sm border border-emerald-200 rounded-xl px-2.5 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 transition">
+                        </div>
+                        <p class="text-[10px] text-emerald-400/80 mt-1">يعرض الأعضاء الذين وُجدوا في دفعة ضمن هذا النطاق</p>
+                    </div>
+
+                    {{-- Specific batch --}}
+                    <div class="ms-dropdown relative">
+                        <label class="block text-xs font-bold text-emerald-600 uppercase tracking-wide mb-1.5">دفعة محددة</label>
+                        <button type="button" class="ms-btn w-full flex items-center justify-between text-sm border border-emerald-200 rounded-xl px-3 py-2.5 bg-white hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition text-right">
+                            <span class="ms-label text-gray-500 truncate">— الكل —</span>
+                            <svg class="ms-arrow w-4 h-4 text-gray-400 flex-shrink-0 mr-1 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <div class="ms-panel hidden absolute z-30 top-full mt-1 w-full bg-white border border-emerald-100 rounded-xl shadow-lg overflow-hidden" style="max-height:280px">
+                            <div class="p-2 border-b border-gray-100 sticky top-0 bg-white">
+                                <input type="text" class="ms-search w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-400" placeholder="بحث في الدفعات...">
+                            </div>
+                            <div class="overflow-y-auto" style="max-height:220px">
+                            @forelse($batchList as $batch)
+                                <label class="ms-option flex items-start gap-2.5 px-3 py-2.5 hover:bg-emerald-50 cursor-pointer text-sm text-gray-700">
+                                    <input type="checkbox" name="batch_id[]" value="{{ $batch->id }}" {{ in_array($batch->id, $batchIds) ? 'checked' : '' }} class="ms-check rounded border-gray-300 text-emerald-600 focus:ring-emerald-400 mt-0.5 shrink-0">
+                                    <span class="min-w-0">
+                                        <span class="block font-medium leading-tight truncate">{{ $batch->label ?: '—' }}</span>
+                                        <span class="block text-xs text-gray-400">{{ $batch->payment_date?->format('Y-m-d') }} · {{ $batch->operationLabel }} {{ $batch->amount }}</span>
+                                    </span>
+                                </label>
+                            @empty
+                                <p class="px-3 py-2 text-sm text-gray-400">لا توجد دفعات مسجلة</p>
+                            @endforelse
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
         {{-- Actions row --}}
         <div class="flex items-center gap-2 flex-wrap">
             <button type="submit" class="flex items-center gap-2 bg-gradient-to-l from-teal-600 to-cyan-500 hover:from-teal-700 hover:to-cyan-600 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm">
@@ -1015,8 +1134,11 @@
                 <div class="flex items-center gap-2">
                     <input type="text" name="batch_label" placeholder="اسم الدفعة"
                            class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition placeholder-gray-300">
-                    <input type="date" name="payment_date" value="{{ now()->toDateString() }}"
-                           class="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition">
+                    <input type="text" id="bp-date-mobile" inputmode="numeric" maxlength="10"
+                           value="{{ now()->format('d.m.Y') }}" placeholder="يي.شش.سسسس"
+                           oninput="bpFormatDate(this,'bp-date-mobile-h')"
+                           class="w-32 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition" dir="ltr">
+                    <input type="hidden" name="payment_date" id="bp-date-mobile-h" value="{{ now()->toDateString() }}">
                 </div>
                 <input type="text" name="batch_notes" placeholder="ملاحظات (اختياري)"
                        class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition placeholder-gray-300">
@@ -1084,8 +1206,11 @@
                 {{-- Batch date --}}
                 <div class="flex items-center gap-2">
                     <label class="text-sm font-bold text-gray-600 shrink-0">تاريخ الدفعة</label>
-                    <input type="date" name="payment_date" value="{{ now()->toDateString() }}"
-                           class="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition">
+                    <input type="text" id="bp-date-desktop" inputmode="numeric" maxlength="10"
+                           value="{{ now()->format('d.m.Y') }}" placeholder="يي.شش.سسسس"
+                           oninput="bpFormatDate(this,'bp-date-desktop-h')"
+                           class="w-32 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white transition" dir="ltr">
+                    <input type="hidden" name="payment_date" id="bp-date-desktop-h" value="{{ now()->toDateString() }}">
                 </div>
 
                 {{-- Batch notes --}}
@@ -1140,6 +1265,13 @@ function toggleBpFilters() {
 function toggleBpFvFilters() {
     const body  = document.getElementById('bp-fv-filter-body');
     const arrow = document.getElementById('bp-fv-filter-arrow');
+    body.classList.toggle('hidden');
+    arrow.classList.toggle('rotate-180');
+}
+
+function toggleBpPayFilters() {
+    const body  = document.getElementById('bp-pay-filter-body');
+    const arrow = document.getElementById('bp-pay-filter-arrow');
     body.classList.toggle('hidden');
     arrow.classList.toggle('rotate-180');
 }
@@ -1329,6 +1461,18 @@ function applyToFiltered() {
         desktopCountInput.value = mobileCountInput.value;
     }
     document.getElementById('bulk-form').submit();
+}
+
+function bpFormatDate(el, hiddenId) {
+    let v = el.value.replace(/\D/g, '');
+    if (v.length > 2) v = v.slice(0,2) + '.' + v.slice(2);
+    if (v.length > 5) v = v.slice(0,5) + '.' + v.slice(5);
+    el.value = v.slice(0, 10);
+    const hidden = document.getElementById(hiddenId);
+    const parts  = el.value.split('.');
+    hidden.value = (parts.length === 3 && parts[2].length === 4)
+        ? parts[2] + '-' + parts[1] + '-' + parts[0]
+        : '';
 }
 </script>
 @endpush

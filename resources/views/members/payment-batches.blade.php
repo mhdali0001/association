@@ -407,7 +407,7 @@
                         <p class="text-[10px] text-gray-400 font-medium">المبلغ</p>
                     </div>
                 </div>
-                {{-- Footer: applied-by + details button --}}
+                {{-- Footer: applied-by + action buttons --}}
                 <div class="flex items-center justify-between px-4 py-2.5 border-t border-gray-100 bg-gray-50/50">
                     <div class="flex items-center gap-2">
                         <div class="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-xs font-black text-gray-500 shrink-0">
@@ -418,14 +418,24 @@
                             <p class="text-[10px] text-gray-400 font-mono">{{ $batch->created_at->format('d/m/Y') }}</p>
                         </div>
                     </div>
-                    <a href="{{ route('members.payment-batches.show', $batch) }}"
-                       class="flex items-center gap-1 text-xs font-bold text-teal-600 bg-teal-50 hover:bg-teal-100 border border-teal-100 rounded-xl px-3 py-1.5 transition-colors">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                        </svg>
-                        تفاصيل
-                    </a>
+                    <div class="flex items-center gap-1.5">
+                        <button type="button"
+                                onclick="openEditBatch({{ $batch->id }}, {{ json_encode($batch->label) }}, {{ json_encode($batch->payment_date?->format('Y-m-d') ?? '') }}, {{ json_encode($batch->notes ?? '') }})"
+                                class="flex items-center gap-1 text-xs font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-100 rounded-xl px-3 py-1.5 transition-colors">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            تعديل
+                        </button>
+                        <a href="{{ route('members.payment-batches.show', $batch) }}"
+                           class="flex items-center gap-1 text-xs font-bold text-teal-600 bg-teal-50 hover:bg-teal-100 border border-teal-100 rounded-xl px-3 py-1.5 transition-colors">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                            تفاصيل
+                        </a>
+                    </div>
                 </div>
             </div>
 
@@ -475,7 +485,15 @@
                         </div>
                     </div>
                 </div>
-                <div class="px-4 shrink-0">
+                <div class="px-4 shrink-0 flex items-center gap-1.5">
+                    <button type="button"
+                            onclick="openEditBatch({{ $batch->id }}, {{ json_encode($batch->label) }}, {{ json_encode($batch->payment_date?->format('Y-m-d') ?? '') }}, {{ json_encode($batch->notes ?? '') }})"
+                            class="flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-amber-700 hover:bg-amber-50 hover:border-amber-200 border border-transparent rounded-xl px-3 py-2.5 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        تعديل
+                    </button>
                     <a href="{{ route('members.payment-batches.show', $batch) }}"
                        class="flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-teal-700 group-hover:bg-teal-50 hover:border-teal-200 border border-transparent rounded-xl px-3 py-2.5 transition-all">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -498,8 +516,121 @@
     @endif
 @endif
 
+{{-- ══ Edit Batch Modal ══ --}}
+<div id="edit-batch-modal"
+     class="fixed inset-0 z-50 hidden flex items-center justify-center p-4"
+     role="dialog" aria-modal="true">
+    {{-- Backdrop --}}
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeEditBatch()"></div>
+
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        {{-- Header --}}
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 bg-amber-100 rounded-xl flex items-center justify-center">
+                    <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                </div>
+                <h2 class="text-sm font-bold text-gray-800">تعديل بيانات الدفعة</h2>
+            </div>
+            <button type="button" onclick="closeEditBatch()"
+                    class="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        {{-- Form --}}
+        <form id="edit-batch-form" method="POST" class="px-6 py-5 space-y-4">
+            @csrf
+            @method('PATCH')
+
+            <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1.5">اسم الدفعة</label>
+                <input type="text" name="label" id="edit-batch-label"
+                       placeholder="مثال: دفعة رمضان 2026"
+                       class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition placeholder-gray-300">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1.5">تاريخ الدفع</label>
+                <input type="text" id="edit-batch-date" inputmode="numeric" maxlength="10"
+                       placeholder="يي.شش.سسسس"
+                       oninput="ebFormatDate()"
+                       class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition" dir="ltr">
+                <input type="hidden" name="payment_date" id="edit-batch-date-h">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1.5">ملاحظات</label>
+                <textarea name="notes" id="edit-batch-notes" rows="3"
+                          placeholder="أي ملاحظات إضافية..."
+                          class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition resize-none placeholder-gray-300"></textarea>
+            </div>
+
+            <div class="flex items-center gap-2.5 pt-1">
+                <button type="submit"
+                        class="flex-1 flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold py-2.5 rounded-xl transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    حفظ التعديلات
+                </button>
+                <button type="button" onclick="closeEditBatch()"
+                        class="px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-50 transition-colors">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @push('scripts')
 <script>
+function isoToDisplay(iso) {
+    if (!iso) return '';
+    const parts = iso.split('-');
+    return parts.length === 3 ? parts[2] + '.' + parts[1] + '.' + parts[0] : '';
+}
+
+function ebFormatDate() {
+    const el = document.getElementById('edit-batch-date');
+    let v = el.value.replace(/\D/g, '');
+    if (v.length > 2) v = v.slice(0,2) + '.' + v.slice(2);
+    if (v.length > 5) v = v.slice(0,5) + '.' + v.slice(5);
+    el.value = v.slice(0, 10);
+    const hidden = document.getElementById('edit-batch-date-h');
+    const parts  = el.value.split('.');
+    hidden.value = (parts.length === 3 && parts[2].length === 4)
+        ? parts[2] + '-' + parts[1] + '-' + parts[0]
+        : '';
+}
+
+function openEditBatch(id, label, date, notes) {
+    const modal  = document.getElementById('edit-batch-modal');
+    const form   = document.getElementById('edit-batch-form');
+    const baseUrl = '{{ url("members/payment-batches") }}';
+    form.action = baseUrl + '/' + id;
+    document.getElementById('edit-batch-label').value  = label || '';
+    document.getElementById('edit-batch-date').value   = isoToDisplay(date);
+    document.getElementById('edit-batch-date-h').value = date || '';
+    document.getElementById('edit-batch-notes').value  = notes || '';
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    document.getElementById('edit-batch-label').focus();
+}
+
+function closeEditBatch() {
+    document.getElementById('edit-batch-modal').classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeEditBatch();
+});
+
 function toggleBatchFilters() {
     const body  = document.getElementById('batch-filter-body');
     const arrow = document.getElementById('batch-filter-arrow');

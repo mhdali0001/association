@@ -99,6 +99,11 @@ class Member extends Model
         return $this->hasOne(\App\Models\FieldVisit::class)->latest();
     }
 
+    public function paymentBatchEntries()
+    {
+        return $this->hasMany(PaymentBatchMember::class)->latest();
+    }
+
     public function getFinalAmountAttribute(): float
     {
         $visitAmt = 0;
