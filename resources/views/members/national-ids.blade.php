@@ -1122,16 +1122,13 @@ const _tabStyles = {
 function handleFilterChange(cb) {
     const allCbs = Array.from(document.querySelectorAll('input[name="filters[]"]'));
 
-    if (cb.value === 'all') {
-        if (cb.checked) allCbs.forEach(c => { if (c.value !== 'all') c.checked = false; });
-    } else {
-        const allCb = document.querySelector('input[name="filters[]"][value="all"]');
-        if (allCb) allCb.checked = false;
-        const anyChecked = allCbs.some(c => c.checked && c.value !== 'all');
-        if (!anyChecked) {
-            const missingCb = document.querySelector('input[name="filters[]"][value="missing"]');
-            if (missingCb) missingCb.checked = true;
-        }
+    // Exclusive selection: clicking any tab deselects all others
+    allCbs.forEach(c => { if (c !== cb) c.checked = false; });
+
+    // If the user unchecked the only active tab, fall back to 'missing'
+    if (!cb.checked) {
+        const missingCb = document.querySelector('input[name="filters[]"][value="missing"]');
+        if (missingCb) missingCb.checked = true;
     }
 
     // Update label styles
@@ -1140,7 +1137,12 @@ function handleFilterChange(cb) {
         if (lbl && _tabStyles[c.value]) lbl.className = _tabStyles[c.value][c.checked ? 'on' : 'off'];
     });
 
-    document.getElementById('filter-form').submit();
+    // Navigate using current URL params (not form state) to avoid carrying over
+    // browser-restored or unsaved form values when only the tab filter changes.
+    const params = new URLSearchParams(window.location.search);
+    params.delete('filters[]');
+    allCbs.filter(c => c.checked).forEach(c => params.append('filters[]', c.value));
+    window.location.href = window.location.pathname + '?' + params.toString();
 }
 
 // ── Member filters toggle ──

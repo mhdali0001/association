@@ -1000,7 +1000,7 @@ class MemberController extends Controller
 
         $query = \App\Models\PaymentBatchMember::with('member')
             ->where('payment_batch_members.batch_id', $batch->id)
-            ->join('members', 'members.id', '=', 'payment_batch_members.member_id')
+            ->leftJoin('members', 'members.id', '=', 'payment_batch_members.member_id')
             ->select('payment_batch_members.*');
 
         if ($search) {
