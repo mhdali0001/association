@@ -1050,6 +1050,15 @@ class MemberController extends Controller
         return back()->with('success', 'تم تحديث بيانات الدفعة بنجاح.');
     }
 
+    public function exportPaymentBatch(\App\Models\PaymentBatch $batch)
+    {
+        $filename = 'دفعة-' . ($batch->label ?: $batch->id) . '-' . now()->format('Y-m-d') . '.xlsx';
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\PaymentBatchExport($batch),
+            $filename
+        );
+    }
+
     // ───────────────────────────────────────────────────────────────────
 
     private function isAdmin(): bool

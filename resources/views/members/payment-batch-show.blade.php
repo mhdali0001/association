@@ -56,7 +56,15 @@
                     <p class="text-white/70 text-sm mt-1">{{ $batch->notes }}</p>
                 @endif
             </div>
-            <span class="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-black rounded-2xl px-4 py-2 shrink-0">
+            <div class="flex items-center gap-2 flex-wrap shrink-0">
+            <a href="{{ route('members.payment-batches.export', $batch) }}"
+               class="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 text-white text-sm font-bold rounded-2xl px-4 py-2 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                تصدير Excel
+            </a>
+            <span class="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-black rounded-2xl px-4 py-2">
                 @if($isAdd)
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                     إضافة {{ $batch->amount }} دفعة
@@ -68,6 +76,7 @@
                     تعيين {{ $batch->amount }} دفعة
                 @endif
             </span>
+            </div>
         </div>
 
         {{-- Stats --}}

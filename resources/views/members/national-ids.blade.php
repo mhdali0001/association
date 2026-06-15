@@ -159,7 +159,7 @@
                 @php
                     $tabs = [
                         'missing'    => ['label' => 'لا يوجد ('  .$totalMissing.')',    'on' => 'bg-red-500 text-white border-red-500 shadow-sm',      'off' => 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-white'],
-                        'invalid'    => ['label' => 'غير صحيح ('.$totalInvalid.')',    'on' => 'bg-amber-500 text-white border-amber-500 shadow-sm',   'off' => 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-white'],
+                        'invalid'    => ['label' => 'ناقص ('.$totalInvalid.')',         'on' => 'bg-amber-500 text-white border-amber-500 shadow-sm',   'off' => 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-white'],
                         'duplicates' => ['label' => 'مكرر ('    .$totalDupMembers.')', 'on' => 'bg-purple-600 text-white border-purple-600 shadow-sm', 'off' => 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-white'],
                         'all'        => ['label' => 'الكل ('    .$totalAll.')',        'on' => 'bg-gray-700 text-white border-gray-700 shadow-sm',     'off' => 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-white'],
                     ];
@@ -892,11 +892,19 @@
 
 {{-- ══════════════ LIST ══════════════ --}}
 @php
-    // Build a map of national_id → [member ids] for duplicate detection in the current page
-    $dupNidMap = [];
+    // Build a map of national_id → [member ids + info] for duplicate detection
+    $dupNidMap   = [];
+    $dupNidInfos = []; // national_id → [['id','name','dossier'], ...]
     if (in_array('duplicates', $filters)) {
         foreach ($members as $m) {
-            if ($m->national_id) $dupNidMap[$m->national_id][] = $m->id;
+            if ($m->national_id) {
+                $dupNidMap[$m->national_id][] = $m->id;
+                $dupNidInfos[$m->national_id][] = [
+                    'id'      => $m->id,
+                    'name'    => $m->full_name,
+                    'dossier' => $m->dossier_number,
+                ];
+            }
         }
     }
 @endphp
@@ -954,7 +962,7 @@
                     $valid  = $hasId && strlen($member->national_id) === 11 && ctype_digit($member->national_id);
                     $status = !$hasId ? 'missing' : (!$valid ? 'invalid' : 'ok');
                     $isDup  = in_array('duplicates', $filters) && isset($dupNidMap[$member->national_id]) && count($dupNidMap[$member->national_id]) > 1;
-                    $dupSiblings = $isDup ? collect($dupNidMap[$member->national_id])->filter(fn($id)=>$id!=$member->id)->count() : 0;
+                    $dupSiblings = $isDup ? collect($dupNidInfos[$member->national_id])->filter(fn($info)=>$info['id']!=$member->id)->values() : collect();
                 @endphp
                 <tr class="hover:bg-gray-50/50 transition-colors" id="row-{{ $member->id }}" data-order="{{ $loop->index }}">
                     <td class="px-5 py-3.5">
@@ -976,9 +984,15 @@
                                 غير موجود
                             </span>
                         @elseif($isDup)
-                            <div class="flex items-center gap-1.5 flex-wrap">
-                                <span class="text-xs font-mono text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-1 rounded-xl font-bold">{{ $member->national_id }}</span>
-                                <span class="text-[10px] text-purple-500 bg-purple-50 border border-purple-100 px-1.5 py-0.5 rounded-lg font-bold">مكرر مع {{ $dupSiblings }} آخر</span>
+                            <div class="flex flex-col gap-1">
+                                <span class="text-xs font-mono text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-1 rounded-xl font-bold self-start">{{ $member->national_id }}</span>
+                                @foreach($dupSiblings as $sib)
+                                    <a href="{{ route('members.show', $sib['id']) }}" target="_blank"
+                                       class="inline-flex items-center gap-1 text-[10px] text-purple-600 bg-purple-50 border border-purple-100 px-1.5 py-0.5 rounded-lg font-bold hover:bg-purple-100 transition-colors">
+                                        <svg class="w-2.5 h-2.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                        {{ $sib['name'] }} ({{ $sib['dossier'] }})
+                                    </a>
+                                @endforeach
                             </div>
                         @elseif($status === 'invalid')
                             <span class="inline-flex items-center gap-1 text-xs font-bold bg-amber-50 text-amber-600 border border-amber-200 px-2.5 py-1 rounded-xl font-mono">
@@ -1028,7 +1042,7 @@
             $valid  = $hasId && strlen($member->national_id) === 11 && ctype_digit($member->national_id);
             $status = !$hasId ? 'missing' : (!$valid ? 'invalid' : 'ok');
             $isDup  = in_array('duplicates', $filters) && isset($dupNidMap[$member->national_id]) && count($dupNidMap[$member->national_id]) > 1;
-            $dupSiblings = $isDup ? collect($dupNidMap[$member->national_id])->filter(fn($id)=>$id!=$member->id)->count() : 0;
+            $dupSiblings = $isDup ? collect($dupNidInfos[$member->national_id])->filter(fn($info)=>$info['id']!=$member->id)->values() : collect();
         @endphp
         <div class="px-4 py-4" id="mrow-{{ $member->id }}" data-order="{{ $loop->index }}">
             <div class="flex items-start justify-between gap-2 mb-2.5">
@@ -1057,7 +1071,7 @@
                 @elseif($status === 'invalid')
                     <span class="shrink-0 inline-flex items-center gap-1 text-xs font-bold bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-lg">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-                        غير صحيح
+                        ناقص
                     </span>
                 @endif
             </div>
@@ -1067,7 +1081,15 @@
                 <span class="text-xs text-gray-400">الحالي:</span>
                 <span class="text-xs font-mono {{ $isDup ? 'text-purple-700 font-bold' : ($valid ? 'text-gray-500' : 'text-amber-600 font-bold') }}">{{ $member->national_id }}</span>
                 @if($isDup)
-                    <span class="text-[10px] text-purple-500 font-bold">مكرر مع {{ $dupSiblings }} آخر</span>
+                    <div class="flex flex-col gap-0.5">
+                        @foreach($dupSiblings as $sib)
+                            <a href="{{ route('members.show', $sib['id']) }}" target="_blank"
+                               class="inline-flex items-center gap-1 text-[10px] text-purple-600 bg-purple-50 border border-purple-100 px-1.5 py-0.5 rounded-lg font-bold hover:bg-purple-100 transition-colors">
+                                <svg class="w-2.5 h-2.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                {{ $sib['name'] }} ({{ $sib['dossier'] }})
+                            </a>
+                        @endforeach
+                    </div>
                 @endif
             </div>
             @endif
@@ -1122,13 +1144,18 @@ const _tabStyles = {
 function handleFilterChange(cb) {
     const allCbs = Array.from(document.querySelectorAll('input[name="filters[]"]'));
 
-    // Exclusive selection: clicking any tab deselects all others
-    allCbs.forEach(c => { if (c !== cb) c.checked = false; });
+    // 'all' and specific filters are mutually exclusive
+    if (cb.value === 'all' && cb.checked) {
+        allCbs.forEach(c => { if (c.value !== 'all') c.checked = false; });
+    } else if (cb.value !== 'all' && cb.checked) {
+        const allCb = document.querySelector('input[name="filters[]"][value="all"]');
+        if (allCb) allCb.checked = false;
+    }
 
-    // If the user unchecked the only active tab, fall back to 'missing'
-    if (!cb.checked) {
-        const missingCb = document.querySelector('input[name="filters[]"][value="missing"]');
-        if (missingCb) missingCb.checked = true;
+    // If nothing is checked, fall back to 'all'
+    if (!allCbs.some(c => c.checked)) {
+        const allCb = document.querySelector('input[name="filters[]"][value="all"]');
+        if (allCb) allCb.checked = true;
     }
 
     // Update label styles
@@ -1137,8 +1164,7 @@ function handleFilterChange(cb) {
         if (lbl && _tabStyles[c.value]) lbl.className = _tabStyles[c.value][c.checked ? 'on' : 'off'];
     });
 
-    // Navigate using current URL params (not form state) to avoid carrying over
-    // browser-restored or unsaved form values when only the tab filter changes.
+    // Navigate using current URL params (not form state)
     const params = new URLSearchParams(window.location.search);
     params.delete('filters[]');
     allCbs.filter(c => c.checked).forEach(c => params.append('filters[]', c.value));

@@ -435,6 +435,13 @@
                             </svg>
                             تفاصيل
                         </a>
+                        <a href="{{ route('members.payment-batches.export', $batch) }}"
+                           class="flex items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 rounded-xl px-3 py-1.5 transition-colors">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                            </svg>
+                            تصدير
+                        </a>
                     </div>
                 </div>
             </div>
@@ -501,6 +508,13 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                         </svg>
                         تفاصيل
+                    </a>
+                    <a href="{{ route('members.payment-batches.export', $batch) }}"
+                       class="flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-emerald-700 hover:bg-emerald-50 hover:border-emerald-200 border border-transparent rounded-xl px-3 py-2.5 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        تصدير
                     </a>
                 </div>
             </div>
