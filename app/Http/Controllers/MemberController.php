@@ -1059,6 +1059,86 @@ class MemberController extends Controller
         );
     }
 
+    public function searchJson(Request $request)
+    {
+        $q = trim($request->get('q', ''));
+        if (mb_strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $results = Member::where(fn($query) => $query
+            ->where('full_name', 'like', "%{$q}%")
+            ->orWhere('dossier_number', 'like', "%{$q}%")
+        )
+        ->limit(10)
+        ->get(['id', 'full_name', 'dossier_number', 'payments_count']);
+
+        return response()->json($results);
+    }
+
+    public function addMemberToBatch(Request $request, \App\Models\PaymentBatch $batch)
+    {
+        $request->validate(['member_id' => 'required|integer|exists:members,id']);
+
+        $member = Member::with('latestFieldVisit')->findOrFail($request->member_id);
+
+        $alreadyIn = \App\Models\PaymentBatchMember::where('batch_id', $batch->id)
+            ->where('member_id', $member->id)
+            ->exists();
+
+        if ($alreadyIn) {
+            return back()->with('error', 'هذا العضو موجود بالفعل في هذه الدفعة.');
+        }
+
+        $prev = (int)($member->payments_count ?? 0);
+        $new  = match($batch->operation) {
+            'add'      => $prev + $batch->amount,
+            'subtract' => max(0, $prev - $batch->amount),
+            default    => $batch->amount,
+        };
+
+        \App\Models\PaymentBatchMember::create([
+            'batch_id'         => $batch->id,
+            'member_id'        => $member->id,
+            'previous_count'   => $prev,
+            'new_count'        => $new,
+            'estimated_amount' => $member->final_amount,
+        ]);
+
+        if ($batch->operation === 'add') {
+            $member->increment('payments_count', $batch->amount);
+        } elseif ($batch->operation === 'subtract') {
+            $member->update(['payments_count' => max(0, $prev - $batch->amount)]);
+        } else {
+            $member->update(['payments_count' => $batch->amount]);
+        }
+
+        $batch->increment('members_count');
+        $batch->increment('total_estimated_amount', $member->final_amount);
+
+        ActivityLogger::log('updated', "إضافة عضو للدفعة: " . ($batch->label ?: 'دفعة #' . $batch->id) . " — " . $member->full_name, $batch);
+
+        return back()->with('success', 'تمت إضافة العضو «' . $member->full_name . '» إلى الدفعة بنجاح.');
+    }
+
+    public function removeMemberFromBatch(\App\Models\PaymentBatch $batch, Member $member)
+    {
+        $batchMember = \App\Models\PaymentBatchMember::where('batch_id', $batch->id)
+            ->where('member_id', $member->id)
+            ->firstOrFail();
+
+        $member->update(['payments_count' => $batchMember->previous_count]);
+
+        $batch->decrement('members_count');
+        $batch->decrement('total_estimated_amount', $batchMember->estimated_amount);
+
+        $batchMember->delete();
+
+        ActivityLogger::log('updated', "إزالة عضو من الدفعة: " . ($batch->label ?: 'دفعة #' . $batch->id) . " — " . $member->full_name, $batch);
+
+        return back()->with('success', 'تمت إزالة العضو «' . $member->full_name . '» من الدفعة.');
+    }
+
     // ───────────────────────────────────────────────────────────────────
 
     private function isAdmin(): bool

@@ -27,6 +27,24 @@
     $hasFilters = $search || $diffFilter || $amountFrom !== '' || $amountTo !== '';
 @endphp
 
+{{-- Flash messages --}}
+@if(session('success'))
+<div class="mb-4 flex items-center gap-3 px-4 py-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-sm font-semibold">
+    <svg class="w-5 h-5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+    </svg>
+    {{ session('success') }}
+</div>
+@endif
+@if(session('error'))
+<div class="mb-4 flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 text-red-800 rounded-2xl text-sm font-semibold">
+    <svg class="w-5 h-5 text-red-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+    </svg>
+    {{ session('error') }}
+</div>
+@endif
+
 {{-- Back button --}}
 <div class="mb-4">
     <a href="{{ route('members.payment-batches') }}"
@@ -227,6 +245,30 @@
                 <p class="text-xs text-gray-400">{{ $fmt($members->total()) }} عضو</p>
             </div>
         </div>
+        <button type="button" onclick="toggleAddMemberPanel()"
+                class="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-bold rounded-xl transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+            </svg>
+            إضافة عضو
+        </button>
+    </div>
+
+    {{-- Add member panel --}}
+    <div id="add-member-panel" class="hidden border-b border-gray-100 px-5 py-4 bg-gray-50/60">
+        <p class="text-xs font-bold text-gray-500 mb-3">بحث عن عضو لإضافته إلى هذه الدفعة</p>
+        <div class="flex gap-2">
+            <div class="relative flex-1">
+                <span class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+                    </svg>
+                </span>
+                <input type="text" id="add-member-search" placeholder="اسم العضو أو رقم الملف..."
+                       class="w-full pr-10 pl-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-400 transition placeholder-gray-300">
+            </div>
+        </div>
+        <div id="add-member-results" class="mt-3 space-y-1.5 hidden"></div>
     </div>
 
     @if($members->isEmpty())
@@ -251,6 +293,7 @@
                         <th class="px-5 py-3 text-center">بعد</th>
                         <th class="px-5 py-3 text-center">التغيير</th>
                         <th class="px-5 py-3 text-right">المبلغ النهائي</th>
+                        <th class="px-3 py-3"></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
@@ -301,6 +344,20 @@
                                 {{ $fmtMoney($line->estimated_amount) }}
                             </span>
                         </td>
+                        <td class="px-3 py-3.5">
+                            @if($line->member)
+                            <form method="POST" action="{{ route('members.payment-batches.members.remove', [$batch, $line->member]) }}"
+                                  onsubmit="return confirm('هل تريد إزالة «{{ $line->member->full_name }}» من هذه الدفعة؟')">
+                                @csrf @method('DELETE')
+                                <button type="submit"
+                                        class="w-7 h-7 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 border border-red-100 text-red-400 hover:text-red-600 transition-colors">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            </form>
+                            @endif
+                        </td>
                     </tr>
                     @endforeach
                 </tbody>
@@ -350,6 +407,20 @@
                     </p>
                     <p class="text-xs font-bold text-amber-600 mt-1">{{ $fmtMoney($line->estimated_amount) }}</p>
                 </div>
+
+                {{-- Remove button --}}
+                @if($line->member)
+                <form method="POST" action="{{ route('members.payment-batches.members.remove', [$batch, $line->member]) }}"
+                      onsubmit="return confirm('إزالة «{{ $line->member->full_name }}» من الدفعة؟')">
+                    @csrf @method('DELETE')
+                    <button type="submit"
+                            class="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-red-50 hover:bg-red-100 border border-red-100 text-red-400 hover:text-red-600 transition-colors">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </form>
+                @endif
             </div>
             @endforeach
         </div>
@@ -374,6 +445,77 @@ function toggleBatchShowFilters() {
 @if($hasFilters)
 document.getElementById('batch-show-filter-arrow').style.transform = 'rotate(180deg)';
 @endif
+
+function toggleAddMemberPanel() {
+    const panel = document.getElementById('add-member-panel');
+    panel.classList.toggle('hidden');
+    if (!panel.classList.contains('hidden')) {
+        document.getElementById('add-member-search').focus();
+    }
+}
+
+(function () {
+    const searchInput   = document.getElementById('add-member-search');
+    const resultsBox    = document.getElementById('add-member-results');
+    const searchJsonUrl = '{{ route('members.search-json') }}';
+    const addUrl        = '{{ route('members.payment-batches.members.add', $batch) }}';
+    const csrfToken     = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+    let debounceTimer;
+
+    searchInput.addEventListener('input', function () {
+        clearTimeout(debounceTimer);
+        const q = this.value.trim();
+        if (q.length < 2) {
+            resultsBox.classList.add('hidden');
+            resultsBox.innerHTML = '';
+            return;
+        }
+        debounceTimer = setTimeout(() => fetchMembers(q), 280);
+    });
+
+    function fetchMembers(q) {
+        fetch(searchJsonUrl + '?q=' + encodeURIComponent(q), {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.json())
+        .then(data => renderResults(data))
+        .catch(() => {});
+    }
+
+    function renderResults(members) {
+        if (!members.length) {
+            resultsBox.classList.remove('hidden');
+            resultsBox.innerHTML = '<p class="text-xs text-gray-400 text-center py-2">لا توجد نتائج</p>';
+            return;
+        }
+
+        resultsBox.classList.remove('hidden');
+        resultsBox.innerHTML = members.map(m => `
+            <div class="flex items-center justify-between gap-3 bg-white border border-gray-100 rounded-xl px-4 py-2.5 hover:border-teal-200 transition-colors">
+                <div class="min-w-0">
+                    <p class="text-sm font-bold text-gray-800 truncate">${escHtml(m.full_name)}</p>
+                    <p class="text-xs text-gray-400 font-mono mt-0.5">ملف: ${escHtml(m.dossier_number || '—')} · دفعات: ${m.payments_count ?? 0}</p>
+                </div>
+                <form method="POST" action="${addUrl}">
+                    <input type="hidden" name="_token" value="${csrfToken}">
+                    <input type="hidden" name="member_id" value="${m.id}">
+                    <button type="submit"
+                            class="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg transition-colors">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        إضافة
+                    </button>
+                </form>
+            </div>
+        `).join('');
+    }
+
+    function escHtml(str) {
+        return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+})();
 </script>
 @endpush
 

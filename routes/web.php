@@ -123,6 +123,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/members/payment-batches/{batch}',        [MemberController::class, 'paymentBatchShow'])     ->name('members.payment-batches.show');
     Route::get('/members/payment-batches/{batch}/export', [MemberController::class, 'exportPaymentBatch'])  ->name('members.payment-batches.export');
     Route::patch('/members/payment-batches/{batch}',      [MemberController::class, 'updatePaymentBatch'])  ->name('members.payment-batches.update');
+    Route::post('/members/payment-batches/{batch}/members',            [MemberController::class, 'addMemberToBatch'])     ->name('members.payment-batches.members.add');
+    Route::delete('/members/payment-batches/{batch}/members/{member}', [MemberController::class, 'removeMemberFromBatch'])->name('members.payment-batches.members.remove');
+    Route::get('/members/search-json',             [MemberController::class, 'searchJson'])                ->name('members.search-json');
     Route::get('/members/score-deductions',  [MemberController::class, 'scoreDeductionsIndex']) ->name('members.score-deductions');
     Route::get('/members/score-additions',   [MemberController::class, 'scoreAdditionsIndex'])  ->name('members.score-additions');
     Route::get('/members/score-adjustments',  [MemberController::class, 'scoreAdjustmentsIndex']) ->name('members.score-adjustments');

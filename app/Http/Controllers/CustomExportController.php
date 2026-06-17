@@ -15,7 +15,8 @@ class CustomExportController extends Controller
     public function show()
     {
         $groups = CustomMembersExport::groups();
-        return view('members.custom-export', compact('groups'));
+        $lists  = $this->filterListData();
+        return view('members.custom-export', array_merge(compact('groups'), $lists));
     }
 
     public function download(Request $request)

@@ -265,6 +265,108 @@ $groupColors = [
 
 @push('scripts')
 <script>
+function toggleFvFiltersExport() {
+    const body  = document.getElementById('fv-export-body');
+    const arrow = document.getElementById('fv-export-arrow');
+    body.classList.toggle('hidden');
+    arrow.classList.toggle('rotate-180');
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.ms-dropdown').forEach(function (dropdown) {
+        const btn   = dropdown.querySelector('.ms-btn');
+        const panel = dropdown.querySelector('.ms-panel');
+        const label = dropdown.querySelector('.ms-label');
+        const arrow = dropdown.querySelector('.ms-arrow');
+
+        if (!btn || !panel) return;
+
+        function updateLabel() {
+            const checked = dropdown.querySelectorAll('.ms-check:checked');
+            if (checked.length === 0) {
+                label.textContent = '— الكل —';
+                label.classList.remove('text-emerald-700', 'font-semibold');
+                label.classList.add('text-gray-500');
+            } else {
+                label.textContent = checked.length + ' محدد';
+                label.classList.add('text-emerald-700', 'font-semibold');
+                label.classList.remove('text-gray-500');
+            }
+        }
+
+        updateLabel();
+
+        panel.querySelectorAll('label').forEach(function (lbl) { lbl.classList.add('ms-option'); });
+
+        const checks = dropdown.querySelectorAll('.ms-check');
+        if (checks.length >= 2) {
+            const saBtn = document.createElement('button');
+            saBtn.type = 'button';
+            saBtn.className = 'w-full text-right text-xs text-emerald-600 font-semibold px-3 py-1.5 hover:bg-emerald-50 transition flex items-center gap-1';
+            saBtn.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg><span class="sa-text">تحديد الكل</span>';
+            function refreshSaBtn() {
+                const n = dropdown.querySelectorAll('.ms-check:checked').length;
+                saBtn.querySelector('.sa-text').textContent = n === checks.length ? 'إلغاء التحديد' : 'تحديد الكل';
+            }
+            saBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                const n = dropdown.querySelectorAll('.ms-check:checked').length;
+                checks.forEach(function (cb) { cb.checked = n < checks.length; });
+                updateLabel(); refreshSaBtn();
+            });
+            checks.forEach(function (cb) { cb.addEventListener('change', refreshSaBtn); });
+            refreshSaBtn();
+            const searchEl = panel.querySelector('.ms-search');
+            if (searchEl) {
+                saBtn.classList.add('mt-1', 'border-t', 'border-gray-100');
+                searchEl.parentElement.appendChild(saBtn);
+            } else {
+                saBtn.classList.add('border-b', 'border-gray-100', 'mb-1');
+                panel.insertBefore(saBtn, panel.firstChild);
+            }
+        }
+
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const isOpen = !panel.classList.contains('hidden');
+            document.querySelectorAll('.ms-panel').forEach(function (p) {
+                p.classList.add('hidden');
+                p.closest('.ms-dropdown').querySelector('.ms-arrow').classList.remove('rotate-180');
+            });
+            if (!isOpen) {
+                panel.classList.remove('hidden');
+                arrow.classList.add('rotate-180');
+            }
+        });
+
+        dropdown.querySelectorAll('.ms-check').forEach(function (cb) {
+            cb.addEventListener('change', updateLabel);
+        });
+    });
+
+    document.addEventListener('click', function () {
+        document.querySelectorAll('.ms-panel').forEach(function (p) {
+            p.classList.add('hidden');
+            p.closest('.ms-dropdown').querySelector('.ms-arrow').classList.remove('rotate-180');
+        });
+    });
+
+    document.querySelectorAll('.ms-panel').forEach(function (p) {
+        p.addEventListener('click', function (e) { e.stopPropagation(); });
+    });
+
+    document.querySelectorAll('.ms-search').forEach(function (input) {
+        input.addEventListener('input', function () {
+            const q = input.value.trim().toLowerCase();
+            const panel = input.closest('.ms-panel');
+            panel.querySelectorAll('.ms-option').forEach(function (opt) {
+                opt.style.display = (!q || opt.textContent.trim().toLowerCase().includes(q)) ? '' : 'none';
+            });
+        });
+        input.addEventListener('click', function (e) { e.stopPropagation(); });
+    });
+});
+
 const PRESETS = {
     basic:     ['dossier_number','full_name','national_id','age','gender','mother_name','region','sector','marital_status','dependents_count'],
     contact:   ['dossier_number','full_name','phone','phone2','network','current_address','region'],

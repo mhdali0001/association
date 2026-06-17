@@ -693,7 +693,68 @@
         <span class="text-xs text-emerald-600 bg-emerald-100 rounded-full px-2 py-0.5 font-semibold">{{ $member->paymentBatchEntries->count() }}</span>
     </div>
 
-    <div class="overflow-x-auto">
+    {{-- Mobile cards --}}
+    <div class="sm:hidden divide-y divide-gray-50">
+        @foreach($member->paymentBatchEntries as $entry)
+        @php
+            $batch = $entry->batch;
+            $isAdd = $batch?->operation === 'add';
+            $isSub = $batch?->operation === 'subtract';
+        @endphp
+        <div class="px-4 py-3.5 space-y-2">
+            <div class="flex items-center justify-between gap-2">
+                <div class="min-w-0">
+                    @if($batch)
+                    <a href="{{ route('members.payment-batches.show', $batch->id) }}"
+                       class="font-semibold text-gray-800 hover:text-emerald-700 transition-colors text-sm">
+                        {{ $batch->label ?: 'دفعة #' . $batch->id }}
+                    </a>
+                    @if($batch->notes)
+                        <p class="text-xs text-gray-400 mt-0.5 truncate">{{ $batch->notes }}</p>
+                    @endif
+                    @else
+                    <span class="text-gray-400 text-sm">—</span>
+                    @endif
+                </div>
+                @if($batch)
+                <span class="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full shrink-0
+                    {{ $isAdd ? 'bg-emerald-100 text-emerald-700' : ($isSub ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-700') }}">
+                    @if($isAdd)
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                        إضافة {{ $batch->amount }}
+                    @elseif($isSub)
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4"/></svg>
+                        طرح {{ $batch->amount }}
+                    @else
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        تعيين {{ $batch->amount }}
+                    @endif
+                </span>
+                @endif
+            </div>
+            <div class="flex items-center gap-3 flex-wrap text-xs text-gray-500">
+                <span>{{ $batch?->payment_date?->format('d/m/Y') ?? '—' }}</span>
+                <span class="text-gray-300">|</span>
+                <span>
+                    قبل: <span class="font-bold text-gray-600">{{ $entry->previous_count ?? '—' }}</span>
+                    &nbsp;→&nbsp;
+                    بعد: <span class="font-bold {{ $isAdd ? 'text-emerald-700' : ($isSub ? 'text-red-600' : 'text-blue-700') }}">{{ $entry->new_count ?? '—' }}</span>
+                </span>
+                @if($entry->estimated_amount)
+                <span class="text-gray-300">|</span>
+                <span class="font-semibold text-gray-700">{{ number_format($entry->estimated_amount, 0) }} ل.س</span>
+                @endif
+                @if($batch?->appliedBy)
+                <span class="text-gray-300">|</span>
+                <span>{{ $batch->appliedBy->name }}</span>
+                @endif
+            </div>
+        </div>
+        @endforeach
+    </div>
+
+    {{-- Desktop table --}}
+    <div class="hidden sm:block overflow-x-auto">
         <table class="w-full text-sm">
             <thead>
                 <tr class="bg-gray-50 border-b border-gray-100">

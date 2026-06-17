@@ -22,7 +22,7 @@ class PaymentBatchExport implements FromCollection, WithHeadings, WithMapping, W
 
     public function collection()
     {
-        return PaymentBatchMember::with(['member.region', 'member.representative'])
+        return PaymentBatchMember::with(['member.region', 'member.representative', 'member'])
             ->where('batch_id', $this->batch->id)
             ->leftJoin('members', 'members.id', '=', 'payment_batch_members.member_id')
             ->select('payment_batch_members.*')
@@ -40,8 +40,11 @@ class PaymentBatchExport implements FromCollection, WithHeadings, WithMapping, W
         return [
             'رقم الملف',
             'الاسم الكامل',
+            'رقم الهوية',
+            'الحالة الاجتماعية',
             'المنطقة',
             'المبلغ النهائي (ل.س)',
+            'المندوب المسؤول',
             'المندوب',
         ];
     }
@@ -53,9 +56,12 @@ class PaymentBatchExport implements FromCollection, WithHeadings, WithMapping, W
         return [
             $member?->dossier_number            ?? '',
             $member?->full_name                 ?? 'محذوف',
+            $member?->national_id               ?? '',
+            $member?->marital_status            ?? '',
             $member?->region?->name             ?? '',
             $row->estimated_amount              ?? '',
             $member?->representative?->name     ?? '',
+            $member?->delegate                  ?? '',
         ];
     }
 
