@@ -47,49 +47,49 @@
 </div>
 
 {{-- Stats --}}
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
-        <div class="w-10 h-10 sm:w-12 sm:h-12 bg-teal-50 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
-            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-teal-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mb-5">
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 sm:p-4 flex items-center gap-2.5">
+        <div class="w-9 h-9 sm:w-12 sm:h-12 bg-teal-50 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
+            <svg class="w-4.5 h-4.5 sm:w-6 sm:h-6 text-teal-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
             </svg>
         </div>
-        <div>
-            <p class="text-xl sm:text-2xl font-black text-gray-900">{{ $fmt($totalBatches) }}</p>
-            <p class="text-xs text-gray-400 font-medium mt-0.5">إجمالي الدفعات</p>
+        <div class="min-w-0">
+            <p class="text-lg sm:text-2xl font-black text-gray-900 leading-none">{{ $fmt($totalBatches) }}</p>
+            <p class="text-[11px] sm:text-xs text-gray-400 font-medium mt-0.5">إجمالي الدفعات</p>
         </div>
     </div>
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
-        <div class="w-10 h-10 sm:w-12 sm:h-12 bg-violet-50 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
-            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-violet-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 sm:p-4 flex items-center gap-2.5">
+        <div class="w-9 h-9 sm:w-12 sm:h-12 bg-violet-50 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
+            <svg class="w-4.5 h-4.5 sm:w-6 sm:h-6 text-violet-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
             </svg>
         </div>
-        <div>
-            <p class="text-xl sm:text-2xl font-black text-gray-900">{{ $fmt($totalMembers) }}</p>
-            <p class="text-xs text-gray-400 font-medium mt-0.5">عضو مشمول</p>
+        <div class="min-w-0">
+            <p class="text-lg sm:text-2xl font-black text-gray-900 leading-none">{{ $fmt($totalMembers) }}</p>
+            <p class="text-[11px] sm:text-xs text-gray-400 font-medium mt-0.5">عضو مشمول</p>
         </div>
     </div>
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
-        <div class="w-10 h-10 sm:w-12 sm:h-12 bg-amber-50 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
-            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 sm:p-4 flex items-center gap-2.5">
+        <div class="w-9 h-9 sm:w-12 sm:h-12 bg-amber-50 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
+            <svg class="w-4.5 h-4.5 sm:w-6 sm:h-6 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
         </div>
-        <div>
-            <p class="text-sm sm:text-lg font-black text-gray-900 leading-tight">{{ $fmtMoney($totalAmount) }}</p>
-            <p class="text-xs text-gray-400 font-medium mt-0.5">إجمالي المبالغ</p>
+        <div class="min-w-0">
+            <p class="text-xs sm:text-lg font-black text-gray-900 leading-tight">{{ $fmtMoney($totalAmount) }}</p>
+            <p class="text-[11px] sm:text-xs text-gray-400 font-medium mt-0.5">إجمالي المبالغ</p>
         </div>
     </div>
-    <div class="bg-gradient-to-l from-teal-600 to-cyan-500 rounded-2xl shadow-sm p-4 flex items-center gap-3">
-        <div class="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
-            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <div class="bg-gradient-to-l from-teal-600 to-cyan-500 rounded-2xl shadow-sm p-3 sm:p-4 flex items-center gap-2.5">
+        <div class="w-9 h-9 sm:w-12 sm:h-12 bg-white/20 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
+            <svg class="w-4.5 h-4.5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
             </svg>
         </div>
-        <div>
-            <p class="text-xl sm:text-2xl font-black text-white">{{ $fmt($batches->total()) }}</p>
-            <p class="text-xs text-teal-100 font-medium mt-0.5">نتائج الفلتر</p>
+        <div class="min-w-0">
+            <p class="text-lg sm:text-2xl font-black text-white leading-none">{{ $fmt($batches->total()) }}</p>
+            <p class="text-[11px] sm:text-xs text-teal-100 font-medium mt-0.5">نتائج الفلتر</p>
         </div>
     </div>
 </div>
@@ -370,79 +370,88 @@
 
             {{-- Mobile layout --}}
             <div class="sm:hidden">
-                {{-- Top color bar + header --}}
-                <div class="flex items-start gap-0">
+                {{-- Color bar + header --}}
+                <div class="flex items-start">
                     <div class="w-1 self-stretch rounded-r-2xl shrink-0 {{ $opDot }}"></div>
-                    <div class="flex-1 px-4 pt-3.5 pb-3">
-                        {{-- Badges row --}}
-                        <div class="flex items-center gap-2 flex-wrap mb-2">
-                            <span class="inline-flex items-center gap-1 border rounded-lg px-2.5 py-1 text-xs font-bold {{ $dateBg }}">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                {{ $batch->payment_date?->format('d/m/Y') ?? 'بدون تاريخ' }}
-                            </span>
-                            <span class="inline-flex items-center gap-1 border rounded-lg px-2.5 py-1 text-xs font-bold {{ $opBg }} {{ $opText }} {{ $opBorder }}">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $opIcon }}"/></svg>
-                                {{ $batch->operation_label }}
-                            </span>
+                    <div class="flex-1 px-3 pt-3 pb-2.5">
+                        {{-- Top: badges + applied-by --}}
+                        <div class="flex items-start justify-between gap-2 mb-2">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="inline-flex items-center gap-1 border rounded-lg px-2 py-1 text-[11px] font-bold {{ $dateBg }}">
+                                    <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                    {{ $batch->payment_date?->format('d/m/Y') ?? 'بدون تاريخ' }}
+                                </span>
+                                <span class="inline-flex items-center gap-1 border rounded-lg px-2 py-1 text-[11px] font-bold {{ $opBg }} {{ $opText }} {{ $opBorder }}">
+                                    <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $opIcon }}"/></svg>
+                                    {{ $batch->operation_label }}
+                                </span>
+                            </div>
+                            {{-- Applied-by avatar --}}
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <div class="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-[11px] font-black text-gray-500">
+                                    {{ mb_substr($batch->appliedBy?->name ?? '؟', 0, 1) }}
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-[11px] font-semibold text-gray-600 leading-none">{{ $batch->appliedBy?->name ?? 'غير معروف' }}</p>
+                                    <p class="text-[10px] text-gray-400 font-mono mt-0.5">{{ $batch->created_at->format('d/m/Y') }}</p>
+                                </div>
+                            </div>
                         </div>
-                        {{-- Label --}}
-                        <p class="font-bold text-gray-900 text-base leading-tight">{{ $batch->label ?: 'دفعة #' . $batch->id }}</p>
+                        {{-- Label + notes --}}
+                        <p class="font-bold text-gray-900 text-sm leading-snug">{{ $batch->label ?: 'دفعة #' . $batch->id }}</p>
                         @if($batch->notes)
-                            <p class="text-xs text-gray-400 mt-0.5 line-clamp-1">{{ $batch->notes }}</p>
+                            <p class="text-[11px] text-gray-400 mt-0.5 line-clamp-1">{{ $batch->notes }}</p>
                         @endif
                     </div>
                 </div>
                 {{-- Stats grid --}}
                 <div class="grid grid-cols-3 divide-x divide-x-reverse divide-gray-100 border-t border-gray-100 text-center">
-                    <div class="py-2.5 px-2">
-                        <p class="text-lg font-black text-gray-900">{{ $batch->amount }}</p>
+                    <div class="py-2 px-1">
+                        <p class="text-base font-black text-gray-900">{{ $batch->amount }}</p>
                         <p class="text-[10px] text-gray-400 font-medium">دفعة</p>
                     </div>
-                    <div class="py-2.5 px-2">
-                        <p class="text-lg font-black text-gray-900">{{ $fmt($batch->members_count) }}</p>
+                    <div class="py-2 px-1">
+                        <p class="text-base font-black text-gray-900">{{ $fmt($batch->members_count) }}</p>
                         <p class="text-[10px] text-gray-400 font-medium">عضو</p>
                     </div>
-                    <div class="py-2.5 px-2">
-                        <p class="text-sm font-black text-amber-600 leading-tight">{{ $fmtMoney($batch->total_estimated_amount) }}</p>
+                    <div class="py-2 px-1">
+                        <p class="text-xs font-black text-amber-600 leading-snug">{{ $fmtMoney($batch->total_estimated_amount) }}</p>
                         <p class="text-[10px] text-gray-400 font-medium">المبلغ</p>
                     </div>
                 </div>
-                {{-- Footer: applied-by + action buttons --}}
-                <div class="flex items-center justify-between px-4 py-2.5 border-t border-gray-100 bg-gray-50/50">
-                    <div class="flex items-center gap-2">
-                        <div class="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-xs font-black text-gray-500 shrink-0">
-                            {{ mb_substr($batch->appliedBy?->name ?? '؟', 0, 1) }}
-                        </div>
-                        <div>
-                            <p class="text-xs font-semibold text-gray-600">{{ $batch->appliedBy?->name ?? 'غير معروف' }}</p>
-                            <p class="text-[10px] text-gray-400 font-mono">{{ $batch->created_at->format('d/m/Y') }}</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-1.5">
-                        <button type="button"
-                                onclick="openEditBatch({{ $batch->id }}, {{ json_encode($batch->label) }}, {{ json_encode($batch->payment_date?->format('Y-m-d') ?? '') }}, {{ json_encode($batch->notes ?? '') }})"
-                                class="flex items-center gap-1 text-xs font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-100 rounded-xl px-3 py-1.5 transition-colors">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                            </svg>
-                            تعديل
-                        </button>
-                        <a href="{{ route('members.payment-batches.show', $batch) }}"
-                           class="flex items-center gap-1 text-xs font-bold text-teal-600 bg-teal-50 hover:bg-teal-100 border border-teal-100 rounded-xl px-3 py-1.5 transition-colors">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                            </svg>
-                            تفاصيل
-                        </a>
-                        <a href="{{ route('members.payment-batches.export', $batch) }}"
-                           class="flex items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 rounded-xl px-3 py-1.5 transition-colors">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                            </svg>
-                            تصدير
-                        </a>
-                    </div>
+                {{-- Action buttons — full-width 4-col grid --}}
+                <div class="grid grid-cols-4 divide-x divide-x-reverse divide-gray-100 border-t border-gray-100">
+                    <button type="button"
+                            onclick="openEditBatch({{ $batch->id }}, {{ json_encode($batch->label) }}, {{ json_encode($batch->payment_date?->format('Y-m-d') ?? '') }}, {{ json_encode($batch->notes ?? '') }})"
+                            class="flex flex-col items-center justify-center gap-1 py-2.5 text-amber-600 hover:bg-amber-50 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        <span class="text-[10px] font-bold">تعديل</span>
+                    </button>
+                    <a href="{{ route('members.payment-batches.show', $batch) }}"
+                       class="flex flex-col items-center justify-center gap-1 py-2.5 text-teal-600 hover:bg-teal-50 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        <span class="text-[10px] font-bold">تفاصيل</span>
+                    </a>
+                    <a href="{{ route('members.payment-batches.export', $batch) }}"
+                       class="flex flex-col items-center justify-center gap-1 py-2.5 text-emerald-600 hover:bg-emerald-50 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        <span class="text-[10px] font-bold">تصدير</span>
+                    </a>
+                    <button type="button"
+                            onclick="openDeleteBatch({{ $batch->id }}, {{ json_encode($batch->label ?: 'دفعة #' . $batch->id) }})"
+                            class="flex flex-col items-center justify-center gap-1 py-2.5 text-red-500 hover:bg-red-50 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                        <span class="text-[10px] font-bold">حذف</span>
+                    </button>
                 </div>
             </div>
 
@@ -516,6 +525,14 @@
                         </svg>
                         تصدير
                     </a>
+                    <button type="button"
+                            onclick="openDeleteBatch({{ $batch->id }}, {{ json_encode($batch->label ?: 'دفعة #' . $batch->id) }})"
+                            class="flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-red-600 hover:bg-red-50 hover:border-red-200 border border-transparent rounded-xl px-3 py-2.5 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                        حذف
+                    </button>
                 </div>
             </div>
 
@@ -601,6 +618,45 @@
     </div>
 </div>
 
+{{-- ══ Delete Batch Modal ══ --}}
+<div id="delete-batch-modal"
+     class="fixed inset-0 z-50 hidden flex items-center justify-center p-4"
+     role="dialog" aria-modal="true">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeDeleteBatch()"></div>
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+        <div class="p-6 text-center">
+            <div class="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+            </div>
+            <h2 class="text-base font-bold text-gray-800 mb-1">حذف الدفعة</h2>
+            <p class="text-sm text-gray-500 mb-1">هل أنت متأكد من حذف</p>
+            <p class="text-sm font-bold text-gray-800 mb-4" id="delete-batch-name"></p>
+            <p class="text-xs text-red-500 bg-red-50 border border-red-100 rounded-xl px-3 py-2 mb-5">
+                سيتم حذف الدفعة وجميع سجلاتها نهائياً ولا يمكن التراجع.
+            </p>
+            <div class="flex gap-2.5">
+                <form id="delete-batch-form" method="POST" class="flex-1">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit"
+                            class="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold py-2.5 rounded-xl transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                        نعم، احذف
+                    </button>
+                </form>
+                <button type="button" onclick="closeDeleteBatch()"
+                        class="flex-1 px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-50 transition-colors">
+                    إلغاء
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
 function isoToDisplay(iso) {
@@ -641,8 +697,21 @@ function closeEditBatch() {
     document.body.style.overflow = '';
 }
 
+function openDeleteBatch(id, label) {
+    const baseUrl = '{{ url("members/payment-batches") }}';
+    document.getElementById('delete-batch-form').action = baseUrl + '/' + id;
+    document.getElementById('delete-batch-name').textContent = label;
+    document.getElementById('delete-batch-modal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeDeleteBatch() {
+    document.getElementById('delete-batch-modal').classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
 document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeEditBatch();
+    if (e.key === 'Escape') { closeEditBatch(); closeDeleteBatch(); }
 });
 
 function toggleBatchFilters() {

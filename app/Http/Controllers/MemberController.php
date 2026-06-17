@@ -1050,6 +1050,15 @@ class MemberController extends Controller
         return back()->with('success', 'تم تحديث بيانات الدفعة بنجاح.');
     }
 
+    public function deletePaymentBatch(\App\Models\PaymentBatch $batch)
+    {
+        $label = $batch->label ?: 'دفعة #' . $batch->id;
+        $batch->members()->delete();
+        $batch->delete();
+        ActivityLogger::log('deleted', "حذف دفعة: {$label}");
+        return redirect()->route('members.payment-batches')->with('success', "تم حذف الدفعة «{$label}» بنجاح.");
+    }
+
     public function exportPaymentBatch(\App\Models\PaymentBatch $batch)
     {
         $filename = 'دفعة-' . ($batch->label ?: $batch->id) . '-' . now()->format('Y-m-d') . '.xlsx';

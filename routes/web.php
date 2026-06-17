@@ -124,6 +124,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/members/payment-batches/{batch}',        [MemberController::class, 'paymentBatchShow'])     ->name('members.payment-batches.show');
     Route::get('/members/payment-batches/{batch}/export', [MemberController::class, 'exportPaymentBatch'])  ->name('members.payment-batches.export');
     Route::patch('/members/payment-batches/{batch}',      [MemberController::class, 'updatePaymentBatch'])  ->name('members.payment-batches.update');
+    Route::delete('/members/payment-batches/{batch}',     [MemberController::class, 'deletePaymentBatch'])  ->name('members.payment-batches.destroy');
     Route::post('/members/payment-batches/{batch}/members',            [MemberController::class, 'addMemberToBatch'])     ->name('members.payment-batches.members.add');
     Route::delete('/members/payment-batches/{batch}/members/{member}', [MemberController::class, 'removeMemberFromBatch'])->name('members.payment-batches.members.remove');
     Route::get('/members/search-json',             [MemberController::class, 'searchJson'])                ->name('members.search-json');
