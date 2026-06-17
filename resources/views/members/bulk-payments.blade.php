@@ -942,7 +942,7 @@
     @csrf
 
     {{-- Table --}}
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-52 sm:mb-36">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-72 sm:mb-52 lg:mb-36">
 
         {{-- Table header bar --}}
         <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gradient-to-l from-teal-50 to-white">
@@ -1089,7 +1089,7 @@
 
     {{-- ===== STICKY ACTION BAR ===== --}}
     <div id="action-bar"
-         class="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200">
+         class="fixed bottom-16 lg:bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200">
 
         <input type="hidden" name="apply_to" id="apply-to-input" value="selected">
 

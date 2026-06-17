@@ -317,4 +317,132 @@ function evAdjust(inputId, delta) {
 }
 </script>
 
+{{-- ── سجل الدفعات ── --}}
+@if($member->paymentBatchEntries->isNotEmpty())
+<div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mt-6">
+    <div class="flex items-center gap-2.5 bg-gradient-to-l from-emerald-50 to-teal-50 border-b border-emerald-100 px-6 py-3.5">
+        <div class="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center">
+            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+        </div>
+        <h2 class="text-sm font-bold text-emerald-700">سجل الدفعات</h2>
+        <span class="text-xs text-emerald-600 bg-emerald-100 rounded-full px-2 py-0.5 font-semibold">{{ $member->paymentBatchEntries->count() }}</span>
+    </div>
+
+    {{-- Mobile cards --}}
+    <div class="sm:hidden divide-y divide-gray-50">
+        @foreach($member->paymentBatchEntries as $entry)
+        @php
+            $batch = $entry->batch;
+            $isAdd = $batch?->operation === 'add';
+            $isSub = $batch?->operation === 'subtract';
+        @endphp
+        <div class="px-4 py-3.5 space-y-2">
+            <div class="flex items-center justify-between gap-2">
+                <div class="min-w-0">
+                    @if($batch)
+                    <a href="{{ route('members.payment-batches.show', $batch->id) }}"
+                       class="font-semibold text-gray-800 hover:text-emerald-700 transition-colors text-sm">
+                        {{ $batch->label ?: 'دفعة #' . $batch->id }}
+                    </a>
+                    @else
+                    <span class="text-gray-400 text-sm">—</span>
+                    @endif
+                </div>
+                @if($batch)
+                <span class="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full shrink-0
+                    {{ $isAdd ? 'bg-emerald-100 text-emerald-700' : ($isSub ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-700') }}">
+                    @if($isAdd) إضافة {{ $batch->amount }}
+                    @elseif($isSub) طرح {{ $batch->amount }}
+                    @else تعيين {{ $batch->amount }}
+                    @endif
+                </span>
+                @endif
+            </div>
+            <div class="flex items-center gap-3 flex-wrap text-xs text-gray-500">
+                <span>{{ $batch?->payment_date?->format('d/m/Y') ?? '—' }}</span>
+                <span class="text-gray-300">|</span>
+                <span>
+                    قبل: <span class="font-bold text-gray-600">{{ $entry->previous_count ?? '—' }}</span>
+                    &nbsp;→&nbsp;
+                    بعد: <span class="font-bold {{ $isAdd ? 'text-emerald-700' : ($isSub ? 'text-red-600' : 'text-blue-700') }}">{{ $entry->new_count ?? '—' }}</span>
+                </span>
+                @if($entry->estimated_amount)
+                <span class="text-gray-300">|</span>
+                <span class="font-semibold text-gray-700">{{ number_format($entry->estimated_amount, 0) }} ل.س</span>
+                @endif
+                @if($batch?->appliedBy)
+                <span class="text-gray-300">|</span>
+                <span>{{ $batch->appliedBy->name }}</span>
+                @endif
+            </div>
+        </div>
+        @endforeach
+    </div>
+
+    {{-- Desktop table --}}
+    <div class="hidden sm:block overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-50 border-b border-gray-100">
+                    <th class="text-right px-4 py-3 text-xs font-bold text-gray-500 whitespace-nowrap">الدفعة</th>
+                    <th class="text-right px-4 py-3 text-xs font-bold text-gray-500 whitespace-nowrap">تاريخ الدفع</th>
+                    <th class="text-right px-4 py-3 text-xs font-bold text-gray-500 whitespace-nowrap">العملية</th>
+                    <th class="text-center px-4 py-3 text-xs font-bold text-gray-500 whitespace-nowrap">قبل</th>
+                    <th class="text-center px-4 py-3 text-xs font-bold text-gray-500 whitespace-nowrap">بعد</th>
+                    <th class="text-right px-4 py-3 text-xs font-bold text-gray-500 whitespace-nowrap">المبلغ المقدّر</th>
+                    <th class="text-right px-4 py-3 text-xs font-bold text-gray-500 whitespace-nowrap">بواسطة</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                @foreach($member->paymentBatchEntries as $entry)
+                @php
+                    $batch = $entry->batch;
+                    $isAdd = $batch?->operation === 'add';
+                    $isSub = $batch?->operation === 'subtract';
+                @endphp
+                <tr class="hover:bg-gray-50/60 transition-colors">
+                    <td class="px-4 py-3">
+                        @if($batch)
+                        <a href="{{ route('members.payment-batches.show', $batch->id) }}"
+                           class="font-semibold text-gray-800 hover:text-emerald-700 transition-colors">
+                            {{ $batch->label ?: 'دفعة #' . $batch->id }}
+                        </a>
+                        @else
+                        <span class="text-gray-400">—</span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-3 text-gray-600 whitespace-nowrap">
+                        {{ $batch?->payment_date?->format('d/m/Y') ?? '—' }}
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        @if($batch)
+                        <span class="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full
+                            {{ $isAdd ? 'bg-emerald-100 text-emerald-700' : ($isSub ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-700') }}">
+                            @if($isAdd) إضافة {{ $batch->amount }}
+                            @elseif($isSub) طرح {{ $batch->amount }}
+                            @else تعيين {{ $batch->amount }}
+                            @endif
+                        </span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-3 text-center font-mono text-gray-500">{{ $entry->previous_count ?? '—' }}</td>
+                    <td class="px-4 py-3 text-center font-bold {{ $isAdd ? 'text-emerald-700' : ($isSub ? 'text-red-600' : 'text-blue-700') }}">
+                        {{ $entry->new_count ?? '—' }}
+                    </td>
+                    <td class="px-4 py-3 text-gray-700 font-mono whitespace-nowrap">
+                        {{ $entry->estimated_amount ? number_format($entry->estimated_amount, 0) . ' ل.س' : '—' }}
+                    </td>
+                    <td class="px-4 py-3 text-gray-500 whitespace-nowrap">
+                        {{ $batch?->appliedBy?->name ?? '—' }}
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+@endif
+
 @endsection

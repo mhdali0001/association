@@ -1638,7 +1638,7 @@ class MemberController extends Controller
 
     public function edit(Member $member)
     {
-        $member->load(['scores', 'paymentInfo', 'paymentInfoAI', 'association', 'associations', 'fieldVisits.status', 'fieldVisits.houseType', 'fieldVisits.houseCondition']);
+        $member->load(['scores', 'paymentInfo', 'paymentInfoAI', 'association', 'associations', 'fieldVisits.status', 'fieldVisits.houseType', 'fieldVisits.houseCondition', 'paymentBatchEntries.batch.appliedBy']);
         $visitAmount        = $member->fieldVisits->first()?->estimated_amount ?? 0;
         $fieldVisitStatuses = \App\Models\FieldVisitStatus::active()->orderBy('id')->get();
         $houseTypes         = \App\Models\HouseType::active()->orderBy('id')->get();

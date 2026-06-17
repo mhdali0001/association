@@ -163,7 +163,7 @@
                         'اسم المدخل (يدوي)' => $member->data_entry_name,
                         'مندوب'              => $member->delegate,
                         'الفرد الثاني'       => $member->second_person,
-                        'عدد الدفعات'        => $member->payments_count,
+                        'عدد الدفعات'        => $member->paymentBatchEntries->count(),
                         'ملاحظة'             => $member->notes,
                     ];
                 @endphp

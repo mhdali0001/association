@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\CustomMembersExport;
 use App\Http\Controllers\Concerns\FiltersMembersQuery;
 use App\Services\ActivityLogger;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -17,6 +18,13 @@ class CustomExportController extends Controller
         $groups = CustomMembersExport::groups();
         $lists  = $this->filterListData();
         return view('members.custom-export', array_merge(compact('groups'), $lists));
+    }
+
+    public function count(Request $request): JsonResponse
+    {
+        return response()->json([
+            'count' => $this->buildFilteredQuery($request)->count(),
+        ]);
     }
 
     public function download(Request $request)

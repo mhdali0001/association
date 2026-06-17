@@ -170,7 +170,7 @@ class CustomMembersExport extends DefaultValueBinder implements
         if (in_array('payment_review_status', $this->columns)) $with[] = 'paymentReview';
         if (in_array('representative', $this->columns))        $with[] = 'representative';
         if (array_intersect($this->columns, $visitKeys)) {
-            $with[] = ['fieldVisits' => fn($q) => $q->latest()->with(['status', 'houseType', 'houseCondition'])];
+            $with['fieldVisits'] = fn($q) => $q->latest()->with(['status', 'houseType', 'houseCondition']);
         }
 
         return $this->query->with($with);

@@ -639,11 +639,18 @@
 
         <div>
             <label class="{{ $labelClass }}">عدد الدفعات</label>
-            <input type="number" name="payments_count" min="0" step="1"
-                   value="{{ old('payments_count', $isEdit ? $member->payments_count : '') }}"
-                   placeholder="0"
-                   class="{{ $inputClass }} @error('payments_count') {{ $errorInput }} @enderror">
-            @error('payments_count') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+            @if($isEdit)
+                <div class="w-full border border-gray-200 bg-gray-50 text-gray-500 rounded-xl px-4 py-2.5 text-sm font-mono cursor-not-allowed select-none">
+                    {{ $member->paymentBatchEntries->count() }}
+                </div>
+                <p class="text-[11px] text-gray-400 mt-1">يُحسب تلقائياً من سجلات الدفعات</p>
+            @else
+                <input type="number" name="payments_count" min="0" step="1"
+                       value="{{ old('payments_count', '') }}"
+                       placeholder="0"
+                       class="{{ $inputClass }} @error('payments_count') {{ $errorInput }} @enderror">
+                @error('payments_count') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+            @endif
         </div>
 
         <div class="lg:col-span-4">

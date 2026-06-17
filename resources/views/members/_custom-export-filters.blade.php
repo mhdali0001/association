@@ -441,6 +441,15 @@
         </div>
     </div>
 
+    {{-- Apply filters button --}}
+    <button type="button" onclick="applyExportFilters(this)"
+            class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-sm font-bold rounded-xl transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+        </svg>
+        <span class="btn-text">تطبيق الفلاتر وعرض العدد</span>
+    </button>
+
     {{-- Field visit filters --}}
     <div class="border border-indigo-100 rounded-xl overflow-hidden">
         <button type="button" onclick="toggleFvFiltersExport()"

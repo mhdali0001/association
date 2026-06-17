@@ -40,21 +40,30 @@ $groupColors = [
 {{-- ══════════════════════════════════════════════════════
      MOBILE STICKY BOTTOM BAR
 ══════════════════════════════════════════════════════ --}}
-<div class="lg:hidden fixed bottom-[64px] inset-x-0 z-40 bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] px-4 py-3 flex items-center gap-3">
-    <div class="flex-1 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2 text-center">
-        <span class="text-lg font-black text-emerald-700" id="mob-count">0</span>
-        <span class="text-xs text-emerald-600 mr-1">عمود</span>
+<div class="lg:hidden fixed bottom-[64px] inset-x-0 z-40 bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] px-3 py-2.5 flex items-center gap-2">
+    {{-- Stats --}}
+    <div class="flex gap-1.5 shrink-0">
+        <div class="bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-1 text-center min-w-[46px]">
+            <span class="text-sm font-black text-emerald-700 block leading-tight" id="mob-count">0</span>
+            <span class="text-[9px] text-emerald-600 leading-none">عمود</span>
+        </div>
+        <div class="bg-teal-50 border border-teal-100 rounded-lg px-2 py-1 text-center min-w-[46px]">
+            <span class="text-sm font-black text-teal-700 block leading-tight" id="mob-member-count">—</span>
+            <span class="text-[9px] text-teal-600 leading-none">عضو</span>
+        </div>
     </div>
-    <button type="button" onclick="document.getElementById('mob-filters-panel').classList.toggle('hidden')"
-            class="flex items-center gap-1.5 px-3 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold rounded-xl transition-colors shrink-0">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    {{-- Filters button --}}
+    <button type="button" onclick="openFilterPanel()"
+            class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold rounded-xl transition-colors">
+        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
         </svg>
         فلاتر
     </button>
+    {{-- Export button --}}
     <button type="submit" id="mob-dl-btn" disabled
-            class="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-200 disabled:text-gray-400 text-white text-sm font-bold rounded-xl transition-colors shrink-0">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-200 disabled:text-gray-400 text-white text-sm font-bold rounded-xl transition-colors">
+        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
         </svg>
         تصدير
@@ -62,29 +71,47 @@ $groupColors = [
 </div>
 
 {{-- ══════════════════════════════════════════════════════
-     MOBILE FILTERS PANEL (slide-up overlay)
+     MOBILE FILTERS PANEL (slide-up overlay — no duplicate inputs)
+     Filter inputs are physically moved here via JS when opened,
+     and moved back to #desktop-filter-slot when closed.
 ══════════════════════════════════════════════════════ --}}
 <div id="mob-filters-panel" class="lg:hidden hidden fixed inset-0 z-50 flex flex-col justify-end">
-    <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" onclick="document.getElementById('mob-filters-panel').classList.add('hidden')"></div>
-    <div class="relative bg-white rounded-t-2xl shadow-2xl max-h-[80vh] flex flex-col">
-        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
-            <h3 class="font-bold text-gray-800">فلاتر الأعضاء</h3>
-            <button type="button" onclick="document.getElementById('mob-filters-panel').classList.add('hidden')"
+    <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" onclick="closeFilterPanel()"></div>
+    <div class="relative bg-white rounded-t-2xl shadow-2xl flex flex-col" style="max-height:88vh">
+        {{-- Panel header --}}
+        <div class="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 shrink-0">
+            <div>
+                <h3 class="font-bold text-gray-800 text-sm">فلاتر الأعضاء</h3>
+                <p class="text-[11px] text-gray-400 mt-0.5">
+                    العدد: <span class="font-bold text-teal-600" id="mob-filter-member-count">—</span> عضو
+                </p>
+            </div>
+            <button type="button" onclick="closeFilterPanel()"
                     class="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
             </button>
         </div>
-        <div class="overflow-y-auto flex-1 px-5 py-4 space-y-4">
-            @include('members._custom-export-filters')
+        {{-- Filter inputs moved here by JS --}}
+        <div class="overflow-y-auto flex-1 px-4 py-4">
+            <div id="mob-filter-slot"></div>
         </div>
-        <div class="px-5 py-4 border-t border-gray-100 shrink-0">
-            <button type="submit" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        {{-- Footer actions --}}
+        <div class="px-4 py-3 border-t border-gray-100 shrink-0 flex gap-2.5">
+            <button type="button" onclick="applyExportFilters(this)"
+                    class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-sm font-bold rounded-xl transition-colors">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+                </svg>
+                <span class="btn-text">عرض العدد</span>
+            </button>
+            <button type="submit"
+                    class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl transition-colors">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                 </svg>
-                تصدير Excel
+                تصدير
             </button>
         </div>
     </div>
@@ -169,7 +196,7 @@ $groupColors = [
 <div class="flex flex-col xl:flex-row gap-5">
 
     {{-- ── Column Groups ── --}}
-    <div class="flex-1 min-w-0 space-y-3 pb-32 lg:pb-0">
+    <div class="flex-1 min-w-0 space-y-3 pb-32 xl:pb-0">
 
         @foreach($groups as $groupName => $cols)
         @php
@@ -222,15 +249,21 @@ $groupColors = [
 
     </div>
 
-    {{-- ── Desktop Side Panel ── --}}
+    {{-- ── Filters & Download Panel (desktop only — hidden on mobile, shown via overlay) ── --}}
     <div class="hidden xl:block w-72 shrink-0">
         <div class="sticky top-[76px] space-y-4">
 
             {{-- Download card --}}
             <div class="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
-                <div class="bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-4 mb-4 text-center">
-                    <p class="text-3xl font-black text-emerald-700" id="side-count">0</p>
-                    <p class="text-xs text-emerald-600 mt-1">عمود محدد</p>
+                <div class="grid grid-cols-2 gap-2.5 mb-4">
+                    <div class="bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-3 text-center">
+                        <p class="text-2xl font-black text-emerald-700" id="side-count">0</p>
+                        <p class="text-xs text-emerald-600 mt-0.5">عمود محدد</p>
+                    </div>
+                    <div class="bg-teal-50 border border-teal-100 rounded-xl px-3 py-3 text-center">
+                        <p class="text-2xl font-black text-teal-700" id="side-member-count">—</p>
+                        <p class="text-xs text-teal-600 mt-0.5">عضو سيُصدَّر</p>
+                    </div>
                 </div>
 
                 <button type="submit" id="dl-btn" disabled
@@ -243,7 +276,7 @@ $groupColors = [
                 <p class="text-[11px] text-gray-400 text-center mt-2">يصدر حسب الفلاتر أدناه</p>
             </div>
 
-            {{-- Filters --}}
+            {{-- Filters card — filter-section is moved here/mobile-overlay via JS portal --}}
             <div class="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
                 <p class="text-xs font-bold text-gray-500 mb-4 flex items-center gap-2">
                     <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -251,7 +284,11 @@ $groupColors = [
                     </svg>
                     فلاتر الأعضاء
                 </p>
-                @include('members._custom-export-filters')
+                <div id="desktop-filter-slot">
+                    <div id="filter-section">
+                        @include('members._custom-export-filters')
+                    </div>
+                </div>
             </div>
 
         </div>
@@ -265,6 +302,86 @@ $groupColors = [
 
 @push('scripts')
 <script>
+const EXPORT_COUNT_URL = '{{ route("members.custom-export.count") }}';
+
+function applyExportFilters(btn) {
+    const btns = document.querySelectorAll('[onclick^="applyExportFilters"]');
+    const origTexts = [];
+    btns.forEach(b => {
+        const textEl = b.querySelector('.btn-text');
+        origTexts.push(textEl ? textEl.textContent : '');
+        b.disabled = true;
+        if (textEl) textEl.textContent = 'جاري الحساب...';
+    });
+
+    const countIds = ['side-member-count', 'mob-member-count', 'mob-filter-member-count'];
+    countIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = '...';
+    });
+
+    const form   = document.getElementById('export-form');
+    const data   = new FormData(form);
+    const params = new URLSearchParams();
+    for (const [key, val] of data.entries()) {
+        if (key !== 'columns[]' && key !== '_token') params.append(key, val);
+    }
+
+    fetch(EXPORT_COUNT_URL + '?' + params.toString(), {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        const count = Number(data.count).toLocaleString('ar-SA');
+        countIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = count;
+        });
+    })
+    .catch(() => {
+        countIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = '!';
+        });
+    })
+    .finally(() => {
+        btns.forEach((b, i) => {
+            b.disabled = false;
+            const textEl = b.querySelector('.btn-text');
+            if (textEl) textEl.textContent = origTexts[i];
+        });
+    });
+}
+
+function openFilterPanel() {
+    const filterSection = document.getElementById('filter-section');
+    const mobSlot       = document.getElementById('mob-filter-slot');
+    if (filterSection && mobSlot) mobSlot.appendChild(filterSection);
+    const panel = document.getElementById('mob-filters-panel');
+    if (panel) {
+        panel.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeFilterPanel() {
+    const filterSection  = document.getElementById('filter-section');
+    const desktopSlot    = document.getElementById('desktop-filter-slot');
+    if (filterSection && desktopSlot) desktopSlot.appendChild(filterSection);
+    const panel = document.getElementById('mob-filters-panel');
+    if (panel) {
+        panel.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+}
+
+// Move filters back to desktop slot if viewport grows to XL
+if (window.matchMedia) {
+    window.matchMedia('(min-width: 1280px)').addEventListener('change', function(e) {
+        if (e.matches) closeFilterPanel();
+    });
+}
+
 function toggleFvFiltersExport() {
     const body  = document.getElementById('fv-export-body');
     const arrow = document.getElementById('fv-export-arrow');

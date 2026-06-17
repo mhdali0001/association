@@ -109,6 +109,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/members/map',                       [MemberController::class, 'mapIndex'])           ->name('members.map');
     Route::get('/members/export',                    [MemberController::class, 'export'])              ->name('members.export');
     Route::get('/members/custom-export',             [CustomExportController::class, 'show'])          ->name('members.custom-export');
+    Route::get('/members/custom-export/count',      [CustomExportController::class, 'count'])         ->name('members.custom-export.count');
     Route::post('/members/custom-export/download',   [CustomExportController::class, 'download'])      ->name('members.custom-export.download');
     Route::delete('/members/bulk-destroy',          [MemberController::class, 'bulkDestroy'])        ->name('members.bulk-destroy');
     Route::patch('/members/bulk-update',            [MemberController::class, 'bulkUpdate'])          ->name('members.bulk-update');
