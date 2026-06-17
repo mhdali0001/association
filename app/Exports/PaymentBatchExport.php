@@ -44,7 +44,7 @@ class PaymentBatchExport implements FromCollection, WithHeadings, WithMapping, W
             'الحالة الاجتماعية',
             'المنطقة',
             'المبلغ النهائي (ل.س)',
-            'هاتف المندوب المسؤول',
+            'رقم الهاتف',
             'المندوب',
         ];
     }
@@ -60,7 +60,7 @@ class PaymentBatchExport implements FromCollection, WithHeadings, WithMapping, W
             $member?->marital_status            ?? '',
             $member?->region?->name             ?? '',
             $row->estimated_amount              ?? '',
-            $member?->representative?->phone    ?? '',
+            $member?->phone                     ?? '',
             $member?->delegate                  ?? '',
         ];
     }
