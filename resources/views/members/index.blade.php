@@ -107,7 +107,7 @@
                         </svg>
                     </span>
                     <input type="text" name="search" value="{{ $search ?? '' }}"
-                           placeholder="بحث بالاسم، رقم الهوية، الهاتف..."
+                           placeholder="بحث بالاسم، رقم الهوية، الهاتف، الآيبان، اسم المستلم..."
                            class="w-full pr-10 pl-4 py-3 text-base border border-gray-200 rounded-xl bg-gray-50
                                   focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:bg-white transition placeholder-gray-300">
                 </div>

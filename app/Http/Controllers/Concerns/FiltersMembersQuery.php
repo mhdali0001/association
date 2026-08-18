@@ -71,7 +71,9 @@ trait FiltersMembersQuery
                   ->orWhere('national_id', 'like', "%{$search}%")
                   ->orWhere('phone', 'like', "%{$search}%")
                   ->orWhere('dossier_number', 'like', "%{$search}%")
-                  ->orWhere('second_person', 'like', "%{$search}%");
+                  ->orWhere('second_person', 'like', "%{$search}%")
+                  ->orWhereHas('paymentInfo', fn($qi) => $qi->where('iban', 'like', "%{$search}%")
+                                                              ->orWhere('recipient_name', 'like', "%{$search}%"));
             });
         }
         if ($dossierSearch !== '') $query->where('dossier_number', 'like', "%{$dossierSearch}%");

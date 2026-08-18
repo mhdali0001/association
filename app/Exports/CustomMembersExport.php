@@ -89,6 +89,7 @@ class CustomMembersExport extends DefaultValueBinder implements
             ],
             'المعلومات المالية' => [
                 'estimated_amount'          => 'المبلغ المقدر',
+                'final_amount'              => 'المبلغ النهائي',
                 'payments_count'            => 'عدد الدفعات',
                 'iban'                      => 'الآيبان',
                 'barcode'                   => 'الباركود',
@@ -169,7 +170,7 @@ class CustomMembersExport extends DefaultValueBinder implements
         if (array_intersect($this->columns, $aiKeys))      $with[] = 'paymentInfoAI';
         if (in_array('payment_review_status', $this->columns)) $with[] = 'paymentReview';
         if (in_array('representative', $this->columns))        $with[] = 'representative';
-        if (array_intersect($this->columns, $visitKeys)) {
+        if (array_intersect($this->columns, $visitKeys) || in_array('final_amount', $this->columns)) {
             $with['fieldVisits'] = fn($q) => $q->latest()->with(['status', 'houseType', 'houseCondition']);
         }
 
@@ -232,6 +233,7 @@ class CustomMembersExport extends DefaultValueBinder implements
                 'score_deduction_reason'    => $m->scores?->score_deduction_reason ?? '',
                 'total_score'               => $m->scores?->total_score ?? '',
                 'estimated_amount'          => $m->estimated_amount ?? '',
+                'final_amount'              => (float)($m->estimated_amount ?? 0) + (float)($lastVisit?->estimated_amount ?? 0),
                 'payments_count'            => $m->payments_count ?? '',
                 'iban'                      => $m->paymentInfo?->iban ?? '',
                 'barcode'                   => $m->paymentInfo?->barcode ?? '',
