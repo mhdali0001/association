@@ -4,14 +4,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>مسالك النور — جمعية خيرية</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    {{-- تحميل الخط دون حجب العرض — 3 أوزان فقط --}}
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap"
-          media="print" onload="this.media='all'">
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap"></noscript>
+    {{-- خط Tajawal مستضاف ذاتياً — لا اتصال بأي طرف ثالث --}}
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/tajawal-900.woff2" crossorigin>
     {{-- صفحة الهبوط لا تستخدم Tailwind — كل التنسيق مضمّن أدناه --}}
     <style>
+        @font-face{font-family:'Tajawal';font-style:normal;font-weight:400;font-display:swap;src:url('/fonts/tajawal-400.woff2') format('woff2')}
+        @font-face{font-family:'Tajawal';font-style:normal;font-weight:700;font-display:swap;src:url('/fonts/tajawal-700.woff2') format('woff2')}
+        @font-face{font-family:'Tajawal';font-style:normal;font-weight:900;font-display:swap;src:url('/fonts/tajawal-900.woff2') format('woff2')}
         *, *::before, *::after { box-sizing: border-box; }
         html { font-family: 'Tajawal', sans-serif; }
 

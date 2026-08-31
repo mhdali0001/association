@@ -4,11 +4,14 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>تسجيل الدخول — مسالك النور</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    {{-- خط Tajawal مستضاف ذاتياً --}}
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/tajawal-400.woff2" crossorigin>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
+        @font-face{font-family:'Tajawal';font-style:normal;font-weight:400;font-display:swap;src:url('/fonts/tajawal-400.woff2') format('woff2')}
+        @font-face{font-family:'Tajawal';font-style:normal;font-weight:500;font-display:swap;src:url('/fonts/tajawal-500.woff2') format('woff2')}
+        @font-face{font-family:'Tajawal';font-style:normal;font-weight:700;font-display:swap;src:url('/fonts/tajawal-700.woff2') format('woff2')}
+        @font-face{font-family:'Tajawal';font-style:normal;font-weight:900;font-display:swap;src:url('/fonts/tajawal-900.woff2') format('woff2')}
         *, *::before, *::after { font-family: 'Tajawal', sans-serif; box-sizing: border-box; }
 
         body {

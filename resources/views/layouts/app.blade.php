@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'مسالك النور')</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    {{-- تحميل الخط دون حجب العرض --}}
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap"
-          media="print" onload="this.media='all'">
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap"></noscript>
+    {{-- خط Tajawal مستضاف ذاتياً — لا اتصال بأي طرف ثالث --}}
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/tajawal-400.woff2" crossorigin>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
+        @font-face{font-family:'Tajawal';font-style:normal;font-weight:400;font-display:swap;src:url('/fonts/tajawal-400.woff2') format('woff2')}
+        @font-face{font-family:'Tajawal';font-style:normal;font-weight:500;font-display:swap;src:url('/fonts/tajawal-500.woff2') format('woff2')}
+        @font-face{font-family:'Tajawal';font-style:normal;font-weight:700;font-display:swap;src:url('/fonts/tajawal-700.woff2') format('woff2')}
+        @font-face{font-family:'Tajawal';font-style:normal;font-weight:900;font-display:swap;src:url('/fonts/tajawal-900.woff2') format('woff2')}
         body { font-family: 'Tajawal', sans-serif; }
 
         /* ── Sidebar ── */
