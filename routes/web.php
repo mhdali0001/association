@@ -23,6 +23,7 @@ use App\Http\Controllers\VerificationStatusController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeePortalController;
 use App\Http\Controllers\CustomExportController;
+use App\Http\Controllers\NoteController;
 use Illuminate\Support\Facades\Route;
 
 // Welcome
@@ -189,6 +190,13 @@ Route::middleware('auth')->group(function () {
     Route::put('/members/{member}/field-visits/{fieldVisit}',             [\App\Http\Controllers\FieldVisitController::class, 'update'])        ->name('field-visits.update');
     Route::patch('/members/{member}/field-visits/{fieldVisit}/adjust',   [\App\Http\Controllers\FieldVisitController::class, 'adjustAmount'])  ->name('field-visits.adjust');
     Route::delete('/members/{member}/field-visits/{fieldVisit}',          [\App\Http\Controllers\FieldVisitController::class, 'destroy'])->name('field-visits.destroy');
+    // Notes — ملاحظات مع مرفقات ومستفيدين وتصنيف
+    Route::get('/notes/export',                           [NoteController::class, 'export'])            ->name('notes.export');
+    Route::get('/note-attachments/{attachment}/download', [NoteController::class, 'downloadAttachment'])->name('notes.attachments.download');
+    Route::post('/notes/{note}/attachments',              [NoteController::class, 'storeAttachment'])   ->name('notes.attachments.store');
+    Route::delete('/note-attachments/{attachment}',       [NoteController::class, 'destroyAttachment']) ->name('notes.attachments.destroy');
+    Route::resource('notes', NoteController::class);
+
     // Donations — named routes before resource to avoid conflict with {donation}
     Route::get('/donations/monthly',       [DonationController::class, 'monthly'])     ->name('donations.monthly');
     Route::post('/donations/monthly/quick',[DonationController::class, 'quickDonate'])->name('donations.monthly.quick');

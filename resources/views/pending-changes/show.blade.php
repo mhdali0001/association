@@ -56,6 +56,16 @@
         $topFields   = array_keys($labels);
         $scoreFields = [];
         $paymentFields = [];
+    } elseif ($modelType === 'note') {
+        $labels      = \App\Models\PendingChange::noteFieldLabels();
+        $topFields   = array_keys($labels);
+        $scoreFields = [];
+        $paymentFields = [];
+    } elseif ($modelType === 'note_attachment') {
+        $labels      = ['note_label' => 'الملاحظة', 'file_name' => 'اسم الملف'];
+        $topFields   = array_keys($labels);
+        $scoreFields = [];
+        $paymentFields = [];
     } else {
         $labels = \App\Models\PendingChange::memberFieldLabels();
         $topFields = [
@@ -336,6 +346,23 @@
                         {{ $payload['file_name'] }} — فتح الملف
                     </a>
                 @endif
+            </div>
+        @endif
+        @if(in_array($modelType, ['note', 'note_attachment']) && !empty($payload['attachments']))
+            <div class="border-t border-gray-100 p-5">
+                <p class="text-xs font-bold text-gray-500 mb-3">الملفات المرفقة ({{ count($payload['attachments']) }})</p>
+                <div class="space-y-2">
+                    @foreach($payload['attachments'] as $att)
+                        @php $attUrl = \Illuminate\Support\Facades\Storage::disk('public')->url($att['file_path'] ?? ''); @endphp
+                        <a href="{{ $attUrl }}" target="_blank"
+                           class="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                            <svg class="w-5 h-5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                            </svg>
+                            <span class="truncate">{{ $att['file_name'] ?? 'ملف' }}</span>
+                        </a>
+                    @endforeach
+                </div>
             </div>
         @endif
         @if(!empty($payload['scores']))

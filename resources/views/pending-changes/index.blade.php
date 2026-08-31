@@ -115,6 +115,8 @@
                 'field_visit'         => 'جولة ميدانية',
                 'donation'            => 'تبرع',
                 'member_image'        => 'ملف / صورة',
+                'note'                => 'ملاحظة',
+                'note_attachment'     => 'مرفق ملاحظة',
                 'marital_status'      => 'حالة اجتماعية',
                 'association'         => 'جمعية',
                 'verification_status' => 'حالة تحقق',
@@ -282,7 +284,7 @@
                                 </span>
                             </td>
                             <td class="px-5 py-4 font-semibold text-gray-800">
-                                {{ $change->payload['full_name'] ?? $change->payload['member_name'] ?? $change->getAttribute('original')['full_name'] ?? $change->getAttribute('original')['member_name'] ?? '—' }}
+                                {{ $change->payload['full_name'] ?? $change->payload['member_name'] ?? $change->payload['note_label'] ?? $change->getAttribute('original')['full_name'] ?? $change->getAttribute('original')['member_name'] ?? '—' }}
                                 @php
                                     $memberId = $change->model_type === 'member'
                                         ? $change->model_id

@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class UserSeeder extends Seeder
 {
@@ -14,7 +15,7 @@ class UserSeeder extends Seeder
                 'id'         => 1,
                 'name'       => 'أحمد المدير',
                 'email'      => 'admin@esam.org',
-                'password'   => '$2y$10$x62d7OWeiwXuFwXdfxNY..UoXh8smAYe4PyjMMYJhnFsk1kegro8u',
+                'password'   => Hash::make('password'),
                 'role'       => 'admin',
                 'phone'      => '0933123456',
                 'created_at' => '2026-03-05 20:27:26',

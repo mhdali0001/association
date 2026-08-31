@@ -895,6 +895,33 @@
             </div>
         </div>
 
+        {{-- ══════════════════════════════════════════
+             NOTE UPDATE / CREATE
+             ══════════════════════════════════════════ --}}
+        @elseif($modelType === 'note')
+        @php $p = $payload; @endphp
+
+        <div>
+            <p class="text-xs font-bold text-amber-600 uppercase tracking-wider mb-3">بيانات الملاحظة</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">العنوان</label>
+                    <input type="text" name="payload[title]" value="{{ old('payload.title', $p['title']??'') }}" class="{{ $inp }}">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">التاريخ</label>
+                    <input type="date" name="payload[note_date]" value="{{ old('payload.note_date', $p['note_date']??'') }}" class="{{ $inp }}">
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">نص الملاحظة</label>
+                    <textarea name="payload[body]" rows="4" class="{{ $inp }} resize-none">{{ old('payload.body', $p['body']??'') }}</textarea>
+                </div>
+                <p class="sm:col-span-2 text-xs text-gray-400">
+                    لتغيير التصنيف أو المستفيدين المرتبطين أو الملفات المرفقة، اسحب هذا الطلب وأنشئ طلباً جديداً.
+                </p>
+            </div>
+        </div>
+
         @endif
 
         {{-- ══════════════════════════════════════════

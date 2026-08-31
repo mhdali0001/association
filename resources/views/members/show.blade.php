@@ -1296,6 +1296,69 @@
         </div>
     </div>
 
+{{-- ── ملاحظات المستفيد ── --}}
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mt-6">
+        <div class="flex items-center justify-between bg-gradient-to-l from-emerald-50 to-teal-50 border-b border-emerald-100 px-6 py-4">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-base font-bold text-emerald-800">الملاحظات</h2>
+                    <p class="text-xs text-emerald-400 mt-0.5">
+                        {{ $member->notes->count() ? $member->notes->count() . ' ملاحظة' : 'لا توجد ملاحظات' }}
+                    </p>
+                </div>
+            </div>
+            <a href="{{ route('notes.create', ['member' => $member->id]) }}"
+               class="flex items-center gap-2 text-sm bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-xl transition-colors shadow-sm shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                </svg>
+                ملاحظة
+            </a>
+        </div>
+
+        <div class="p-4 sm:p-6">
+            @forelse($member->notes as $note)
+                <a href="{{ route('notes.show', $note) }}"
+                   class="block rounded-xl border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/30 transition-colors p-4 {{ !$loop->last ? 'mb-3' : '' }}">
+                    <div class="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs text-gray-400">
+                        @include('notes._category-badge', ['note' => $note])
+                        @if($note->pinned)
+                            <svg class="w-3.5 h-3.5 text-amber-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.368 2.447a1 1 0 00-.363 1.118l1.287 3.958c.3.922-.755 1.688-1.539 1.118l-3.367-2.447a1 1 0 00-1.176 0l-3.367 2.447c-.784.57-1.838-.196-1.539-1.118l1.287-3.958a1 1 0 00-.363-1.118L2.343 9.385c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.951-.69l1.286-3.958z"/></svg>
+                        @endif
+                        <span>{{ $note->creator?->name ?? '—' }}</span>
+                        <span class="w-1 h-1 rounded-full bg-gray-300"></span>
+                        <span title="{{ $note->exactDate() }}">{{ $note->relativeDate() }}</span>
+                        @if($note->attachments_count)
+                            <span class="inline-flex items-center gap-1 mr-auto">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                                {{ $note->attachments_count }}
+                            </span>
+                        @endif
+                    </div>
+                    @if($note->title)
+                        <p class="text-sm font-bold text-gray-800 mt-2">{{ $note->title }}</p>
+                    @endif
+                    <p class="text-sm text-gray-600 leading-relaxed whitespace-pre-line line-clamp-2 mt-1">{{ $note->body }}</p>
+                </a>
+            @empty
+                <div class="flex flex-col items-center justify-center py-12 text-center">
+                    <div class="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-3">
+                        <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                    </div>
+                    <p class="text-sm text-gray-400 font-semibold">لا توجد ملاحظات لهذا المستفيد</p>
+                    <p class="text-xs text-gray-300 mt-1">استخدم زر "ملاحظة" لتسجيل أول ملاحظة</p>
+                </div>
+            @endforelse
+        </div>
+    </div>
+
 {{-- Auto-open upload panel on validation errors or after upload --}}
 @if($errors->has('image') || session('upload_success'))
 <script>document.getElementById('upload-panel').classList.remove('hidden');</script>

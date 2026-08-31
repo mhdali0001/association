@@ -89,6 +89,14 @@ class Member extends Model
         return $this->hasMany(MemberImage::class)->latest();
     }
 
+    public function notes()
+    {
+        return $this->belongsToMany(Note::class, 'note_member')
+            ->orderByDesc('notes.pinned')
+            ->orderByDesc('notes.note_date')
+            ->orderByDesc('notes.id');
+    }
+
     public function fieldVisits()
     {
         return $this->hasMany(\App\Models\FieldVisit::class)->latest();

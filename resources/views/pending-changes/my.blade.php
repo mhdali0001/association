@@ -90,7 +90,7 @@
 
                             <div>
                                 <p class="font-bold text-gray-800 text-sm">
-                                    {{ $change->payload['full_name'] ?? $change->payload['member_name'] ?? $change->original['full_name'] ?? $change->original['member_name'] ?? '—' }}
+                                    {{ $change->payload['full_name'] ?? $change->payload['member_name'] ?? $change->payload['note_label'] ?? $change->original['full_name'] ?? $change->original['member_name'] ?? '—' }}
                                     @if($change->model_id)
                                         <span class="text-xs text-gray-400 font-normal mr-1">#{{ $change->model_id }}</span>
                                     @endif

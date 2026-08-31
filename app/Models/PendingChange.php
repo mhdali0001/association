@@ -197,6 +197,8 @@ class PendingChange extends Model
             'verification_status' => 'حالة تحقق',
             'field_visit'         => 'جولة ميدانية',
             'region'              => 'منطقة',
+            'note'                => 'ملاحظة',
+            'note_attachment'     => 'مرفق ملاحظة',
             default               => $this->model_type,
         };
     }
@@ -228,6 +230,8 @@ class PendingChange extends Model
             'donation'            => $this->payload['member_name'] ?? $this->getAttribute('original')['member_name'] ?? "#{$this->model_id}",
             'member_image'        => $this->payload['member_name'] ?? $this->getAttribute('original')['member_name'] ?? "#{$this->model_id}",
             'field_visit'         => $this->payload['member_name'] ?? $this->getAttribute('original')['member_name'] ?? "#{$this->model_id}",
+            'note'                => $this->payload['member_name'] ?? $this->getAttribute('original')['member_name'] ?? $this->payload['title'] ?? $this->getAttribute('original')['title'] ?? "#{$this->model_id}",
+            'note_attachment'     => $this->payload['note_label'] ?? "#{$this->model_id}",
             'marital_status',
             'association',
             'verification_status',
@@ -269,6 +273,8 @@ class PendingChange extends Model
                 'verification_status' => $this->applyVerificationStatus(),
                 'field_visit'         => $this->applyFieldVisit(),
                 'region'              => $this->applyRegion(),
+                'note'                => $this->applyNote(),
+                'note_attachment'     => $this->applyNoteAttachment(),
                 default               => throw new \RuntimeException("Unknown model type: {$this->model_type}"),
             };
         }
@@ -595,6 +601,8 @@ class PendingChange extends Model
             'member'              => $this->undoMember(),
             'donation'            => $this->undoDonation(),
             'member_image'        => $this->undoMemberImage(),
+            'note'                => $this->undoNote(),
+            'note_attachment'     => $this->undoNoteAttachment(),
             default               => null,
         };
     }
@@ -724,13 +732,21 @@ class PendingChange extends Model
         }
     }
 
-    /** Delete uploaded file when a pending image-upload is rejected */
+    /** Delete uploaded file(s) when a pending upload request is rejected */
     public function cleanup(): void
     {
         if ($this->model_type === 'member_image' && $this->action === 'create') {
             $path = $this->payload['file_path'] ?? null;
             if ($path) {
                 Storage::disk('public')->delete($path);
+            }
+        }
+
+        if (in_array($this->model_type, ['note', 'note_attachment'], true) && $this->action === 'create') {
+            foreach ($this->payload['attachments'] ?? [] as $att) {
+                if (! empty($att['file_path'])) {
+                    Storage::disk('public')->delete($att['file_path']);
+                }
             }
         }
     }
@@ -1169,6 +1185,119 @@ class PendingChange extends Model
             $visit = \App\Models\FieldVisit::find($this->model_id);
             if ($visit) {
                 $visit->update($data);
+            }
+        }
+    }
+
+    public static function noteFieldLabels(): array
+    {
+        return [
+            'members_label'  => 'المستفيدون',
+            'category_label' => 'التصنيف',
+            'title'          => 'العنوان',
+            'body'           => 'نص الملاحظة',
+            'note_date'      => 'التاريخ',
+        ];
+    }
+
+    private function applyNote(): void
+    {
+        $p = $this->payload ?? [];
+
+        if ($this->action === 'delete') {
+            \App\Models\Note::find($this->model_id)?->delete();
+            return;
+        }
+
+        $data = [
+            'title'     => $p['title']     ?? null,
+            'category'  => $p['category']  ?? null,
+            'body'      => $p['body']      ?? '',
+            'note_date' => $p['note_date'] ?? null,
+            'pinned'    => (bool) ($p['pinned'] ?? false),
+        ];
+
+        if ($this->action === 'create') {
+            $data['created_by'] = $p['created_by'] ?? $this->requested_by;
+            $note = \App\Models\Note::create($data);
+            $this->updateQuietly(['model_id' => $note->id]);
+
+            foreach ($p['attachments'] ?? [] as $att) {
+                $note->attachments()->create([
+                    'file_path'   => $att['file_path'],
+                    'file_name'   => $att['file_name'],
+                    'file_size'   => $att['file_size']   ?? null,
+                    'mime_type'   => $att['mime_type']   ?? null,
+                    'uploaded_by' => $att['uploaded_by'] ?? $this->requested_by,
+                ]);
+            }
+        } else { // update
+            $note = \App\Models\Note::find($this->model_id);
+            if (! $note) return;
+            $note->update($data);
+        }
+
+        $note->members()->sync($p['member_ids'] ?? []);
+    }
+
+    private function applyNoteAttachment(): void
+    {
+        $p = $this->payload ?? [];
+
+        if ($this->action === 'delete') {
+            \App\Models\NoteAttachment::find($this->model_id)?->delete();
+            return;
+        }
+
+        // create
+        $note = \App\Models\Note::find($p['note_id'] ?? null);
+        if (! $note) return;
+
+        foreach ($p['attachments'] ?? [] as $att) {
+            $note->attachments()->create([
+                'file_path'   => $att['file_path'],
+                'file_name'   => $att['file_name'],
+                'file_size'   => $att['file_size']   ?? null,
+                'mime_type'   => $att['mime_type']   ?? null,
+                'uploaded_by' => $att['uploaded_by'] ?? $this->requested_by,
+            ]);
+        }
+    }
+
+    private function undoNote(): void
+    {
+        $o = $this->getAttribute('original') ?? [];
+
+        if ($this->action === 'create') {
+            \App\Models\Note::find($this->model_id)?->delete();
+            return;
+        }
+
+        if ($this->action !== 'update') return;
+
+        $note = \App\Models\Note::find($this->model_id);
+        if (! $note) return;
+
+        $note->update([
+            'title'     => $o['title']     ?? null,
+            'category'  => $o['category']  ?? null,
+            'body'      => $o['body']      ?? $note->body,
+            'note_date' => $o['note_date'] ?? null,
+            'pinned'    => (bool) ($o['pinned'] ?? false),
+        ]);
+
+        if (array_key_exists('member_ids', $o)) {
+            $note->members()->sync($o['member_ids'] ?? []);
+        }
+    }
+
+    private function undoNoteAttachment(): void
+    {
+        if ($this->action !== 'create') return;
+
+        foreach ($this->payload['attachments'] ?? [] as $att) {
+            if (! empty($att['file_path'])) {
+                \App\Models\NoteAttachment::where('file_path', $att['file_path'])->get()->each->delete();
             }
         }
     }
