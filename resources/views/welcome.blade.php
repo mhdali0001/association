@@ -4,6 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>مسالك النور — جمعية خيرية</title>
+    <link rel="icon" type="image/png" href="/logo/logo-64.png">
+    <link rel="apple-touch-icon" href="/logo/logo-192.png">
     {{-- خط Tajawal مستضاف ذاتياً — لا اتصال بأي طرف ثالث --}}
     <link rel="preload" as="font" type="font/woff2" href="/fonts/tajawal-900.woff2" crossorigin>
     {{-- صفحة الهبوط لا تستخدم Tailwind — كل التنسيق مضمّن أدناه --}}
@@ -45,12 +47,12 @@
         .navbar-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
         .logo-mark {
             width: 42px; height: 42px; border-radius: 12px;
-            background: rgba(255,255,255,0.18);
-            border: 1.5px solid rgba(255,255,255,0.30);
+            background: #fff;
+            border: 1px solid rgba(255,255,255,0.30);
             display: flex; align-items: center; justify-content: center;
-            font-weight: 900; font-size: 18px; color: #fff;
-            backdrop-filter: blur(8px);
+            overflow: hidden; padding: 3px;
         }
+        .logo-mark img { width: 100%; height: 100%; object-fit: contain; }
         .logo-name  { font-weight: 800; font-size: 15px; color: #fff; line-height: 1.2; }
         .logo-sub   { font-size: 10px; color: rgba(255,255,255,0.55); }
 
@@ -318,10 +320,12 @@
         .footer-brand { display: flex; align-items: center; gap: 10px; }
         .footer-mark {
             width: 32px; height: 32px; border-radius: 9px;
-            background: var(--green-800);
+            background: #fff;
+            border: 1px solid #e9f2ee;
             display: flex; align-items: center; justify-content: center;
-            font-weight: 900; font-size: 14px; color: #fff;
+            overflow: hidden; padding: 2px;
         }
+        .footer-mark img { width: 100%; height: 100%; object-fit: contain; }
         .footer-name { font-size: 13px; font-weight: 700; color: var(--slate-700); }
         .footer-copy { font-size: 12px; color: var(--slate-300); }
         .footer-badge { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--slate-300); }
@@ -356,7 +360,7 @@
     {{-- ══════════════════════ NAVBAR ══════════════════════ --}}
     <nav class="navbar">
         <a href="/" class="navbar-logo">
-            <div class="logo-mark">م</div>
+            <div class="logo-mark"><img src="/logo/logo-96.png" alt="مسالك النور" width="42" height="42"></div>
             <div>
                 <p class="logo-name">مسالك النور</p>
                 <p class="logo-sub">جمعية خيرية</p>
@@ -529,7 +533,7 @@
     <footer class="footer">
         <div class="footer-inner">
             <div class="footer-brand">
-                <div class="footer-mark">م</div>
+                <div class="footer-mark"><img src="/logo/logo-64.png" alt="مسالك النور" width="32" height="32"></div>
                 <span class="footer-name">مسالك النور</span>
             </div>
             <p class="footer-copy">&copy; {{ date('Y') }} جمعية مسالك النور &mdash; جميع الحقوق محفوظة</p>

@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'مسالك النور')</title>
+    <link rel="icon" type="image/png" href="/logo/logo-64.png">
+    <link rel="apple-touch-icon" href="/logo/logo-192.png">
     {{-- خط Tajawal مستضاف ذاتياً — لا اتصال بأي طرف ثالث --}}
     <link rel="preload" as="font" type="font/woff2" href="/fonts/tajawal-400.woff2" crossorigin>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -192,11 +194,8 @@
         {{-- Logo (desktop) --}}
         <div class="flex items-center justify-between px-4 h-[62px] border-b border-gray-100 shrink-0">
             <a href="{{ route('dashboard') }}" class="flex items-center gap-3 min-w-0 group">
-                <div class="relative w-9 h-9 shrink-0">
-                    <div class="absolute inset-0 bg-emerald-600 rounded-xl rotate-6 opacity-20 group-hover:rotate-12 transition-transform"></div>
-                    <div class="relative w-9 h-9 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-xl flex items-center justify-center shadow-md">
-                        <span class="text-white font-black text-base leading-none">م</span>
-                    </div>
+                <div class="relative w-9 h-9 shrink-0 rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden flex items-center justify-center">
+                    <img src="/logo/logo-96.png" alt="مسالك النور" width="36" height="36" class="w-full h-full object-contain p-0.5">
                 </div>
                 <div class="sidebar-logo-text min-w-0">
                     <p class="font-black text-gray-900 text-[15px] leading-tight tracking-tight whitespace-nowrap">مسالك النور</p>

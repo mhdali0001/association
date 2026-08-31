@@ -4,6 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>إضافة مستخدم — مسالك النور</title>
+    <link rel="icon" type="image/png" href="/logo/logo-64.png">
+    <link rel="apple-touch-icon" href="/logo/logo-192.png">
     {{-- خط Tajawal مستضاف ذاتياً --}}
     <link rel="preload" as="font" type="font/woff2" href="/fonts/tajawal-400.woff2" crossorigin>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -60,13 +62,13 @@
 
         .brand-mark {
             width: 56px; height: 56px; border-radius: 16px;
-            background: rgba(255,255,255,0.10);
-            border: 1.5px solid rgba(255,255,255,0.18);
+            background: #fff;
+            border: 1px solid rgba(255,255,255,0.25);
             display: flex; align-items: center; justify-content: center;
-            font-size: 26px; font-weight: 900; color: #fff;
-            backdrop-filter: blur(8px);
+            overflow: hidden; padding: 5px;
             margin-bottom: 20px;
         }
+        .brand-mark img { width: 100%; height: 100%; object-fit: contain; }
         .brand-name { font-size: 32px; font-weight: 900; color: #fff; line-height: 1.2; margin: 0 0 8px; }
         .brand-sub  { font-size: 14px; color: rgba(255,255,255,0.45); font-weight: 400; }
 
@@ -129,10 +131,12 @@
         @media (min-width: 1024px) { .mobile-brand { display: none; } }
         .mobile-mark {
             width: 40px; height: 40px; border-radius: 11px;
-            background: #166534;
+            background: #fff;
+            border: 1px solid #e5e7eb;
             display: flex; align-items: center; justify-content: center;
-            font-size: 18px; font-weight: 900; color: #fff;
+            overflow: hidden; padding: 3px;
         }
+        .mobile-mark img { width: 100%; height: 100%; object-fit: contain; }
         .mobile-name { font-size: 16px; font-weight: 800; color: #0f172a; }
         .mobile-sub  { font-size: 11px; color: #94a3b8; }
 
@@ -249,7 +253,7 @@
         <div class="panel-ring-2"></div>
 
         <div class="panel-content">
-            <div class="brand-mark">م</div>
+            <div class="brand-mark"><img src="/logo/logo-128.png" alt="مسالك النور" width="56" height="56"></div>
             <h1 class="brand-name">مسالك النور</h1>
             <p class="brand-sub">جمعية خيرية معتمدة</p>
             <div class="panel-divider"></div>
@@ -300,7 +304,7 @@
 
                 {{-- Mobile brand --}}
                 <div class="mobile-brand">
-                    <div class="mobile-mark">م</div>
+                    <div class="mobile-mark"><img src="/logo/logo-96.png" alt="مسالك النور" width="40" height="40"></div>
                     <div>
                         <p class="mobile-name">مسالك النور</p>
                         <p class="mobile-sub">جمعية خيرية</p>
