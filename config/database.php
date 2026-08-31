@@ -62,6 +62,11 @@ return [
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
+            // خيارات mysqldump للنسخ الاحتياطي (spatie/laravel-backup): نسخ بلا قفل لجداول InnoDB
+            'dump' => [
+                'useSingleTransaction' => true,
+                'timeout' => 60 * 10,
+            ],
         ],
 
         'mariadb' => [

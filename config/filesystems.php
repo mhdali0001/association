@@ -60,6 +60,26 @@ return [
             'report' => false,
         ],
 
+        // النسخ الاحتياطية محلياً (نسخة عمل قصيرة العمر قبل الدفع خارجياً)
+        'backups' => [
+            'driver' => 'local',
+            'root' => storage_path('app/backups'),
+            'throw' => false,
+        ],
+
+        // وجهة خارجية S3-متوافقة (Backblaze B2 / Cloudflare R2 / Wasabi / AWS)
+        'b2' => [
+            'driver' => 's3',
+            'key' => env('B2_KEY'),
+            'secret' => env('B2_SECRET'),
+            'region' => env('B2_REGION'),
+            'bucket' => env('B2_BUCKET'),
+            'endpoint' => env('B2_ENDPOINT'),
+            'use_path_style_endpoint' => env('B2_PATH_STYLE', false),
+            'throw' => false,
+            'report' => false,
+        ],
+
     ],
 
     /*
