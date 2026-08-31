@@ -332,9 +332,24 @@
             from { opacity: 0; transform: translateY(22px); }
             to   { opacity: 1; transform: translateY(0); }
         }
-        .fade-up        { animation: fadeUp .7s ease both; }
-        .fade-up-d1     { animation: fadeUp .7s .15s ease both; opacity: 0; }
-        .fade-up-d2     { animation: fadeUp .7s .30s ease both; opacity: 0; }
+        .fade-up        { animation: fadeUp .5s ease both; }
+        .fade-up-d1     { animation: fadeUp .5s .12s ease both; opacity: 0; }
+        .fade-up-d2     { animation: fadeUp .5s .24s ease both; opacity: 0; }
+
+        /* تخطّي تخطيط ورسم الأقسام خارج الشاشة حتى الوصول إليها */
+        .section-features,
+        .section-stats,
+        .section-cta,
+        .footer {
+            content-visibility: auto;
+            contain-intrinsic-size: auto 640px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .fade-up, .fade-up-d1, .fade-up-d2,
+            .float-1, .float-2, .float-3,
+            .hero-eyebrow-dot { animation: none !important; opacity: 1 !important; }
+        }
     </style>
 </head>
 <body>
