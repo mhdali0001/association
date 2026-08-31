@@ -49,6 +49,13 @@
                 </svg>
                 تكرار الآيبانات
             </a>
+            <a href="{{ route('payment-review.search') }}"
+               class="flex items-center gap-2 bg-white/15 hover:bg-white/25 border border-white/30 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                بحث معلومات الدفع
+            </a>
         </div>
     </div>
 </div>

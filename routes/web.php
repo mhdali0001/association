@@ -75,6 +75,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/payment-review/export-matched-reviewed', [PaymentReviewController::class, 'exportMatchedReviewed']) ->name('payment-review.export-matched-reviewed');
         Route::get('/payment-review/import',             [PaymentReviewController::class, 'importShow'])   ->name('payment-review.import.show');
         Route::post('/payment-review/import',            [PaymentReviewController::class, 'importStore'])  ->name('payment-review.import.store');
+        Route::get('/payment-review/search',             [PaymentReviewController::class, 'search'])       ->name('payment-review.search');
         Route::get('/payment-review/duplicate-ibans',    [PaymentReviewController::class, 'duplicateIbans'])->name('payment-review.duplicate-ibans');
         Route::get('/payment-review/recent-ibans',       [PaymentReviewController::class, 'recentIbans'])   ->name('payment-review.recent-ibans');
         Route::post('/payment-review/bulk-delete',        [PaymentReviewController::class, 'bulkDelete'])   ->name('payment-review.bulk-delete');

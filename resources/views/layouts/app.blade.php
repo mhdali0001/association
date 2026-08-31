@@ -399,6 +399,11 @@
                         <svg class="nav-icon shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
                         <span class="sidebar-label">تكرار الآيبانات</span>
                     </a>
+                    <a href="{{ route('payment-review.search') }}" data-tip="بحث معلومات الدفع"
+                       class="nav-link {{ request()->routeIs('payment-review.search') ? 'active' : '' }}">
+                        <svg class="nav-icon shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        <span class="sidebar-label">بحث معلومات الدفع</span>
+                    </a>
                 </div>
             </div>
 

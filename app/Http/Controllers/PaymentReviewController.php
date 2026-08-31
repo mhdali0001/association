@@ -314,6 +314,54 @@ class PaymentReviewController extends Controller
         ));
     }
 
+    /**
+     * بحث في معلومات الدفع (العادية و AI) عن رقم الآيبان أو اسم المستلم.
+     */
+    public function search(Request $request)
+    {
+        $q     = trim($request->get('q', ''));
+        $field = in_array($request->get('field'), ['iban', 'recipient'], true)
+            ? $request->get('field')
+            : 'all';
+
+        $members = null;
+
+        if ($q !== '') {
+            $like     = '%' . $q . '%';
+            $bare     = preg_replace('/[\s\-]+/', '', $q);
+            $bareLike = '%' . $bare . '%';
+
+            // نفس الأعمدة موجودة في الجدولين (payment_info و payment_info_AI)
+            $match = function ($sub) use ($field, $like, $bareLike) {
+                $sub->where(function ($x) use ($field, $like, $bareLike) {
+                    if ($field !== 'recipient') {
+                        $x->orWhereRaw("REPLACE(REPLACE(iban, ' ', ''), '-', '') LIKE ?", [$bareLike]);
+                    }
+                    if ($field !== 'iban') {
+                        $x->orWhere('recipient_name', 'like', $like);
+                    }
+                });
+            };
+
+            $members = Member::query()
+                ->with(['paymentInfo', 'paymentInfoAI', 'verificationStatus', 'finalStatus'])
+                ->where(function ($outer) use ($match, $field, $like) {
+                    $outer->whereHas('paymentInfo', $match)
+                          ->orWhereHas('paymentInfoAI', $match);
+
+                    if ($field === 'all') {
+                        $outer->orWhere('full_name', 'like', $like)
+                              ->orWhere('dossier_number', 'like', $like);
+                    }
+                })
+                ->orderBy('full_name')
+                ->paginate(30)
+                ->withQueryString();
+        }
+
+        return view('payment-review.search', compact('q', 'field', 'members'));
+    }
+
     public function bulkDelete(Request $request)
     {
         $ids = array_filter((array) $request->input('ids', []));
