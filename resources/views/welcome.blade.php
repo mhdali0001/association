@@ -6,10 +6,14 @@
     <title>مسالك النور — جمعية خيرية</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    {{-- تحميل الخط دون حجب العرض — 3 أوزان فقط --}}
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap"
+          media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap"></noscript>
+    {{-- صفحة الهبوط لا تستخدم Tailwind — كل التنسيق مضمّن أدناه --}}
     <style>
-        *, *::before, *::after { font-family: 'Tajawal', sans-serif; box-sizing: border-box; }
+        *, *::before, *::after { box-sizing: border-box; }
+        html { font-family: 'Tajawal', sans-serif; }
 
         :root {
             --green-950: #052e16;

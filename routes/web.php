@@ -26,10 +26,8 @@ use App\Http\Controllers\CustomExportController;
 use App\Http\Controllers\NoteController;
 use Illuminate\Support\Facades\Route;
 
-// Welcome
-Route::get('/', function () {
-    return view('welcome');
-});
+// Welcome (Route::view so `php artisan route:cache` works — no closure)
+Route::view('/', 'welcome');
 
 // Employee self-service portal (public)
 Route::get('/portal',          [EmployeePortalController::class, 'login'])        ->name('employee-portal.login');
