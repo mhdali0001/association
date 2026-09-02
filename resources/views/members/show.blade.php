@@ -1308,7 +1308,7 @@
                 <div>
                     <h2 class="text-base font-bold text-emerald-800">الملاحظات</h2>
                     <p class="text-xs text-emerald-400 mt-0.5">
-                        {{ $member->notes->count() ? $member->notes->count() . ' ملاحظة' : 'لا توجد ملاحظات' }}
+                        {{ $member->caseNotes->count() ? $member->caseNotes->count() . ' ملاحظة' : 'لا توجد ملاحظات' }}
                     </p>
                 </div>
             </div>
@@ -1322,7 +1322,7 @@
         </div>
 
         <div class="p-4 sm:p-6">
-            @forelse($member->notes as $note)
+            @forelse($member->caseNotes as $note)
                 <a href="{{ route('notes.show', $note) }}"
                    class="block rounded-xl border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/30 transition-colors p-4 {{ !$loop->last ? 'mb-3' : '' }}">
                     <div class="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs text-gray-400">

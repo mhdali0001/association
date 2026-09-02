@@ -197,7 +197,7 @@ class MemberController extends Controller
     public function show(Member $member)
     {
         $member->load(['scores', 'paymentInfo', 'paymentInfoAI', 'association', 'associations', 'verificationStatus', 'representative', 'images.uploader', 'fieldVisits.status', 'fieldVisits.houseType', 'fieldVisits.houseCondition', 'paymentBatchEntries.batch.appliedBy',
-            'notes' => fn ($q) => $q->with('creator')->withCount('attachments'),
+            'caseNotes' => fn ($q) => $q->with('creator')->withCount('attachments'),
         ]);
         $fieldVisitStatuses = \App\Models\FieldVisitStatus::active()->orderBy('id')->get();
         $houseTypes         = \App\Models\HouseType::active()->orderBy('id')->get();

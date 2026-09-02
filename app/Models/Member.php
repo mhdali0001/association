@@ -89,7 +89,10 @@ class Member extends Model
         return $this->hasMany(MemberImage::class)->latest();
     }
 
-    public function notes()
+    /**
+     * ملاحظات المستفيد (كيان Notes) — الاسم "caseNotes" لتفادي التعارض مع عمود members.notes النصّي.
+     */
+    public function caseNotes()
     {
         return $this->belongsToMany(Note::class, 'note_member')
             ->orderByDesc('notes.pinned')
