@@ -188,6 +188,63 @@ class MemberController extends Controller
         return Excel::download(new MembersExport($query), $filename);
     }
 
+    /**
+     * تصدير أسماء وأرقام الأعضاء المحددين كملف vCard (.vcf) يستورده أندرويد والآيفون مباشرة.
+     */
+    public function exportContacts(Request $request)
+    {
+        $query = $request->boolean('select_all')
+            ? $this->buildFilteredQuery($request)
+            : Member::whereIn('id', array_filter((array) $request->input('ids', [])));
+
+        $members = $query
+            ->where(fn($q) => $q->where(fn($q2) => $q2->whereNotNull('phone')->where('phone', '!=', ''))
+                                ->orWhere(fn($q2) => $q2->whereNotNull('phone2')->where('phone2', '!=', '')))
+            ->orderByRaw('CAST(dossier_number AS UNSIGNED) ASC')
+            ->get(['full_name', 'dossier_number', 'phone', 'phone2']);
+
+        if ($members->isEmpty()) {
+            return back()->with('error', 'لا توجد أرقام هواتف للأعضاء المحددين.');
+        }
+
+        $escape = fn(string $v) => str_replace(['\\', ',', ';', "\r\n", "\n"], ['\\\\', '\,', '\;', '\n', '\n'], trim($v));
+
+        $vcf = '';
+        foreach ($members as $m) {
+            // الاسم المعروض: رقم الإضبارة + الاسم الكامل (الأول، الأب، العائلة).
+            // يوضع كاملاً في حقل الاسم الأول حتى يظهر بنفس الترتيب مهما كان إعداد ترتيب الأسماء في الموبايل.
+            $name   = $escape(preg_replace('/\s+/u', ' ', trim($m->dossier_number . ' ' . $m->full_name)));
+            $phones = array_unique(array_filter([$this->toVcardPhone($m->phone), $this->toVcardPhone($m->phone2)]));
+
+            $vcf .= "BEGIN:VCARD\r\nVERSION:3.0\r\n";
+            $vcf .= "FN:{$name}\r\nN:;{$name};;;\r\n";
+            foreach ($phones as $phone) {
+                $vcf .= "TEL;TYPE=CELL:{$phone}\r\n";
+            }
+            $vcf .= "END:VCARD\r\n";
+        }
+
+        ActivityLogger::log('exported', 'تصدير جهات اتصال ' . $members->count() . ' مستفيد (vCard)');
+
+        return response()->streamDownload(
+            function () use ($vcf) { echo $vcf; },
+            'جهات-اتصال-' . now()->format('Y-m-d') . '.vcf',
+            ['Content-Type' => 'text/vcard; charset=utf-8']
+        );
+    }
+
+    /**
+     * رقم سوري محلي (09xxxxxxxx) يتحول إلى الصيغة الدولية +9639xxxxxxxx ليعمل أيضاً مع واتساب.
+     */
+    private function toVcardPhone(?string $phone): ?string
+    {
+        $digits = preg_replace('/[^\d+]/', '', (string) $phone);
+        if ($digits === '') return null;
+        if (preg_match('/^09\d{8}$/', $digits)) return '+963' . substr($digits, 1);
+        if (preg_match('/^00963(\d{9})$/', $digits, $m)) return '+963' . $m[1];
+        return $digits;
+    }
+
     public function create()
     {
         ActivityLogger::log('viewed', 'فتح نموذج إضافة مستفيد جديد');

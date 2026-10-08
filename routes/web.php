@@ -108,6 +108,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/members/{member}/national-id',    [MemberController::class, 'updateNationalId'])      ->name('members.national-id.update');
     Route::get('/members/map',                       [MemberController::class, 'mapIndex'])           ->name('members.map');
     Route::get('/members/export',                    [MemberController::class, 'export'])              ->name('members.export');
+    Route::post('/members/export-contacts',          [MemberController::class, 'exportContacts'])      ->name('members.export-contacts');
     Route::get('/members/custom-export',             [CustomExportController::class, 'show'])          ->name('members.custom-export');
     Route::get('/members/custom-export/count',      [CustomExportController::class, 'count'])         ->name('members.custom-export.count');
     Route::post('/members/custom-export/download',   [CustomExportController::class, 'download'])      ->name('members.custom-export.download');

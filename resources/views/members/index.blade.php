@@ -1944,6 +1944,27 @@ function injectBulkEditIds() {
     return confirm('سيتم تعديل ' + uniqueCount + ' عضو. هل أنت متأكد؟');
 }
 
+function injectContactIds(form) {
+    var container = document.getElementById('bulk-contacts-ids-container');
+    container.innerHTML = '';
+    document.getElementById('bulk-contacts-select-all').value = allPagesSelected ? '1' : '0';
+    if (allPagesSelected) return true;
+
+    var idMap = {};
+    document.querySelectorAll('.row-checkbox:checked').forEach(function(cb) { idMap[cb.value] = true; });
+    var ids = Object.keys(idMap);
+    if (ids.length === 0) {
+        alert('يرجى تحديد أعضاء من الجدول أولاً.');
+        return false;
+    }
+    ids.forEach(function(id) {
+        var inp = document.createElement('input');
+        inp.type = 'hidden'; inp.name = 'ids[]'; inp.value = id;
+        container.appendChild(inp);
+    });
+    return true;
+}
+
 function removeEmptyFilters(form) {
     Array.from(form.elements).forEach(function(el) {
         if (!el.name) return;
@@ -2058,7 +2079,7 @@ function toggleDuplicates() {
             <button type="button" onclick="cancelSelectAllPages()" id="cancel-all-pages-btn" class="hidden text-gray-500 font-medium hover:text-gray-700">تراجع</button>
         </div>
         {{-- Actions row --}}
-        <div class="flex items-center gap-3 px-5 py-3 bg-red-50">
+        <div class="flex flex-wrap items-center gap-3 px-5 py-3 bg-red-50">
             <span id="bulk-count" class="text-sm font-bold text-red-700"></span>
             <form id="bulk-delete-form" method="POST" action="{{ route('members.bulk-destroy') }}"
                   data-confirm="هل أنت متأكد من حذف الأعضاء المحددين؟">
@@ -2081,6 +2102,28 @@ function toggleDuplicates() {
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                     </svg>
                     حذف المحدد
+                </button>
+            </form>
+            <form id="bulk-contacts-form" method="POST" action="{{ route('members.export-contacts') }}"
+                  onsubmit="return injectContactIds(this)">
+                @csrf
+                <div id="bulk-contacts-ids-container"></div>
+                <input type="hidden" name="select_all" id="bulk-contacts-select-all" value="0">
+                @foreach(request()->except(['page','_token']) as $key => $val)
+                    @if(is_array($val))
+                        @foreach($val as $v)
+                            <input type="hidden" name="{{ $key }}[]" value="{{ $v }}">
+                        @endforeach
+                    @else
+                        <input type="hidden" name="{{ $key }}" value="{{ $val }}">
+                    @endif
+                @endforeach
+                <button type="submit" title="ملف vCard (.vcf) يُفتح على الموبايل لحفظ الأسماء والأرقام"
+                        class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                    </svg>
+                    تصدير جهات الاتصال
                 </button>
             </form>
             <button onclick="clearSelection()" class="text-sm text-gray-500 hover:text-gray-700 font-medium px-3 py-2 rounded-xl hover:bg-gray-100 transition-colors">إلغاء التحديد</button>
