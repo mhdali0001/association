@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>403 — غير مصرح | مسالك النور</title>
+    @include('partials.pwa')
     {{-- خط Tajawal مستضاف ذاتياً --}}
     <link rel="preload" as="font" type="font/woff2" href="/fonts/tajawal-400.woff2" crossorigin>
     @vite(['resources/css/app.css', 'resources/js/app.js'])

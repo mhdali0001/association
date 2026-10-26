@@ -4,19 +4,22 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Services\ActivityLogger;
+use App\Services\RememberedLogins;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    public function showLogin()
+    public function showLogin(Request $request)
     {
         if (Auth::check()) {
             return redirect()->route('dashboard');
         }
 
-        return view('auth.login');
+        return view('auth.login', [
+            'rememberedAccounts' => RememberedLogins::forDevice($request),
+        ]);
     }
 
     public function login(Request $request)
@@ -32,6 +35,10 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
+
+            if ($request->boolean('remember')) {
+                RememberedLogins::remember($request, Auth::user());
+            }
 
             ActivityLogger::log('login', 'تسجيل دخول ناجح');
 
@@ -116,6 +123,7 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('login');
+        // "إضافة حساب آخر" من قائمة المستخدم: نموذج الدخول مباشرة بدل قائمة الحسابات المحفوظة
+        return redirect()->route('login', $request->boolean('add_account') ? ['add' => 1] : []);
     }
 }

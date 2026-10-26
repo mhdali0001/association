@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#166534">
+    <title>لا يوجد اتصال — مسالك النور</title>
+    <style>
+        @font-face{font-family:'Tajawal';font-weight:400;font-display:swap;src:url('/fonts/tajawal-400.woff2') format('woff2')}
+        @font-face{font-family:'Tajawal';font-weight:700;font-display:swap;src:url('/fonts/tajawal-700.woff2') format('woff2')}
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            font-family: 'Tajawal', sans-serif; background: #f8fafc; color: #1e293b; padding: 24px;
+        }
+        .card {
+            width: 100%; max-width: 380px; background: #fff; border-radius: 20px; padding: 36px 28px;
+            text-align: center; box-shadow: 0 10px 40px rgba(15, 23, 42, 0.08); border-top: 4px solid #166534;
+        }
+        .card img { width: 88px; height: 88px; }
+        h1 { font-size: 20px; font-weight: 700; margin: 18px 0 8px; color: #166534; }
+        p { font-size: 15px; color: #64748b; margin: 0 0 24px; line-height: 1.7; }
+        button {
+            width: 100%; font-family: inherit; font-size: 15px; font-weight: 700; color: #fff; cursor: pointer;
+            background: linear-gradient(135deg, #15803d, #166534); border: none; border-radius: 12px; padding: 13px 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <img src="/logo/logo-128.png" alt="مسالك النور">
+        <h1>لا يوجد اتصال بالإنترنت</h1>
+        <p>تحقق من اتصالك بالإنترنت ثم أعد المحاولة. ستُفتح الصفحة تلقائياً عند عودة الاتصال.</p>
+        <button type="button" onclick="location.reload()">إعادة المحاولة</button>
+    </div>
+    <script>
+        window.addEventListener('online', function () { location.reload(); });
+    </script>
+</body>
+</html>

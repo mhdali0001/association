@@ -80,6 +80,17 @@ return [
             'report' => false,
         ],
 
+        // وجهة خارجية على Google Drive (ربط OAuth بحساب Google، صلاحية drive.file) — يُسجَّل في AppServiceProvider
+        'google' => [
+            'driver' => 'google',
+            'clientId' => env('GOOGLE_DRIVE_CLIENT_ID'),
+            'clientSecret' => env('GOOGLE_DRIVE_CLIENT_SECRET'),
+            'refreshToken' => env('GOOGLE_DRIVE_REFRESH_TOKEN'),
+            'folder' => env('GOOGLE_DRIVE_FOLDER', 'masalkalnour-backups'),
+            'throw' => false,
+            'report' => false,
+        ],
+
     ],
 
     /*

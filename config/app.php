@@ -16,6 +16,17 @@ return [
     'name' => env('APP_NAME', 'Laravel'),
 
     /*
+     * اسم المؤسسة بالإنجليزية وبريد التواصل — يظهران في صفحتي سياسة الخصوصية وشروط الاستخدام.
+     */
+    'org_name_en' => env('ORG_NAME_EN', 'Masalek Al-Nour Charitable Foundation'),
+
+    // البريد الافتراضي ‎hello@example.com لا يُعرض: الأولوية لـ CONTACT_EMAIL ثم MAIL_FROM_ADDRESS الحقيقي
+    'contact_email' => (function () {
+        $email = env('CONTACT_EMAIL') ?: env('MAIL_FROM_ADDRESS');
+        return $email && ! str_ends_with($email, '@example.com') ? $email : null;
+    })(),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------

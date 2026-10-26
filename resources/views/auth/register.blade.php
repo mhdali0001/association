@@ -6,6 +6,7 @@
     <title>إضافة مستخدم — مسالك النور</title>
     <link rel="icon" type="image/png" href="/logo/logo-64.png">
     <link rel="apple-touch-icon" href="/logo/logo-192.png">
+    @include('partials.pwa')
     {{-- خط Tajawal مستضاف ذاتياً --}}
     <link rel="preload" as="font" type="font/woff2" href="/fonts/tajawal-400.woff2" crossorigin>
     @vite(['resources/css/app.css', 'resources/js/app.js'])

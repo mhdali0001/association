@@ -6,6 +6,7 @@
     <title>مسالك النور — جمعية خيرية</title>
     <link rel="icon" type="image/png" href="/logo/logo-64.png">
     <link rel="apple-touch-icon" href="/logo/logo-192.png">
+    @include('partials.pwa')
     {{-- خط Tajawal مستضاف ذاتياً — لا اتصال بأي طرف ثالث --}}
     <link rel="preload" as="font" type="font/woff2" href="/fonts/tajawal-900.woff2" crossorigin>
     {{-- صفحة الهبوط لا تستخدم Tailwind — كل التنسيق مضمّن أدناه --}}
@@ -330,6 +331,9 @@
         .footer-copy { font-size: 12px; color: var(--slate-300); }
         .footer-badge { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--slate-300); }
         .footer-dot   { width: 7px; height: 7px; border-radius: 50%; background: var(--green-500); }
+        .footer-links { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; }
+        .footer-links a { color: var(--slate-700); text-decoration: none; }
+        .footer-links a:hover { color: var(--green-500); text-decoration: underline; }
 
         @keyframes fadeUp {
             from { opacity: 0; transform: translateY(22px); }
@@ -537,6 +541,10 @@
                 <span class="footer-name">مسالك النور</span>
             </div>
             <p class="footer-copy">&copy; {{ date('Y') }} جمعية مسالك النور &mdash; جميع الحقوق محفوظة</p>
+            <nav class="footer-links">
+                <a href="{{ route('privacy') }}">سياسة الخصوصية (Privacy Policy)</a>
+                <a href="{{ route('terms') }}">شروط الاستخدام (Terms of Service)</a>
+            </nav>
             <div class="footer-badge">
                 <span class="footer-dot"></span>
                 نظام إدارة الجمعية

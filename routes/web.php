@@ -24,10 +24,15 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeePortalController;
 use App\Http\Controllers\CustomExportController;
 use App\Http\Controllers\NoteController;
+use App\Http\Controllers\RememberedLoginController;
 use Illuminate\Support\Facades\Route;
 
 // Welcome (Route::view so `php artisan route:cache` works — no closure)
 Route::view('/', 'welcome');
+
+// صفحات قانونية عامة بالإنجليزية — مطلوبة لشاشة موافقة Google OAuth (نسخ Google Drive الاحتياطي)
+Route::view('/privacy-policy',   'legal.privacy')->name('privacy');
+Route::view('/terms-of-service', 'legal.terms')->name('terms');
 
 // Employee self-service portal (public)
 Route::get('/portal',          [EmployeePortalController::class, 'login'])        ->name('employee-portal.login');
@@ -42,6 +47,10 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
+
+// الحسابات المحفوظة على الجهاز: دخول بضغطة واحدة، وتبديل الحساب دون خروج
+Route::post('/login/remembered/{id}',   [RememberedLoginController::class, 'login'])->whereNumber('id')->middleware('throttle:20,1')->name('login.remembered');
+Route::delete('/login/remembered/{id}', [RememberedLoginController::class, 'forget'])->whereNumber('id')->name('login.remembered.forget');
 
 // Dashboard (protected)
 Route::middleware('auth')->group(function () {

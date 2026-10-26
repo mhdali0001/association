@@ -23,12 +23,10 @@ return [
         'source' => [
             'files' => [
                 /*
-                 * نسخ ملفات المستخدمين المرفوعة فقط (صور المستفيدين، مرفقات الملاحظات…).
-                 * لا نضمّ base_path() لتفادي vendor/.git/.env/بناء Vite.
+                 * النسخة لقاعدة البيانات فقط — لا ملفات.
+                 * لإضافة ملفات المستخدمين المرفوعة (صور المستفيدين، مرفقات الملاحظات…) ضع هنا: storage_path('app')
                  */
-                'include' => [
-                    storage_path('app'),
-                ],
+                'include' => [],
 
                 /*
                  * These directories and files will be excluded from the backup.

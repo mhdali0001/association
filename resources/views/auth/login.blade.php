@@ -6,6 +6,7 @@
     <title>تسجيل الدخول — مسالك النور</title>
     <link rel="icon" type="image/png" href="/logo/logo-64.png">
     <link rel="apple-touch-icon" href="/logo/logo-192.png">
+    @include('partials.pwa')
     {{-- خط Tajawal مستضاف ذاتياً --}}
     <link rel="preload" as="font" type="font/woff2" href="/fonts/tajawal-400.woff2" crossorigin>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -229,6 +230,66 @@
         .btn-submit:active { transform: translateY(0); }
         .btn-submit svg { width: 17px; height: 17px; }
 
+        .btn-install {
+            width: 100%; margin-top: 12px;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            background: #fff; color: #166534; font-size: 15px; font-weight: 700;
+            font-family: 'Tajawal', sans-serif;
+            padding: 12px 24px; border-radius: 12px;
+            border: 1.5px solid #bbf7d0; cursor: pointer;
+            transition: all .25s;
+        }
+        .btn-install:hover { background: #f0fdf4; border-color: #16a34a; }
+        .btn-install[hidden] { display: none; }
+        .btn-install svg { width: 17px; height: 17px; }
+
+        /* ── الحسابات المحفوظة على الجهاز ── */
+        .accounts-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+        .account-item {
+            display: flex; align-items: center; gap: 4px;
+            border: 1.5px solid #e2e8f0; border-radius: 14px; background: #fff;
+            transition: all .2s;
+        }
+        .account-item:hover { border-color: #16a34a; background: #f0fdf4; box-shadow: 0 4px 14px rgba(21,128,61,0.12); }
+        .account-item form:first-child { flex: 1; min-width: 0; }
+        .account-btn {
+            width: 100%; display: flex; align-items: center; gap: 12px;
+            background: none; border: none; cursor: pointer; text-align: right;
+            padding: 12px 14px; font-family: 'Tajawal', sans-serif;
+        }
+        .account-avatar {
+            width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #22c55e, #15803d); color: #fff;
+            font-size: 17px; font-weight: 800;
+        }
+        .account-info { display: flex; flex-direction: column; min-width: 0; line-height: 1.35; }
+        .account-name { font-size: 15px; font-weight: 700; color: #0f172a; }
+        .account-email { font-size: 12.5px; color: #64748b; direction: ltr; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .account-forget {
+            width: 34px; height: 34px; margin-left: 8px; border-radius: 10px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            background: none; border: none; cursor: pointer; color: #94a3b8;
+            transition: all .2s;
+        }
+        .account-forget:hover { background: #fef2f2; color: #dc2626; }
+        .account-forget svg { width: 16px; height: 16px; }
+        .btn-other-account {
+            width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+            background: none; border: 1.5px dashed #cbd5e1; border-radius: 14px; cursor: pointer;
+            padding: 12px 14px; font-family: 'Tajawal', sans-serif; font-size: 14px; font-weight: 700; color: #475569;
+            transition: all .2s;
+        }
+        .btn-other-account:hover { border-color: #16a34a; color: #166534; background: #f0fdf4; }
+        .btn-other-account svg { width: 17px; height: 17px; }
+        .link-back-accounts {
+            display: inline-flex; align-items: center; gap: 6px; margin-top: 14px;
+            background: none; border: none; cursor: pointer; padding: 0;
+            font-family: 'Tajawal', sans-serif; font-size: 13.5px; font-weight: 600; color: #166534;
+        }
+        .link-back-accounts svg { width: 15px; height: 15px; }
+        [hidden] { display: none !important; }
+
         .card-footer {
             margin-top: 24px; padding-top: 20px;
             border-top: 1px solid #f1f5f9;
@@ -308,9 +369,15 @@
                     </div>
                 </div>
 
+                @php
+                    $hasAccounts = $rememberedAccounts->isNotEmpty();
+                    $showForm    = ! $hasAccounts || $errors->any() || request()->boolean('add');
+                @endphp
+
                 <div class="card-heading">
                     <h1>مرحباً بك</h1>
-                    <p>سجّل دخولك للوصول إلى لوحة التحكم</p>
+                    <p data-login-view="form" @if (! $showForm) hidden @endif>سجّل دخولك للوصول إلى لوحة التحكم</p>
+                    <p data-login-view="accounts" @if ($showForm) hidden @endif>اختر حسابك للمتابعة</p>
                 </div>
 
                 @if ($errors->any())
@@ -322,6 +389,47 @@
                     </div>
                 @endif
 
+                {{-- الحسابات المحفوظة على هذا الجهاز: دخول بضغطة واحدة --}}
+                @if ($hasAccounts)
+                <div data-login-view="accounts" @if ($showForm) hidden @endif>
+                    <div class="accounts-list">
+                        @foreach ($rememberedAccounts as $account)
+                        <div class="account-item">
+                            <form method="POST" action="{{ route('login.remembered', $account->id) }}">
+                                @csrf
+                                <button type="submit" class="account-btn">
+                                    <span class="account-avatar">{{ mb_substr($account->user->name, 0, 1) }}</span>
+                                    <span class="account-info">
+                                        <span class="account-name">{{ $account->user->name }}</span>
+                                        @if ($account->user->name !== $account->user->email)
+                                            <span class="account-email">{{ $account->user->email }}</span>
+                                        @endif
+                                    </span>
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ route('login.remembered.forget', $account->id) }}"
+                                  onsubmit="return confirm('إزالة حساب {{ $account->user->name }} من هذا الجهاز؟')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="account-forget" title="إزالة الحساب من هذا الجهاز">
+                                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
+                        @endforeach
+                    </div>
+                    <button type="button" class="btn-other-account" onclick="showLoginView('form')">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        الدخول بحساب آخر
+                    </button>
+                </div>
+                @endif
+
+                <div data-login-view="form" @if (! $showForm) hidden @endif>
                 <form method="POST" action="{{ route('login') }}">
                     @csrf
 
@@ -337,7 +445,7 @@
                             <input
                                 id="email" type="email" name="email"
                                 value="{{ old('email') }}"
-                                required autofocus autocomplete="email"
+                                required autofocus autocomplete="username"
                                 placeholder="example@domain.com"
                                 class="form-input {{ $errors->has('email') ? 'is-error' : '' }}"
                             >
@@ -374,8 +482,8 @@
                     {{-- Remember --}}
                     <div class="form-row">
                         <label class="remember-label">
-                            <input id="remember" type="checkbox" name="remember" class="remember-check">
-                            تذكرني
+                            <input id="remember" type="checkbox" name="remember" class="remember-check" checked>
+                            تذكرني على هذا الجهاز
                         </label>
                     </div>
 
@@ -386,6 +494,24 @@
                         تسجيل الدخول
                     </button>
                 </form>
+
+                @if ($hasAccounts)
+                    <button type="button" class="link-back-accounts" onclick="showLoginView('accounts')">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-5-3.87M9 20H4v-2a4 4 0 015-3.87m6-4.13a4 4 0 11-8 0 4 4 0 018 0zm6-4a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        الحسابات المحفوظة على هذا الجهاز
+                    </button>
+                @endif
+                </div>
+
+                {{-- يظهر فقط حين يمكن تثبيت النظام كتطبيق (partials/pwa) --}}
+                <button type="button" class="btn-install" data-pwa-install hidden>
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4"/>
+                    </svg>
+                    تثبيت التطبيق على جهازك
+                </button>
 
                 <div class="card-footer">
                     <a href="{{ url('/') }}" class="back-link">
@@ -401,6 +527,14 @@
     </div>
 
     <script>
+        // التبديل بين قائمة الحسابات المحفوظة ونموذج الدخول بكلمة المرور
+        function showLoginView(view) {
+            document.querySelectorAll('[data-login-view]').forEach(function (el) {
+                el.hidden = el.dataset.loginView !== view;
+            });
+            if (view === 'form') document.getElementById('email').focus();
+        }
+
         function togglePassword() {
             const input = document.getElementById('password');
             const eyeOpen = document.getElementById('eye-open');

@@ -7,6 +7,7 @@
     <title>@yield('title', 'مسالك النور')</title>
     <link rel="icon" type="image/png" href="/logo/logo-64.png">
     <link rel="apple-touch-icon" href="/logo/logo-192.png">
+    @include('partials.pwa')
     {{-- خط Tajawal مستضاف ذاتياً — لا اتصال بأي طرف ثالث --}}
     <link rel="preload" as="font" type="font/woff2" href="/fonts/tajawal-400.woff2" crossorigin>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -497,6 +498,17 @@
                     @endif
                 </div>
 
+                <div class="flex items-center gap-2 shrink-0">
+
+                {{-- تثبيت النظام كتطبيق — يظهر فقط حين يكون التثبيت ممكناً (partials/pwa) --}}
+                <button type="button" data-pwa-install hidden title="تثبيت التطبيق على جهازك"
+                        class="flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-emerald-700 border border-emerald-200 hover:bg-emerald-50 transition-colors cursor-pointer">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4"/>
+                    </svg>
+                    <span class="hidden sm:inline">تثبيت التطبيق</span>
+                </button>
+
                 {{-- Right: User --}}
                 <div class="user-dropdown shrink-0">
                     <button class="flex items-center gap-2.5 rounded-xl px-3 py-1.5 hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-all cursor-pointer"
@@ -519,6 +531,38 @@
                             <p class="text-xs font-semibold text-gray-800">{{ Auth::user()->name }}</p>
                             <p class="text-xs text-gray-400 mt-0.5">{{ Auth::user()->email }}</p>
                         </div>
+
+                        {{-- تبديل الحساب: الحسابات المحفوظة على هذا الجهاز (RememberedLogins) --}}
+                        <div class="p-1.5 border-b border-gray-50">
+                            <p class="px-3 pt-1 pb-1 text-[11px] font-semibold text-gray-400">تبديل الحساب</p>
+                            @foreach ($rememberedAccounts->where('user_id', '!=', Auth::id()) as $account)
+                            <form method="POST" action="{{ route('login.remembered', $account->id) }}">
+                                @csrf
+                                <button type="submit"
+                                        class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors text-right cursor-pointer">
+                                    <span class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center justify-center shrink-0">{{ mb_substr($account->user->name, 0, 1) }}</span>
+                                    <span class="flex flex-col leading-tight min-w-0">
+                                        <span class="font-medium truncate">{{ $account->user->name }}</span>
+                                        @if ($account->user->name !== $account->user->email)
+                                            <span class="text-[11px] text-gray-400 truncate" dir="ltr">{{ $account->user->email }}</span>
+                                        @endif
+                                    </span>
+                                </button>
+                            </form>
+                            @endforeach
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <input type="hidden" name="add_account" value="1">
+                                <button type="submit"
+                                        class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors text-right cursor-pointer">
+                                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                                    </svg>
+                                    إضافة حساب آخر
+                                </button>
+                            </form>
+                        </div>
+
                         <div class="p-1.5">
                             <a href="{{ route('password.change') }}"
                                class="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors {{ request()->routeIs('password.change') ? 'bg-gray-50 font-semibold' : '' }}">
@@ -540,6 +584,8 @@
                             </form>
                         </div>
                     </div>
+                </div>
+
                 </div>
 
             </div>

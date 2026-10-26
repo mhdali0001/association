@@ -49,8 +49,23 @@ class User extends Authenticatable
         ];
     }
 
+    protected static function booted(): void
+    {
+        // تغيير كلمة المرور يلغي الحسابات المحفوظة لهذا المستخدم على كل الأجهزة
+        static::updated(function (User $user) {
+            if ($user->wasChanged('password')) {
+                $user->rememberedLogins()->delete();
+            }
+        });
+    }
+
     public function activityLogs()
     {
         return $this->hasMany(ActivityLog::class);
+    }
+
+    public function rememberedLogins()
+    {
+        return $this->hasMany(RememberedLogin::class);
     }
 }

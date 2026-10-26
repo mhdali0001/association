@@ -1,0 +1,30 @@
+{
+    "id": "/",
+    "name": "مؤسسة مسالك النور الخيرية",
+    "short_name": "مسالك النور",
+    "description": "نظام إدارة المستفيدين في مؤسسة مسالك النور الخيرية",
+    "lang": "ar",
+    "dir": "rtl",
+    "start_url": "/dashboard",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#166534",
+    "icons": [
+        { "src": "/logo/logo-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+        { "src": "/logo/logo-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+        { "src": "/logo/logo-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    ],
+    "shortcuts": [
+        {
+            "name": "الأعضاء",
+            "url": "/members",
+            "icons": [{ "src": "/logo/logo-96.png", "sizes": "96x96", "type": "image/png" }]
+        },
+        {
+            "name": "إضافة مستفيد",
+            "url": "/members/create",
+            "icons": [{ "src": "/logo/logo-96.png", "sizes": "96x96", "type": "image/png" }]
+        }
+    ]
+}
