@@ -38,15 +38,32 @@
             الأسماء المتشابهة
         </h1>
         <p class="text-sm text-gray-400 mt-1 mr-10 sm:mr-12">
-            أسماء قد تكون لنفس الشخص لكنها مكتوبة بشكل مختلف —
-            <span class="font-bold text-yellow-700">{{ $groups->total() }}</span>
+            @if($showDismissed)
+                مجموعات تم تجاهلها لأنها ليست تكراراً —
+            @else
+                أسماء قد تكون لنفس الشخص لكنها مكتوبة بشكل مختلف —
+            @endif
+            <span id="groups-total" class="font-bold text-yellow-700">{{ $groups->total() }}</span>
             مجموعة
         </p>
     </div>
-    <a href="{{ route('members.duplicates') }}"
-       class="self-start sm:self-auto text-sm text-gray-500 hover:text-gray-700 border border-gray-200 hover:border-gray-300 px-4 py-2 rounded-lg transition-colors whitespace-nowrap">
-        ← كشف التكرارات
-    </a>
+    <div class="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+        @if($showDismissed)
+            <a href="{{ route('members.duplicates.similar-names') }}"
+               class="text-sm font-semibold text-yellow-800 bg-yellow-50 hover:bg-amber-100 border border-yellow-200 px-4 py-2 rounded-lg transition-colors whitespace-nowrap">
+                ← العودة للمراجعة
+            </a>
+        @else
+            <a href="{{ route('members.duplicates.similar-names', ['show' => 'dismissed']) }}"
+               class="text-sm text-gray-500 hover:text-gray-700 border border-gray-200 hover:border-gray-300 px-4 py-2 rounded-lg transition-colors whitespace-nowrap">
+                المتجاهلة ({{ $counts['dismissed'] }})
+            </a>
+        @endif
+        <a href="{{ route('members.duplicates') }}"
+           class="text-sm text-gray-500 hover:text-gray-700 border border-gray-200 hover:border-gray-300 px-4 py-2 rounded-lg transition-colors whitespace-nowrap">
+            ← كشف التكرارات
+        </a>
+    </div>
 </div>
 
 {{-- How it works --}}
@@ -54,11 +71,15 @@
     تُوحَّد الأسماء أولاً (أ/إ/آ ← ا، ة ← ه، ى ← ي، حذف التشكيل، «عبد الرزاق» = «عبدالرزاق») ثم تُقارن حرفاً بحرف.
     يُرفع الاحتمال عند تطابق رقم الهوية أو الهاتف أو تقارب العمر، ويُخفَّض عند اختلاف الهوية أو اسم الأم أو فرق العمر الكبير (غالباً إخوة).
     الكلمات <mark class="bg-amber-200 text-amber-900 rounded px-1">المظللة</mark> هي موضع الاختلاف.
+    إذا راجعت مجموعة ووجدت أنها لأشخاص مختلفين اضغط «تجاهل» فلا تظهر مجدداً.
 </div>
 
 {{-- Filters --}}
 <form method="GET" action="{{ route('members.duplicates.similar-names') }}"
       class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6">
+    @if($showDismissed)
+        <input type="hidden" name="show" value="dismissed">
+    @endif
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <div>
             <label class="block text-xs font-medium text-gray-500 mb-1">بحث</label>
@@ -106,7 +127,7 @@
                 تطبيق
             </button>
             @if($hasFilters)
-                <a href="{{ route('members.duplicates.similar-names') }}"
+                <a href="{{ route('members.duplicates.similar-names', $showDismissed ? ['show' => 'dismissed'] : []) }}"
                    class="text-sm text-gray-400 hover:text-gray-600 px-4 py-2 rounded-xl border border-gray-200 hover:border-gray-300 transition-colors whitespace-nowrap">
                     مسح
                 </a>
@@ -123,7 +144,7 @@
         ['level' => 'all', 'type' => 'spelling',   'count' => $counts['spelling'],   'label' => 'خطأ إملائي',         'color' => 'text-orange-600'],
         ['level' => 'all', 'type' => 'partial',    'count' => $counts['partial'],    'label' => 'اسم ناقص',           'color' => 'text-blue-600'],
     ] as $card)
-        <a href="{{ route('members.duplicates.similar-names', ['similarity' => $similarity, 'type' => $card['type'], 'level' => $card['level']]) }}"
+        <a href="{{ route('members.duplicates.similar-names', ['similarity' => $similarity, 'type' => $card['type'], 'level' => $card['level']] + ($showDismissed ? ['show' => 'dismissed'] : [])) }}"
            class="bg-white rounded-2xl border shadow-sm p-3 sm:p-5 hover:border-gray-300 transition-colors {{ $type === $card['type'] && $level === $card['level'] ? 'border-emerald-500' : 'border-gray-100' }}">
             <p class="text-xl sm:text-2xl font-black leading-none {{ $card['color'] }}">{{ $card['count'] }}</p>
             <p class="text-xs text-gray-400 mt-1 leading-tight">{{ $card['label'] }}</p>
@@ -136,15 +157,20 @@
         <svg class="w-12 h-12 text-emerald-400 mx-auto mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
         </svg>
-        <p class="text-emerald-700 font-semibold text-lg">لا توجد أسماء متشابهة!</p>
-        <p class="text-emerald-500 text-sm mt-1">لم يُعثر على أسماء مكتوبة بأشكال مختلفة بحسب الفلاتر الحالية</p>
+        @if($showDismissed)
+            <p class="text-emerald-700 font-semibold text-lg">لا توجد مجموعات متجاهلة</p>
+            <p class="text-emerald-500 text-sm mt-1">المجموعات التي تضغط عليها «تجاهل» تظهر هنا ويمكن إعادتها</p>
+        @else
+            <p class="text-emerald-700 font-semibold text-lg">لا توجد أسماء متشابهة!</p>
+            <p class="text-emerald-500 text-sm mt-1">لم يُعثر على أسماء مكتوبة بأشكال مختلفة بحسب الفلاتر الحالية</p>
+        @endif
     </div>
 @else
 
     <div class="space-y-4">
         @foreach($groups as $group)
         @php $style = $levelStyles[$group['level']]; @endphp
-        <div class="bg-white rounded-2xl border {{ $style['card'] }} shadow-sm overflow-hidden">
+        <div class="bg-white rounded-2xl border {{ $style['card'] }} shadow-sm overflow-hidden transition-opacity" data-group-card>
             {{-- Group header --}}
             <div class="{{ $style['head'] }} border-b px-4 py-2.5 flex flex-wrap items-center gap-2">
                 <span class="text-xs rounded-full px-2.5 py-0.5 font-bold {{ $style['badge'] }}">
@@ -161,7 +187,26 @@
                 @foreach($group['negative'] as $ev)
                     <span class="text-xs bg-gray-100 text-gray-500 rounded-full px-2.5 py-0.5 font-medium">✗ {{ $ev }}</span>
                 @endforeach
-                <span class="text-xs text-gray-500 font-semibold mr-auto">{{ $group['members']->count() }} سجلات</span>
+                <div class="flex items-center gap-2 mr-auto">
+                    @if($group['dismissal'])
+                        <span class="text-xs text-gray-400">
+                            تجاهلها {{ $group['dismissal']->user?->name ?? '—' }} · {{ $group['dismissal']->created_at->format('Y/m/d') }}
+                        </span>
+                    @endif
+                    <span class="text-xs text-gray-500 font-semibold">{{ $group['members']->count() }} سجلات</span>
+                    <form method="POST" data-similar-action
+                          action="{{ route($group['dismissal'] ? 'members.duplicates.similar-names.restore' : 'members.duplicates.similar-names.dismiss') }}">
+                        @csrf
+                        @if($group['dismissal']) @method('DELETE') @endif
+                        @foreach($group['sides'][0] as $id)<input type="hidden" name="a[]" value="{{ $id }}">@endforeach
+                        @foreach($group['sides'][1] as $id)<input type="hidden" name="b[]" value="{{ $id }}">@endforeach
+                        <button type="submit"
+                                title="{{ $group['dismissal'] ? 'إعادة المجموعة إلى قائمة المراجعة' : 'ليسوا نفس الشخص — إخفاء المجموعة' }}"
+                                class="text-xs bg-white border border-gray-200 text-gray-600 hover:text-gray-700 hover:border-gray-300 rounded-full px-2.5 py-0.5 font-semibold transition-colors">
+                            {{ $group['dismissal'] ? 'إلغاء التجاهل' : 'تجاهل' }}
+                        </button>
+                    </form>
+                </div>
             </div>
 
             {{-- Mobile cards --}}
@@ -264,3 +309,31 @@
 @endif
 
 @endsection
+
+@push('scripts')
+<script>
+// تجاهل / إلغاء تجاهل دون إعادة تحميل الصفحة — وعند الفشل يُرسل النموذج عادياً
+document.querySelectorAll('form[data-similar-action]').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var card   = form.closest('[data-group-card]');
+        var button = form.querySelector('button');
+        button.disabled = true;
+
+        fetch(form.action, {
+            method: 'POST',
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: new FormData(form),
+        }).then(function (res) {
+            if (!res.ok) throw new Error(res.status);
+            card.style.opacity = '0';
+            setTimeout(function () { card.remove(); }, 200);
+            var total = document.getElementById('groups-total');
+            if (total) total.textContent = Math.max(0, parseInt(total.textContent, 10) - 1);
+        }).catch(function () {
+            form.submit();
+        });
+    });
+});
+</script>
+@endpush

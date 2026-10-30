@@ -173,6 +173,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/member-images/{memberImage}',    [MemberImageController::class, 'destroy'])    ->name('member-images.destroy');
     Route::get('/members-duplicates', [DuplicateMembersController::class, 'index'])->name('members.duplicates');
     Route::get('/members-duplicates/similar-names', [SimilarNamesController::class, 'index'])->name('members.duplicates.similar-names');
+    Route::post('/members-duplicates/similar-names/dismiss',   [SimilarNamesController::class, 'dismiss'])->name('members.duplicates.similar-names.dismiss');
+    Route::delete('/members-duplicates/similar-names/dismiss', [SimilarNamesController::class, 'restore'])->name('members.duplicates.similar-names.restore');
     Route::get('/age-statistics',     [\App\Http\Controllers\AgeStatisticsController::class, 'index'])->name('age-statistics.index');
     Route::get('/delegates',              [DelegateController::class, 'index'])      ->name('delegates.index');
     Route::post('/delegates',             [DelegateController::class, 'store'])      ->name('delegates.store');
