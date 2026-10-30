@@ -164,16 +164,20 @@ class MemberController extends Controller
 
     public function mapIndex(Request $request)
     {
-        $members = Member::whereNotNull('latitude')
-            ->whereNotNull('longitude')
-            ->with(['verificationStatus', 'finalStatus'])
+        // الموقع تقريبي فقط: كل عضو يظهر في موقع منطقته (يُجمع أعضاء المنطقة في دائرة واحدة)
+        $members = Member::whereHas('region', fn ($q) => $q->whereNotNull('latitude')->whereNotNull('longitude'))
+            ->with(['verificationStatus', 'finalStatus', 'region:id,name,latitude,longitude'])
             ->orderBy('full_name')
-            ->get(['id', 'full_name', 'dossier_number', 'gender', 'latitude', 'longitude',
+            ->get(['id', 'full_name', 'dossier_number', 'gender', 'region_id',
                    'verification_status_id', 'final_status_id', 'sham_cash_account']);
 
         $totalCount = $members->count();
 
-        return view('members.map', compact('members', 'totalCount'));
+        // أعضاء لهم منطقة لم يُحدَّد موقعها بعد (php artisan regions:geocode)
+        $regionWithoutLocationCount = Member::whereHas('region', fn ($q) => $q->whereNull('latitude')->orWhereNull('longitude'))
+            ->count();
+
+        return view('members.map', compact('members', 'totalCount', 'regionWithoutLocationCount'));
     }
 
     public function export(Request $request)

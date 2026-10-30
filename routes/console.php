@@ -35,5 +35,8 @@ Schedule::command('backup:clean')->daily()->at('01:30')->withoutOverlapping();
 Schedule::command('backup:run')->daily()->at('02:00')->withoutOverlapping()->runInBackground();
 Schedule::command('backup:monitor')->daily()->at('06:00');
 
+// موقع تقريبي للمناطق الجديدة على خريطة الأعضاء (يعالج المناطق التي بلا موقع فقط)
+Schedule::command('regions:geocode')->daily()->at('04:00')->withoutOverlapping();
+
 // حذف الحسابات المحفوظة المنتهية من الأجهزة
 Schedule::command('model:prune', ['--model' => [\App\Models\RememberedLogin::class]])->daily()->at('03:00');

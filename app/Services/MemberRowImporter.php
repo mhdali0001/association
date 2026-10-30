@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Association;
+use App\Models\MaritalStatus;
 use App\Models\Member;
 use App\Models\MemberScore;
 use App\Models\PaymentInfo;
@@ -16,6 +17,7 @@ class MemberRowImporter
     private Collection $usersMap;
     private Collection $verificationMap;
     private Collection $associationMap;
+    private Collection $maritalMap;
 
     public function __construct(private ?int $actingUserId = null)
     {
@@ -23,6 +25,20 @@ class MemberRowImporter
         $this->usersMap        = User::all()->keyBy(fn($u) => mb_strtolower(trim($u->name)));
         $this->verificationMap = VerificationStatus::all()->keyBy(fn($v) => mb_strtolower(trim($v->name)));
         $this->associationMap  = Association::all()->keyBy(fn($a) => mb_strtolower(trim($a->name)));
+        $this->maritalMap      = MaritalStatus::all()->keyBy(fn($m) => $this->maritalKey($m->name));
+    }
+
+    // يوحّد الهمزات والتاء المربوطة حتى تطابق "أرملة" أو "ارمله" الاسم المعتمد "ارملة"
+    private function maritalKey(string $name): string
+    {
+        return str_replace(['أ', 'إ', 'آ', 'ة'], ['ا', 'ا', 'ا', 'ه'], mb_strtolower(trim($name)));
+    }
+
+    private function normalizeMarital($raw): ?string
+    {
+        $raw = trim((string) $raw);
+        if ($raw === '') return null;
+        return $this->maritalMap->get($this->maritalKey($raw))?->name ?? $raw;
     }
 
     /**
@@ -82,7 +98,7 @@ class MemberRowImporter
                 'dossier_number'            => trim($row['رقم_الملف']          ?? $row['dossier_number']  ?? '') ?: null,
                 'age'                       => $this->toInt($row['العمر'] ?? $row['age'] ?? null),
                 'gender'                    => trim($row['الجنس']              ?? $row['gender']          ?? '') ?: null,
-                'marital_status'            => trim($row['الحالة_الاجتماعية'] ?? $row['marital_status']  ?? '') ?: null,
+                'marital_status'            => $this->normalizeMarital($row['الحالة_الاجتماعية'] ?? $row['marital_status'] ?? null),
                 'disease_type'              => trim($row['نوع_المرض']          ?? $row['disease_type']    ?? '') ?: null,
                 'current_address'           => trim($row['العنوان']            ?? $row['current_address'] ?? '') ?: null,
                 'mother_name'               => trim($row['اسم_الأم']           ?? $row['mother_name']     ?? '') ?: null,

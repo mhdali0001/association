@@ -48,6 +48,25 @@
         #sidebar.collapsed .nav-link { justify-content: center; padding: 10px; }
         #sidebar.collapsed .nav-link .nav-icon { width: 20px; height: 20px; }
 
+        /* ── أقسام القائمة القابلة للطي (تُبنى في السكربت أسفل الصفحة) ── */
+        #sidebar .sidebar-group-toggle {
+            display: flex; align-items: center; justify-content: space-between; gap: 6px;
+            cursor: pointer; user-select: none; border-radius: 6px; transition: color 0.15s;
+        }
+        #sidebar .sidebar-group-toggle:hover { color: #059669; }
+        #sidebar .sidebar-group-toggle:focus-visible { outline: 2px solid #a7f3d0; outline-offset: 2px; }
+        .sidebar-group-chevron { width: 12px; height: 12px; flex-shrink: 0; transition: transform 0.2s ease; }
+        .sidebar-group-toggle[aria-expanded="false"] .sidebar-group-chevron { transform: rotate(90deg); }
+        .sidebar-group-body { display: grid; grid-template-rows: 1fr; }
+        .sidebar-group-body.closed { grid-template-rows: 0fr; }
+        #sidebar-nav.groups-ready .sidebar-group-body { transition: grid-template-rows 0.22s ease; }
+        .sidebar-group-inner { min-height: 0; overflow: hidden; }
+        /* القائمة المصغّرة (أيقونات فقط) على الكمبيوتر: كل الأقسام مفتوحة لأن عناوينها مخفية */
+        @media (min-width: 1025px) {
+            #sidebar.collapsed .sidebar-group-body { grid-template-rows: 1fr; }
+            #sidebar.collapsed .sidebar-group-inner { overflow: visible; }
+        }
+
         /* ── Overlay ── */
         #sidebar-overlay {
             display: none; position: fixed; inset: 0;
@@ -265,7 +284,7 @@
                         ['members.map',         'خريطة الأعضاء',       'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z'],
                         ['members.create',      'إضافة عضو',            'M18 9v3m0 0v3m0-3h3m-3 0h-3m-5-3a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z'],
                         ['members.national-ids','دراسة أرقام الهوية',  'M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0'],
-                        ['members.duplicates',  'التكرارات',            'M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z'],
+                        ['members.duplicates',  'التكرارات',            'M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z', 'members.duplicates*'],
                         ['members.import.show',    'استيراد Excel',        'M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
                         ['members.custom-export',  'تصدير مخصص',           'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4'],
                         ['members.bulk-amount',       'إضافة وانقاص النقاط',     'M20 12H4'],
@@ -318,8 +337,8 @@
 
             {{-- المالية --}}
             <div>
-                <p class="sidebar-group-label text-[10px] font-bold text-gray-400 uppercase tracking-widest px-3 mb-1.5 overflow-hidden whitespace-nowrap">الموظفون</p>
                 @if(Auth::user()->role === 'admin')
+                <p class="sidebar-group-label text-[10px] font-bold text-gray-400 uppercase tracking-widest px-3 mb-1.5 overflow-hidden whitespace-nowrap">الموظفون</p>
                 <div class="space-y-0.5 mb-3">
                     <a href="{{ route('employees.index') }}" data-tip="الموظفون"
                        class="nav-link {{ request()->routeIs('employees.*') ? 'active' : '' }}">
@@ -696,6 +715,58 @@ function toggleSidebar() {
     localStorage.setItem('sidebarCollapsed', isCollapsed ? '1' : '0');
     if (colIcon) colIcon.style.transform = isCollapsed ? 'rotate(180deg)' : '';
 }
+
+// أقسام القائمة القابلة للطي: كل عنوان قسم يفتح ويغلق الروابط التي تحته حتى العنوان التالي.
+// الحالة تُحفظ على الجهاز لكل قسم، وقسم الصفحة الحالية يُفتح دائماً.
+(function () {
+    var nav = document.getElementById('sidebar-nav');
+    if (!nav) return;
+    var KEY = 'sidebarClosedGroups';
+    var closed = {};
+    try { closed = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {}
+
+    nav.querySelectorAll('.sidebar-group-label').forEach(function (label) {
+        var items = [];
+        for (var el = label.nextElementSibling; el && !el.classList.contains('sidebar-group-label'); el = el.nextElementSibling) {
+            items.push(el);
+        }
+        if (!items.some(function (n) { return n.matches('.nav-link') || n.querySelector('.nav-link'); })) return;
+
+        var name  = label.textContent.trim();
+        var body  = document.createElement('div');
+        var inner = document.createElement('div');
+        body.className  = 'sidebar-group-body';
+        inner.className = 'sidebar-group-inner';
+        items.forEach(function (n) { inner.appendChild(n); });
+        body.appendChild(inner);
+        label.after(body);
+
+        label.classList.add('sidebar-group-toggle');
+        label.setAttribute('role', 'button');
+        label.setAttribute('tabindex', '0');
+        label.insertAdjacentHTML('beforeend',
+            '<svg class="sidebar-group-chevron" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>');
+
+        function setOpen(open, remember) {
+            body.classList.toggle('closed', !open);
+            label.setAttribute('aria-expanded', open ? 'true' : 'false');
+            if (remember) {
+                if (open) delete closed[name]; else closed[name] = 1;
+                try { localStorage.setItem(KEY, JSON.stringify(closed)); } catch (e) {}
+            }
+        }
+        setOpen(!closed[name] || !!inner.querySelector('.nav-link.active'), false);
+
+        function toggle() { setOpen(body.classList.contains('closed'), true); }
+        label.addEventListener('click', toggle);
+        label.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+        });
+    });
+
+    // الحركة تُفعّل بعد تطبيق الحالة المحفوظة حتى لا تتحرك الأقسام عند فتح الصفحة
+    requestAnimationFrame(function () { requestAnimationFrame(function () { nav.classList.add('groups-ready'); }); });
+})();
 
 const bottomNav = document.getElementById('mobile-bottom-nav');
 

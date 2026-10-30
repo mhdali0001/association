@@ -1,0 +1,1 @@
+@foreach($tokens as $token)@if(isset($differing[$token['key']]))<mark class="bg-amber-200 text-amber-900 rounded px-1">{{ $token['text'] }}</mark>@else{{ $token['text'] }}@endif{{ $loop->last ? '' : ' ' }}@endforeach

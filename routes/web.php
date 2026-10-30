@@ -25,6 +25,7 @@ use App\Http\Controllers\EmployeePortalController;
 use App\Http\Controllers\CustomExportController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\RememberedLoginController;
+use App\Http\Controllers\SimilarNamesController;
 use Illuminate\Support\Facades\Route;
 
 // Welcome (Route::view so `php artisan route:cache` works — no closure)
@@ -171,6 +172,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/members/{member}/images',          [MemberImageController::class, 'store'])      ->name('member-images.store');
     Route::delete('/member-images/{memberImage}',    [MemberImageController::class, 'destroy'])    ->name('member-images.destroy');
     Route::get('/members-duplicates', [DuplicateMembersController::class, 'index'])->name('members.duplicates');
+    Route::get('/members-duplicates/similar-names', [SimilarNamesController::class, 'index'])->name('members.duplicates.similar-names');
     Route::get('/age-statistics',     [\App\Http\Controllers\AgeStatisticsController::class, 'index'])->name('age-statistics.index');
     Route::get('/delegates',              [DelegateController::class, 'index'])      ->name('delegates.index');
     Route::post('/delegates',             [DelegateController::class, 'store'])      ->name('delegates.store');

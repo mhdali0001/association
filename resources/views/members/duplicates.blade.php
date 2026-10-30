@@ -27,10 +27,19 @@
             مجموعة مكررة في قاعدة البيانات
         </p>
     </div>
-    <a href="{{ route('members.index') }}"
-       class="self-start sm:self-auto text-sm text-gray-500 hover:text-gray-700 border border-gray-200 hover:border-gray-300 px-4 py-2 rounded-lg transition-colors whitespace-nowrap">
-        ← رجوع للأعضاء
-    </a>
+    <div class="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+        <a href="{{ route('members.duplicates.similar-names') }}"
+           class="flex items-center gap-1.5 text-sm font-semibold text-yellow-800 bg-yellow-50 hover:bg-amber-100 border border-yellow-200 px-4 py-2 rounded-lg transition-colors whitespace-nowrap">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            الأسماء المتشابهة (أخطاء الكتابة)
+        </a>
+        <a href="{{ route('members.index') }}"
+           class="text-sm text-gray-500 hover:text-gray-700 border border-gray-200 hover:border-gray-300 px-4 py-2 rounded-lg transition-colors whitespace-nowrap">
+            ← رجوع للأعضاء
+        </a>
+    </div>
 </div>
 
 {{-- Filters --}}
