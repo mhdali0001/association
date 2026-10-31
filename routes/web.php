@@ -14,6 +14,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DonationController;
 use App\Http\Controllers\DuplicateMembersController;
 use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\FieldWorkController;
 use App\Http\Controllers\MaritalStatusController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\MemberImageController;
@@ -198,6 +199,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/sectors/{sector}/export',  [\App\Http\Controllers\SectorController::class, 'exportSingle']) ->name('sectors.export-single');
     Route::resource('sectors', \App\Http\Controllers\SectorController::class)->only(['index', 'store', 'update', 'destroy', 'show']);
     Route::post('/sectors/{sector}/regions', [\App\Http\Controllers\SectorController::class, 'updateRegions'])->name('sectors.update-regions');
+    // العمل الميداني بدون إنترنت: صفحة يحفظها التطبيق، قائمة زيارة تُنزَّل إلى الجهاز، وجولات تُرسل لاحقاً
+    Route::get('/field-work',          [FieldWorkController::class, 'index'])     ->name('field-work.index');
+    Route::get('/field-work/session',  [FieldWorkController::class, 'session'])   ->name('field-work.session');
+    Route::get('/field-work/package',  [FieldWorkController::class, 'package'])   ->name('field-work.package');
+    Route::post('/field-work/visits',  [FieldWorkController::class, 'storeVisit'])->name('field-work.visits.store');
     Route::get('/field-visits/with-amounts',                               [\App\Http\Controllers\FieldVisitController::class, 'withAmounts'])->name('field-visits.with-amounts');
     Route::post('/members/{member}/field-visits',                          [\App\Http\Controllers\FieldVisitController::class, 'store'])  ->name('field-visits.store');
     Route::put('/members/{member}/field-visits/{fieldVisit}',             [\App\Http\Controllers\FieldVisitController::class, 'update'])        ->name('field-visits.update');

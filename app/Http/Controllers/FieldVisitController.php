@@ -5,6 +5,7 @@ use App\Models\FieldVisit;
 use App\Models\Member;
 use App\Models\PendingChange;
 use App\Services\ActivityLogger;
+use App\Services\FieldVisitRecorder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -15,50 +16,14 @@ class FieldVisitController extends Controller
         return Auth::user()?->role === 'admin';
     }
 
-    public function store(Request $request, Member $member)
+    public function store(Request $request, Member $member, FieldVisitRecorder $recorder)
     {
-        $data = $request->validate([
-            'field_visit_status_id' => 'nullable|exists:field_visit_statuses,id',
-            'house_type_id'         => 'nullable|exists:house_types,id',
-            'visit_date'            => 'nullable|date',
-            'visitor'               => 'nullable|string|max:255',
-            'estimated_amount'      => 'nullable|numeric|min:0',
-            'amount_operation'      => 'nullable|in:add,subtract',
-            'amount_reason'         => 'nullable|string',
-            'notes'                 => 'nullable|string',
-            'house_condition_id'    => 'nullable|exists:house_conditions,id',
-            'has_video'             => 'nullable|boolean',
-            'has_special_case'      => 'nullable|boolean',
-        ]);
-        $data['has_video']        = $request->boolean('has_video');
-        $data['has_special_case'] = $request->boolean('has_special_case');
-        $data['visit_date']       = $data['visit_date'] ?? now()->toDateString();
+        $data = $recorder->normalize($request->validate(FieldVisitRecorder::RULES), $request);
 
-        if (isset($data['estimated_amount']) && ($data['amount_operation'] ?? 'add') === 'subtract') {
-            $data['estimated_amount'] = -abs($data['estimated_amount']);
-        }
-        unset($data['amount_operation']);
-
-        if (!$this->isAdmin()) {
-            PendingChange::create([
-                'model_type'   => 'field_visit',
-                'model_id'     => null,
-                'action'       => 'create',
-                'payload'      => array_merge($data, [
-                    'member_id'   => $member->id,
-                    'member_name' => $member->full_name,
-                ]),
-                'original'     => [],
-                'requested_by' => Auth::id(),
-                'status'       => 'pending',
-            ]);
+        if ($recorder->record($member, $data) === 'pending') {
             return redirect()->route('members.show', $member)
                              ->with('pending', 'تم إرسال طلب إضافة الجولة الميدانية — بانتظار موافقة المسؤول.');
         }
-
-        $data['created_by'] = Auth::id();
-        $member->fieldVisits()->create($data);
-        ActivityLogger::log('created', "إضافة جولة ميدانية للمستفيد: {$member->full_name}", $member);
 
         return redirect()->route('members.show', $member)->with('success', 'تمت إضافة الجولة الميدانية بنجاح.');
     }

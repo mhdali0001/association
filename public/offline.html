@@ -24,6 +24,11 @@
             width: 100%; font-family: inherit; font-size: 15px; font-weight: 700; color: #fff; cursor: pointer;
             background: linear-gradient(135deg, #15803d, #166534); border: none; border-radius: 12px; padding: 13px 24px;
         }
+        .secondary {
+            display: block; margin-top: 12px; font-size: 15px; font-weight: 700; color: #166534; text-decoration: none;
+            border: 1.5px solid #bbf7d0; background: #f0fdf4; border-radius: 12px; padding: 12px 24px;
+        }
+        [hidden] { display: none !important; }
     </style>
 </head>
 <body>
@@ -32,9 +37,14 @@
         <h1>لا يوجد اتصال بالإنترنت</h1>
         <p>تحقق من اتصالك بالإنترنت ثم أعد المحاولة. ستُفتح الصفحة تلقائياً عند عودة الاتصال.</p>
         <button type="button" onclick="location.reload()">إعادة المحاولة</button>
+        <a id="field-work" class="secondary" href="/field-work" hidden>العمل الميداني بدون إنترنت</a>
     </div>
     <script>
         window.addEventListener('online', function () { location.reload(); });
+        // يظهر فقط إن كانت صفحة العمل الميداني محفوظة على الجهاز (فُتحت مرة مع إنترنت)
+        if (window.caches) {
+            caches.match('/field-work').then(function (page) { if (page) document.getElementById('field-work').hidden = false; });
+        }
     </script>
 </body>
 </html>

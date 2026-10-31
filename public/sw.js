@@ -1,12 +1,15 @@
 /*
  * Service Worker — مسالك النور
  * لا يخزّن صفحات النظام (فيها بيانات المستفيدين): الصفحات تُطلب من الشبكة دائماً.
- * يخزّن فقط صفحة "لا يوجد اتصال" وما تحتاجه (الشعار والخط) لتظهر عند انقطاع الإنترنت.
+ * يخزّن فقط صفحة "لا يوجد اتصال" وما تحتاجه (الشعار والخط) لتظهر عند انقطاع الإنترنت،
+ * وصفحة "العمل الميداني" — قالب بلا بيانات مستفيدين، وقائمة الزيارة تُنزَّل منه إلى الجهاز بطلب المستخدم.
  * عند تعديل أي ملف في PRECACHE غيّر VERSION حتى يتحدث المخزن عند المستخدمين.
  */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = 'masalik-' + VERSION;
 const OFFLINE_URL = '/offline.html';
+const FIELD_WORK_URL = '/field-work';
+const NETWORK_TIMEOUT = 4000;
 const PRECACHE = [
     OFFLINE_URL,
     '/logo/logo-128.png',
@@ -39,8 +42,13 @@ self.addEventListener('fetch', (event) => {
     const url = new URL(request.url);
     if (url.origin !== self.location.origin) return;
 
-    // صفحات النظام: من الشبكة، وعند انقطاع الاتصال تظهر صفحة "لا يوجد اتصال"
     if (request.mode === 'navigate') {
+        // العمل الميداني: يفتح بدون إنترنت أو بشبكة ضعيفة
+        if (url.pathname === FIELD_WORK_URL) {
+            event.respondWith(fieldWorkPage(request));
+            return;
+        }
+        // صفحات النظام: من الشبكة، وعند انقطاع الاتصال تظهر صفحة "لا يوجد اتصال"
         event.respondWith(fetch(request).catch(() => caches.match(OFFLINE_URL)));
         return;
     }
@@ -50,3 +58,27 @@ self.addEventListener('fetch', (event) => {
         event.respondWith(fetch(request).catch(() => caches.match(url.pathname)));
     }
 });
+
+// من الشبكة إن ردّت خلال ثوانٍ (وتُحدَّث النسخة المحفوظة)، وإلا النسخة المحفوظة.
+// تحويل إلى صفحة الدخول (جلسة منتهية) أو خطأ لا يُحفظ مكان الصفحة.
+function fieldWorkPage(request) {
+    const network = fetch(request).then((response) => {
+        if (response.ok && !response.redirected && response.type === 'basic') {
+            const copy = response.clone();
+            caches.open(CACHE).then((cache) => cache.put(FIELD_WORK_URL, copy));
+        }
+        // خطأ في السيرفر (مثل مهلة أول طلب): النسخة المحفوظة أنفع من صفحة الخطأ
+        if (response.status >= 500) {
+            return caches.match(FIELD_WORK_URL).then((cached) => cached || response);
+        }
+        return response;
+    });
+    network.catch(() => {});
+    const timeout = new Promise((resolve) => setTimeout(resolve, NETWORK_TIMEOUT))
+        .then(() => caches.match(FIELD_WORK_URL));
+
+    return Promise.race([network, timeout])
+        .then((response) => response || network)
+        .catch(() => caches.match(FIELD_WORK_URL))
+        .then((response) => response || caches.match(OFFLINE_URL));
+}
