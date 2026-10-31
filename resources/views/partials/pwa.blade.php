@@ -39,12 +39,9 @@
         });
     });
 
-    // العمل الميداني: قائمة الزيارة المخزنة على الجهاز لا تبقى بعد الخروج أو تبديل الحساب.
-    // الجولات غير المرسلة لا تُحذف — تبقى مربوطة بحسابها وتُرسل عند دخوله مجدداً.
-    function clearFieldWorkPackage() {
-        try { localStorage.removeItem('fieldwork.package'); } catch (e) {}
-    }
-    if (location.pathname === '/login') clearFieldWorkPackage();
+    // العمل الميداني: قائمة مستفيدين خزّنتها نسخة سابقة من الصفحة على الجهاز — لم تعد تُستخدم
+    try { localStorage.removeItem('fieldwork.package'); } catch (e) {}
+    // الجولات غير المرسلة لا تُحذف عند الخروج — تبقى مربوطة بحسابها وتُرسل عند دخوله مجدداً
     document.addEventListener('submit', function (e) {
         var form = e.target;
         if (!form.action || new URL(form.action, location.href).pathname !== '/logout') return;
@@ -52,9 +49,7 @@
         try { waiting = JSON.parse(localStorage.getItem('fieldwork.queue') || '[]').length; } catch (err) {}
         if (waiting && !confirm('لديك ' + waiting + ' جولة ميدانية لم تُرسل بعد. ستبقى محفوظة على هذا الجهاز وتُرسل عند دخولك بنفس الحساب. تسجيل الخروج الآن؟')) {
             e.preventDefault();
-            return;
         }
-        clearFieldWorkPackage();
     }, true);
 
     if ('serviceWorker' in navigator) {

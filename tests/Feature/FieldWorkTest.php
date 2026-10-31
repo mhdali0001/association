@@ -21,7 +21,7 @@ beforeEach(function () {
         $table->rememberToken();
         $table->timestamps();
     });
-    foreach (['sectors', 'field_visit_statuses', 'house_types', 'house_conditions'] as $name) {
+    foreach (['field_visit_statuses', 'house_types', 'house_conditions'] as $name) {
         Schema::create($name, function (Blueprint $table) {
             $table->id();
             $table->string('name');
@@ -29,23 +29,12 @@ beforeEach(function () {
             $table->timestamps();
         });
     }
-    Schema::create('regions', function (Blueprint $table) {
-        $table->id();
-        $table->string('name');
-        $table->boolean('is_active')->default(true);
-        $table->foreignId('sector_id')->nullable();
-        $table->timestamps();
-    });
     Schema::create('members', function (Blueprint $table) {
         $table->id();
         $table->string('full_name');
         $table->string('national_id')->nullable();
-        $table->string('dossier_number')->nullable();
+        $table->string('dossier_number')->nullable()->unique();
         $table->string('phone')->nullable();
-        $table->string('phone2')->nullable();
-        $table->text('current_address')->nullable();
-        $table->foreignId('region_id')->nullable();
-        $table->foreignId('sector_id')->nullable();
         $table->timestamps();
     });
     Schema::create('field_visits', function (Blueprint $table) {
@@ -93,71 +82,58 @@ beforeEach(function () {
         $table->timestamps();
     });
 
-    $sector = DB::table('sectors')->insertGetId(['name' => 'غوطة شرقية']);
-    $other  = DB::table('sectors')->insertGetId(['name' => 'وسط دمشق']);
-    $region = DB::table('regions')->insertGetId(['name' => 'حزه', 'sector_id' => $sector]);
-    DB::table('field_visit_statuses')->insert(['name' => 'تمت الزيارة']);
-
-    $this->visited = Member::create(['full_name' => 'فايزة غنوم', 'national_id' => '01010285800', 'dossier_number' => '2110',
-        'phone' => '0952446820', 'current_address' => 'حزة', 'region_id' => $region, 'sector_id' => $sector]);
-    FieldVisit::create(['member_id' => $this->visited->id, 'visit_date' => '2026-09-12', 'field_visit_status_id' => 1]);
-    $this->fresh = Member::create(['full_name' => 'ايمان شيخ خليل', 'dossier_number' => '2200', 'region_id' => $region, 'sector_id' => $sector]);
-    Member::create(['full_name' => 'عضو في قطاع آخر', 'dossier_number' => '5', 'sector_id' => $other]);
+    DB::table('field_visit_statuses')->insert([['name' => 'تمت الزيارة', 'is_active' => true], ['name' => 'مخفي', 'is_active' => false]]);
+    DB::table('house_types')->insert(['name' => 'بيت عربي']);
+    DB::table('house_conditions')->insert(['name' => 'يحتاج اصلاحات شديدة']);
+    $this->member = Member::create(['full_name' => 'ايمان شيخ خليل', 'national_id' => '01010221107', 'dossier_number' => '2200', 'phone' => '0962814542']);
 });
 
-function visitPayload(int $memberId, array $extra = []): array
+function visitPayload(array $extra = []): array
 {
-    return array_merge(['client_id' => (string) Str::uuid(), 'member_id' => $memberId, 'visit_date' => '2026-10-31', 'visitor' => 'هناء'], $extra);
+    return array_merge(['client_id' => (string) Str::uuid(), 'dossier_number' => '2200', 'visit_date' => '2026-10-31', 'visitor' => 'هناء'], $extra);
 }
 
-it('serves a page with no beneficiary data in it, so it is safe to keep offline', function () {
+it('shows the visit fields with their options, and no beneficiary data, so it is safe to keep offline', function () {
     $this->actingAs(User::factory()->create());
 
-    $this->get('/field-work')->assertOk()->assertSee('العمل الميداني')
-        ->assertDontSee('فايزة غنوم')->assertDontSee('0952446820');
+    $this->get('/field-work')->assertOk()
+        ->assertSeeInOrder(['رقم الإضبارة', 'الحالة', 'نوع البيت', 'تاريخ الزيارة', 'اسم الزائر', 'المبلغ', 'سبب المبلغ', 'ملاحظات', 'حالة البيت', 'يوجد فيديو', 'حالة خاصة'])
+        ->assertSee('تمت الزيارة')->assertSee('بيت عربي')->assertSee('يحتاج اصلاحات شديدة')
+        ->assertDontSee('مخفي')
+        ->assertDontSee('ايمان شيخ خليل')->assertDontSee('0962814542');
 });
 
-it('downloads only the visit fields — no national id', function () {
+it('shows the beneficiary name for a dossier number', function () {
     $this->actingAs(User::factory()->create());
 
-    $pkg = $this->getJson('/field-work/package?sector_id=1')->assertOk()->json();
-
-    expect($pkg['members'])->toHaveCount(2)
-        ->and(array_keys($pkg['members'][0]))->toEqualCanonicalizing(['id', 'name', 'dossier', 'phone', 'phone2', 'address', 'region', 'visits', 'last_visit', 'last_status'])
-        ->and($pkg['members'][0])->toMatchArray(['name' => 'فايزة غنوم', 'region' => 'حزه', 'visits' => 1, 'last_visit' => '2026-09-12', 'last_status' => 'تمت الزيارة'])
-        ->and(json_encode($pkg))->not->toContain('01010285800')
-        ->and($pkg['expires_at'] - $pkg['generated_at'])->toBe(24 * 3600 * 1000)
-        ->and($pkg['options']['statuses'])->toHaveCount(1);
-});
-
-it('can download only members who were never visited', function () {
-    $this->actingAs(User::factory()->create());
-
-    expect($this->getJson('/field-work/package?not_visited=1&sector_id=1')->json('members.*.name'))->toBe(['ايمان شيخ خليل']);
+    $this->getJson('/field-work/member?dossier=2200')->assertOk()->assertExactJson(['name' => 'ايمان شيخ خليل']);
+    $this->getJson('/field-work/member?dossier=%202200%20')->assertOk();
+    $this->getJson('/field-work/member?dossier=9999')->assertNotFound();
 });
 
 it('tells the page to log in again instead of redirecting', function () {
     $this->getJson('/field-work/session')->assertUnauthorized();
-    $this->getJson('/field-work/package')->assertUnauthorized();
+    $this->getJson('/field-work/member?dossier=2200')->assertUnauthorized();
 });
 
-it('records an admin visit sent from the device, once, even if it is sent twice', function () {
+it('records an admin visit by dossier number, once, even if it is sent twice', function () {
     $this->actingAs(User::factory()->create(['role' => 'admin']));
-    $payload = visitPayload($this->fresh->id, ['estimated_amount' => 500, 'amount_operation' => 'subtract', 'has_video' => true]);
+    $payload = visitPayload(['estimated_amount' => 500, 'amount_operation' => 'subtract', 'has_video' => true, 'field_visit_status_id' => 1]);
 
-    $this->postJson('/field-work/visits', $payload)->assertOk()->assertJson(['status' => 'created']);
+    $this->postJson('/field-work/visits', $payload)->assertOk()->assertJson(['status' => 'created', 'member' => 'ايمان شيخ خليل']);
     $this->postJson('/field-work/visits', $payload)->assertOk()->assertJson(['status' => 'duplicate']);
 
-    $visit = FieldVisit::where('member_id', $this->fresh->id)->sole();
+    $visit = FieldVisit::where('member_id', $this->member->id)->sole();
     expect($visit->client_id)->toBe($payload['client_id'])
         ->and((float) $visit->estimated_amount)->toBe(-500.0)
         ->and($visit->has_video)->toBeTrue()
+        ->and($visit->field_visit_status_id)->toBe(1)
         ->and($visit->created_by)->toBe(auth()->id());
 });
 
 it('sends a non-admin visit for approval, and keeps it single after approval', function () {
     $this->actingAs(User::factory()->create());
-    $payload = visitPayload($this->fresh->id);
+    $payload = visitPayload();
 
     $this->postJson('/field-work/visits', $payload)->assertOk()->assertJson(['status' => 'pending']);
     $this->postJson('/field-work/visits', $payload)->assertOk()->assertJson(['status' => 'duplicate']);
@@ -167,30 +143,38 @@ it('sends a non-admin visit for approval, and keeps it single after approval', f
     PendingChange::sole()->apply();
     $this->postJson('/field-work/visits', $payload)->assertOk()->assertJson(['status' => 'duplicate']);
 
-    expect(FieldVisit::where('member_id', $this->fresh->id)->sole()->client_id)->toBe($payload['client_id']);
+    expect(FieldVisit::where('member_id', $this->member->id)->sole()->client_id)->toBe($payload['client_id']);
 });
 
 it('explains why a stored visit cannot be sent', function () {
     $this->actingAs(User::factory()->create(['role' => 'admin']));
 
-    $this->postJson('/field-work/visits', visitPayload(999))
+    $this->postJson('/field-work/visits', visitPayload(['dossier_number' => '9999']))
         ->assertUnprocessable()
-        ->assertJsonValidationErrors(['member_id' => 'هذا المستفيد لم يعد موجوداً في النظام.']);
-    $this->postJson('/field-work/visits', visitPayload($this->fresh->id, ['client_id' => 'not-a-uuid']))
+        ->assertJsonValidationErrors(['dossier_number' => 'لا يوجد مستفيد برقم الإضبارة هذا.']);
+    $this->postJson('/field-work/visits', visitPayload(['dossier_number' => null]))
+        ->assertJsonValidationErrors(['dossier_number' => 'رقم الإضبارة مطلوب.']);
+    $this->postJson('/field-work/visits', visitPayload(['client_id' => 'not-a-uuid']))
         ->assertJsonValidationErrors('client_id');
+});
+
+it('still accepts visits saved on a phone by the previous version (member id)', function () {
+    $this->actingAs(User::factory()->create(['role' => 'admin']));
+
+    $this->postJson('/field-work/visits', visitPayload(['dossier_number' => null, 'member_id' => $this->member->id]))
+        ->assertOk()->assertJson(['status' => 'created']);
 });
 
 it('keeps the member page visit form working as before', function () {
     $this->actingAs(User::factory()->create(['role' => 'admin']));
-    $this->post(route('field-visits.store', $this->fresh), ['visitor' => 'سمير', 'estimated_amount' => 300])
-        ->assertRedirect(route('members.show', $this->fresh))->assertSessionHas('success');
-    expect(FieldVisit::where('member_id', $this->fresh->id)->sole())
+    $this->post(route('field-visits.store', $this->member), ['visitor' => 'سمير', 'estimated_amount' => 300])
+        ->assertRedirect(route('members.show', $this->member))->assertSessionHas('success');
+    expect(FieldVisit::where('member_id', $this->member->id)->sole())
         ->visit_date->toDateString()->toBe(now()->toDateString())
         ->client_id->toBeNull();
 
     $this->actingAs(User::factory()->create());
-    $this->post(route('field-visits.store', $this->visited), ['visitor' => 'سمير'])
-        ->assertSessionHas('pending');
-    expect(PendingChange::sole()->payload)->toMatchArray(['member_id' => $this->visited->id, 'member_name' => 'فايزة غنوم'])
+    $this->post(route('field-visits.store', $this->member), ['visitor' => 'سمير'])->assertSessionHas('pending');
+    expect(PendingChange::sole()->payload)->toMatchArray(['member_id' => $this->member->id, 'member_name' => 'ايمان شيخ خليل'])
         ->not->toHaveKey('client_id');
 });
