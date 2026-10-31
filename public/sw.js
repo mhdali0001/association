@@ -5,7 +5,7 @@
  * وصفحة "العمل الميداني" — قالب بلا بيانات مستفيدين، وقائمة الزيارة تُنزَّل منه إلى الجهاز بطلب المستخدم.
  * عند تعديل أي ملف في PRECACHE غيّر VERSION حتى يتحدث المخزن عند المستخدمين.
  */
-const VERSION = 'v2';
+const VERSION = 'v3';
 const CACHE = 'masalik-' + VERSION;
 const OFFLINE_URL = '/offline.html';
 const FIELD_WORK_URL = '/field-work';
@@ -21,9 +21,31 @@ self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE)
             .then((cache) => cache.addAll(PRECACHE))
+            .then(() => cacheFieldWork())
             .then(() => self.skipWaiting())
     );
 });
+
+// الصفحات تطلب حفظ صفحة العمل الميداني (partials/pwa): أول فتح بعد التحديث يمر بالنسخة القديمة
+// من هذا الملف فلا تُحفظ الصفحة عبر التصفح وحده.
+self.addEventListener('message', (event) => {
+    if (event.data === 'cache-field-work') {
+        event.waitUntil(caches.match(FIELD_WORK_URL).then((cached) => cached || cacheFieldWork()));
+    } else if (event.data === 'refresh-field-work') {
+        event.waitUntil(cacheFieldWork());
+    }
+});
+
+// تُحفظ فقط لمستخدم مسجّل الدخول: التحويل إلى صفحة الدخول لا يُحفظ مكانها
+function cacheFieldWork() {
+    return fetch(FIELD_WORK_URL, { credentials: 'same-origin', cache: 'no-store' })
+        .then((response) => {
+            if (response.ok && !response.redirected && response.type === 'basic') {
+                return caches.open(CACHE).then((cache) => cache.put(FIELD_WORK_URL, response));
+            }
+        })
+        .catch(() => {});
+}
 
 self.addEventListener('activate', (event) => {
     event.waitUntil(
@@ -49,7 +71,7 @@ self.addEventListener('fetch', (event) => {
             return;
         }
         // صفحات النظام: من الشبكة، وعند انقطاع الاتصال تظهر صفحة "لا يوجد اتصال"
-        event.respondWith(fetch(request).catch(() => caches.match(OFFLINE_URL)));
+        event.respondWith(fetch(request).catch(() => offlineFallback(url)));
         return;
     }
 
@@ -58,6 +80,14 @@ self.addEventListener('fetch', (event) => {
         event.respondWith(fetch(request).catch(() => caches.match(url.pathname)));
     }
 });
+
+// فتح التطبيق بدون إنترنت (يبدأ من /dashboard): إلى العمل الميداني مباشرة إن كانت محفوظة
+function offlineFallback(url) {
+    if (url.pathname !== '/dashboard' && url.pathname !== '/') return caches.match(OFFLINE_URL);
+    return caches.match(FIELD_WORK_URL).then((page) => page
+        ? Response.redirect(new URL(FIELD_WORK_URL, self.location.origin).href, 302)
+        : caches.match(OFFLINE_URL));
+}
 
 // من الشبكة إن ردّت خلال ثوانٍ (وتُحدَّث النسخة المحفوظة)، وإلا النسخة المحفوظة.
 // تحويل إلى صفحة الدخول (جلسة منتهية) أو خطأ لا يُحفظ مكان الصفحة.

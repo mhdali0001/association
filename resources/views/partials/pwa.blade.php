@@ -60,6 +60,13 @@
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', function () {
             navigator.serviceWorker.register('/sw.js').catch(function () {});
+            // حفظ صفحة العمل الميداني على الجهاز وهو متصل، فتعمل لاحقاً بدون إنترنت دون الحاجة لزيارتها أولاً
+            if (location.pathname === '/login' || !navigator.onLine) return;
+            navigator.serviceWorker.ready.then(function (registration) {
+                if (registration.active) {
+                    registration.active.postMessage(location.pathname === '/field-work' ? 'refresh-field-work' : 'cache-field-work');
+                }
+            }).catch(function () {});
         });
     }
 })();

@@ -28,6 +28,7 @@
             display: block; margin-top: 12px; font-size: 15px; font-weight: 700; color: #166534; text-decoration: none;
             border: 1.5px solid #bbf7d0; background: #f0fdf4; border-radius: 12px; padding: 12px 24px;
         }
+        .hint { font-size: 13px; margin: 16px 0 0; padding: 12px; border-radius: 12px; background: #f0fdf4; color: #166534; }
         [hidden] { display: none !important; }
     </style>
 </head>
@@ -38,12 +39,17 @@
         <p>تحقق من اتصالك بالإنترنت ثم أعد المحاولة. ستُفتح الصفحة تلقائياً عند عودة الاتصال.</p>
         <button type="button" onclick="location.reload()">إعادة المحاولة</button>
         <a id="field-work" class="secondary" href="/field-work" hidden>العمل الميداني بدون إنترنت</a>
+        <p id="field-work-hint" class="hint" hidden>
+            لتسجيل الجولات الميدانية بدون إنترنت: افتح التطبيق مرة واحدة مع الإنترنت وأنت مسجّل الدخول، فتُحفظ صفحة العمل الميداني على هذا الجهاز.
+        </p>
     </div>
     <script>
         window.addEventListener('online', function () { location.reload(); });
-        // يظهر فقط إن كانت صفحة العمل الميداني محفوظة على الجهاز (فُتحت مرة مع إنترنت)
+        // الزر يظهر إن كانت صفحة العمل الميداني محفوظة على الجهاز، وإلا شرح طريقة حفظها
         if (window.caches) {
-            caches.match('/field-work').then(function (page) { if (page) document.getElementById('field-work').hidden = false; });
+            caches.match('/field-work').then(function (page) {
+                document.getElementById(page ? 'field-work' : 'field-work-hint').hidden = false;
+            });
         }
     </script>
 </body>
