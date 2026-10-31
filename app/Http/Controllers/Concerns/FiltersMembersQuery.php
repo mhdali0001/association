@@ -33,7 +33,8 @@ trait FiltersMembersQuery
         $genders             = array_filter((array) $request->get('gender', []));
         $delegates           = array_filter((array) $request->get('delegate', []));
         $secondPersons       = array_filter((array) $request->get('second_person', []));
-        $specialCases        = $request->get('special_cases', '');
+        // (string): الحقل الفارغ يصل null (ConvertEmptyStringsToNull)، و null !== '' كان يفعّل الفلتر
+        $specialCases        = (string) $request->get('special_cases', '');
         $specialDescriptions = array_filter((array) $request->get('special_cases_description', []));
         $addresses           = array_filter((array) $request->get('current_address', []));
         $associationIds      = array_filter((array) $request->get('association_id', []));
@@ -59,8 +60,8 @@ trait FiltersMembersQuery
         $fvAmountTo          = trim($request->get('fv_amount_to', ''));
         $fvHouseConditionIds = array_filter((array) $request->get('fv_house_condition_id', []));
         $fvNotes             = trim($request->get('fv_notes', ''));
-        $fvHasVideo          = $request->get('fv_has_video', '');
-        $fvHasSpecialCase    = $request->get('fv_has_special_case', '');
+        $fvHasVideo          = (string) $request->get('fv_has_video', '');
+        $fvHasSpecialCase    = (string) $request->get('fv_has_special_case', '');
         $fvCount             = trim($request->get('fv_count', ''));
 
         $query = Member::query();
@@ -185,7 +186,7 @@ trait FiltersMembersQuery
             'genders'             => array_filter((array) $request->get('gender', [])),
             'delegates'           => array_filter((array) $request->get('delegate', [])),
             'secondPersons'       => array_filter((array) $request->get('second_person', [])),
-            'specialCases'        => $request->get('special_cases', ''),
+            'specialCases'        => (string) $request->get('special_cases', ''),
             'specialDescriptions' => array_filter((array) $request->get('special_cases_description', [])),
             'addresses'           => array_filter((array) $request->get('current_address', [])),
             'associationIds'      => array_filter((array) $request->get('association_id', [])),
@@ -210,8 +211,8 @@ trait FiltersMembersQuery
             'fvAmountFrom'        => trim($request->get('fv_amount_from', '')),
             'fvAmountTo'          => trim($request->get('fv_amount_to', '')),
             'fvNotes'             => trim($request->get('fv_notes', '')),
-            'fvHasVideo'          => $request->get('fv_has_video', ''),
-            'fvHasSpecialCase'    => $request->get('fv_has_special_case', ''),
+            'fvHasVideo'          => (string) $request->get('fv_has_video', ''),
+            'fvHasSpecialCase'    => (string) $request->get('fv_has_special_case', ''),
             'fvCount'             => trim($request->get('fv_count', '')),
         ];
     }
