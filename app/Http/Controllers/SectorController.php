@@ -105,7 +105,7 @@ class SectorController extends Controller
         $genders             = array_filter((array) $request->get('gender', []));
         $delegates           = array_filter((array) $request->get('delegate', []));
         $secondPersons       = array_filter((array) $request->get('second_person', []));
-        $specialCases        = $request->get('special_cases', '');
+        $specialCases        = (string) $request->get('special_cases', '');
         $specialDescriptions = array_filter((array) $request->get('special_cases_description', []));
         $addresses           = array_filter((array) $request->get('current_address', []));
         $associationIds      = array_filter((array) $request->get('association_id', []));
@@ -128,8 +128,8 @@ class SectorController extends Controller
         $fvAmountTo          = trim($request->get('fv_amount_to', ''));
         $fvHouseConditionIds = array_filter((array) $request->get('fv_house_condition_id', []));
         $fvNotes             = trim($request->get('fv_notes', ''));
-        $fvHasVideo          = $request->get('fv_has_video', '');
-        $fvHasSpecialCase    = $request->get('fv_has_special_case', '');
+        $fvHasVideo          = (string) $request->get('fv_has_video', '');
+        $fvHasSpecialCase    = (string) $request->get('fv_has_special_case', '');
         $fvCount             = trim($request->get('fv_count', ''));
 
         $query = Member::where('sector_id', $sector->id)->with(['verificationStatus', 'finalStatus', 'region']);
@@ -184,8 +184,9 @@ class SectorController extends Controller
 
         if ($estimatedFrom !== '') $query->where('estimated_amount', '>=', (float) str_replace(',', '', $estimatedFrom));
         if ($estimatedTo   !== '') $query->where('estimated_amount', '<=', (float) str_replace(',', '', $estimatedTo));
-        if ($paymentsCountFrom !== '') $query->where('payments_count', '>=', (int) $paymentsCountFrom);
-        if ($paymentsCountTo   !== '') $query->where('payments_count', '<=', (int) $paymentsCountTo);
+        // عدد دفعات غير مسجّل = لم يُدفع له بعد، فيظهر في فلتر «0 دفعات»
+        if ($paymentsCountFrom !== '') $query->whereRaw('COALESCE(members.payments_count, 0) >= ?', [(int) $paymentsCountFrom]);
+        if ($paymentsCountTo   !== '') $query->whereRaw('COALESCE(members.payments_count, 0) <= ?', [(int) $paymentsCountTo]);
 
         if (!empty($paymentDataEntries)) {
             $includeNone = in_array('none', $paymentDataEntries);
@@ -255,7 +256,7 @@ class SectorController extends Controller
         $genders             = array_filter((array) $request->get('gender', []));
         $delegates           = array_filter((array) $request->get('delegate', []));
         $secondPersons       = array_filter((array) $request->get('second_person', []));
-        $specialCases        = $request->get('special_cases', '');
+        $specialCases        = (string) $request->get('special_cases', '');
         $specialDescriptions = array_filter((array) $request->get('special_cases_description', []));
         $addresses           = array_filter((array) $request->get('current_address', []));
         $associationIds      = array_filter((array) $request->get('association_id', []));
@@ -278,8 +279,8 @@ class SectorController extends Controller
         $fvAmountTo          = trim($request->get('fv_amount_to', ''));
         $fvHouseConditionIds = array_filter((array) $request->get('fv_house_condition_id', []));
         $fvNotes             = trim($request->get('fv_notes', ''));
-        $fvHasVideo          = $request->get('fv_has_video', '');
-        $fvHasSpecialCase    = $request->get('fv_has_special_case', '');
+        $fvHasVideo          = (string) $request->get('fv_has_video', '');
+        $fvHasSpecialCase    = (string) $request->get('fv_has_special_case', '');
         $fvCount             = trim($request->get('fv_count', ''));
 
         $members = $this->buildMembersQuery($request, $sector)

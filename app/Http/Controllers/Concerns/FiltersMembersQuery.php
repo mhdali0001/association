@@ -154,8 +154,9 @@ trait FiltersMembersQuery
         $this->applyNoneFilter($query, 'housing_status_id', $housingStatusIds);
         if ($estimatedFrom !== '') $query->where('estimated_amount', '>=', (float) str_replace(',', '', $estimatedFrom));
         if ($estimatedTo   !== '') $query->where('estimated_amount', '<=', (float) str_replace(',', '', $estimatedTo));
-        if ($paymentsCountFrom !== '') $query->where('payments_count', '>=', (int) $paymentsCountFrom);
-        if ($paymentsCountTo   !== '') $query->where('payments_count', '<=', (int) $paymentsCountTo);
+        // عدد دفعات غير مسجّل = لم يُدفع له بعد، فيظهر في فلتر «0 دفعات»
+        if ($paymentsCountFrom !== '') $query->whereRaw('COALESCE(members.payments_count, 0) >= ?', [(int) $paymentsCountFrom]);
+        if ($paymentsCountTo   !== '') $query->whereRaw('COALESCE(members.payments_count, 0) <= ?', [(int) $paymentsCountTo]);
         if (!empty($paymentDataEntries)) {
             $includeNone = in_array('none', $paymentDataEntries);
             $realNames   = array_values(array_filter($paymentDataEntries, fn($v) => $v !== 'none'));

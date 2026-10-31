@@ -12,7 +12,7 @@ class PendingChangeController extends Controller
 {
     public function myRequests(Request $request)
     {
-        $status  = $request->get('status', '');
+        $status  = (string) $request->get('status', '');
         $query   = PendingChange::with('reviewer')
                     ->where('requested_by', Auth::id())
                     ->latest();

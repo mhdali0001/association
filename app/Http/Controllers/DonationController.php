@@ -56,7 +56,7 @@ class DonationController extends Controller
         $finalStatusIds      = array_filter((array) $request->get('final_status_id', []));
         $genders             = array_filter((array) $request->get('gender', []));
         $associationIds      = array_filter((array) $request->get('association_id', []));
-        $specialCases        = $request->get('special_cases', '');
+        $specialCases        = (string) $request->get('special_cases', '');
         $specialDescriptions = array_filter((array) $request->get('special_cases_description', []));
         $delegates           = array_filter((array) $request->get('delegate', []));
         $networks            = array_filter((array) $request->get('network', []));

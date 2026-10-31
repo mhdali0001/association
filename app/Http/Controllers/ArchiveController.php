@@ -14,9 +14,9 @@ class ArchiveController extends Controller
     public function index(Request $request)
     {
         $date          = $request->get('date', now()->toDateString());
-        $userFilter    = $request->get('user_id', '');
-        $actionFilter  = $request->get('action', '');
-        $subjectFilter = $request->get('subject_type', '');
+        $userFilter    = (string) $request->get('user_id', '');
+        $actionFilter  = (string) $request->get('action', '');
+        $subjectFilter = (string) $request->get('subject_type', '');
 
         $carbonDate = Carbon::parse($date);
 

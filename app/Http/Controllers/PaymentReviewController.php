@@ -165,8 +165,8 @@ class PaymentReviewController extends Controller
     {
         $search         = trim($request->get('search', ''));
         $finalStatusIds = array_filter((array) $request->get('final_status_id', []));
-        $dateFrom       = $request->get('date_from', '');
-        $dateTo         = $request->get('date_to', '');
+        $dateFrom       = (string) $request->get('date_from', '');
+        $dateTo         = (string) $request->get('date_to', '');
 
         $includeNone = in_array('none', $finalStatusIds);
         $numericIds  = array_map('intval', array_filter($finalStatusIds, fn($v) => $v !== 'none'));

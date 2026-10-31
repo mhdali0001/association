@@ -54,7 +54,7 @@ class MemberController extends Controller
         $maritalStatuses     = array_filter((array) $request->get('marital_status', []));
         $genders             = array_filter((array) $request->get('gender', []));
         $delegates           = array_filter((array) $request->get('delegate', []));
-        $specialCases        = $request->get('special_cases', '');
+        $specialCases        = (string) $request->get('special_cases', '');
         $specialDescriptions = array_filter((array) $request->get('special_cases_description', []));
         $addresses           = array_filter((array) $request->get('current_address', []));
         $associationIds      = array_filter((array) $request->get('association_id', []));
@@ -95,8 +95,8 @@ class MemberController extends Controller
         $fvAmountTo           = trim($request->get('fv_amount_to', ''));
         $fvHouseConditionIds  = array_filter((array) $request->get('fv_house_condition_id', []));
         $fvNotes              = trim($request->get('fv_notes', ''));
-        $fvHasVideo           = $request->get('fv_has_video', '');
-        $fvHasSpecialCase     = $request->get('fv_has_special_case', '');
+        $fvHasVideo           = (string) $request->get('fv_has_video', '');
+        $fvHasSpecialCase     = (string) $request->get('fv_has_special_case', '');
         $fvCount              = trim($request->get('fv_count', ''));
         $estimatedFrom        = trim($request->get('estimated_from', ''));
         $estimatedTo          = trim($request->get('estimated_to', ''));
@@ -272,7 +272,7 @@ class MemberController extends Controller
     private function buildBulkAmountQuery(Request $request): \Illuminate\Database\Eloquent\Builder
     {
         $query     = $this->buildFilteredQuery($request);
-        $hasAmount = $request->get('has_amount', '');
+        $hasAmount = (string) $request->get('has_amount', '');
 
         if ($hasAmount === '1') $query->whereNotNull('estimated_amount')->where('estimated_amount', '>', 0);
         if ($hasAmount === '0') $query->where(fn($q) => $q->whereNull('estimated_amount')->orWhere('estimated_amount', 0));
@@ -304,7 +304,7 @@ class MemberController extends Controller
         $genders             = array_filter((array) $request->get('gender', []));
         $delegates           = array_filter((array) $request->get('delegate', []));
         $secondPersons       = array_filter((array) $request->get('second_person', []));
-        $specialCases        = $request->get('special_cases', '');
+        $specialCases        = (string) $request->get('special_cases', '');
         $specialDescriptions = array_filter((array) $request->get('special_cases_description', []));
         $addresses           = array_filter((array) $request->get('current_address', []));
         $associationIds      = array_filter((array) $request->get('association_id', []));
@@ -330,7 +330,7 @@ class MemberController extends Controller
         $secondPersonList       = Member::whereNotNull('second_person')->where('second_person', '!=', '')->distinct()->orderBy('second_person')->pluck('second_person');
         $specialDescriptionList = Member::whereNotNull('special_cases_description')->where('special_cases_description', '!=', '')->distinct()->orderBy('special_cases_description')->pluck('special_cases_description');
 
-        $hasAmount          = $request->get('has_amount', '');
+        $hasAmount          = (string) $request->get('has_amount', '');
         $fvHouseTypeIds     = array_filter((array) $request->get('fv_house_type_id', []));
         $fvHouseConditionIds= array_filter((array) $request->get('fv_house_condition_id', []));
         $fvVisitors         = array_filter((array) $request->get('fv_visitors', []));
@@ -340,9 +340,9 @@ class MemberController extends Controller
         $fvAmountFrom       = trim($request->get('fv_amount_from', ''));
         $fvAmountTo         = trim($request->get('fv_amount_to', ''));
         $fvNotes            = trim($request->get('fv_notes', ''));
-        $fvHasVideo         = $request->get('fv_has_video', '');
-        $fvHasSpecialCase   = $request->get('fv_has_special_case', '');
-        $fvCount            = $request->get('fv_count', '');
+        $fvHasVideo         = (string) $request->get('fv_has_video', '');
+        $fvHasSpecialCase   = (string) $request->get('fv_has_special_case', '');
+        $fvCount            = (string) $request->get('fv_count', '');
         $fieldVisitStatusIds= array_filter((array) $request->get('field_visit_status_id', []));
         $fvVisitorList      = \App\Models\FieldVisit::whereNotNull('visitor')->where('visitor', '!=', '')->distinct()->orderBy('visitor')->pluck('visitor');
         $fvCreatedByList    = \App\Models\User::whereIn('id',
@@ -541,9 +541,9 @@ class MemberController extends Controller
         $fvAmountFrom        = trim($request->get('fv_amount_from', ''));
         $fvAmountTo          = trim($request->get('fv_amount_to', ''));
         $fvNotes             = trim($request->get('fv_notes', ''));
-        $fvHasVideo          = $request->get('fv_has_video', '');
-        $fvHasSpecialCase    = $request->get('fv_has_special_case', '');
-        $fvCount             = $request->get('fv_count', '');
+        $fvHasVideo          = (string) $request->get('fv_has_video', '');
+        $fvHasSpecialCase    = (string) $request->get('fv_has_special_case', '');
+        $fvCount             = (string) $request->get('fv_count', '');
         $hasFvFilters        = !empty($fieldVisitStatusIds) || !empty($fvHouseTypeIds) || !empty($fvHouseConditionIds)
             || !empty($fvVisitors) || !empty($fvCreatedByIds)
             || $fvDateFrom !== '' || $fvDateTo !== '' || $fvAmountFrom !== '' || $fvAmountTo !== ''
@@ -561,7 +561,7 @@ class MemberController extends Controller
         $estimatedFrom      = trim($request->get('estimated_from', ''));
         $estimatedTo        = trim($request->get('estimated_to', ''));
         $shamCash           = array_filter((array) $request->get('sham_cash', []));
-        $fvReductionApplied = $request->get('fv_reduction_applied', '');
+        $fvReductionApplied = (string) $request->get('fv_reduction_applied', '');
 
         if ($fvReductionApplied === 'yes') {
             $base->whereHas('scores', fn($q) => $q->where('score_deduction', '>', 0));
@@ -755,7 +755,7 @@ class MemberController extends Controller
 
     public function bulkPaymentsShow(Request $request)
     {
-        $search              = $request->get('search', '');
+        $search              = (string) $request->get('search', '');
         $dossierSearch       = trim($request->get('dossier_search', ''));
         $dossierFrom         = trim($request->get('dossier_from', ''));
         $dossierTo           = trim($request->get('dossier_to', ''));
@@ -765,7 +765,7 @@ class MemberController extends Controller
         $genders             = array_filter((array) $request->get('gender', []));
         $delegates           = array_filter((array) $request->get('delegate', []));
         $secondPersons       = array_filter((array) $request->get('second_person', []));
-        $specialCases        = $request->get('special_cases', '');
+        $specialCases        = (string) $request->get('special_cases', '');
         $specialDescriptions = array_filter((array) $request->get('special_cases_description', []));
         $addresses           = array_filter((array) $request->get('current_address', []));
         $associationIds      = array_filter((array) $request->get('association_id', []));
@@ -778,7 +778,7 @@ class MemberController extends Controller
         $paymentsCountFrom   = trim($request->get('payments_count_from', ''));
         $paymentsCountTo     = trim($request->get('payments_count_to', ''));
         $shamCash            = array_filter((array) $request->get('sham_cash', []));
-        $hasPayments         = $request->get('has_payments', '');
+        $hasPayments         = (string) $request->get('has_payments', '');
         $paymentDataEntries  = array_filter((array) $request->get('payment_data_entry', []));
         // Field visit filters
         $fieldVisitStatusIds = array_filter((array) $request->get('field_visit_status_id', []));
@@ -791,12 +791,12 @@ class MemberController extends Controller
         $fvAmountFrom        = trim($request->get('fv_amount_from', ''));
         $fvAmountTo          = trim($request->get('fv_amount_to', ''));
         $fvNotes             = trim($request->get('fv_notes', ''));
-        $fvHasVideo          = $request->get('fv_has_video', '');
-        $fvHasSpecialCase    = $request->get('fv_has_special_case', '');
-        $fvCount             = $request->get('fv_count', '');
+        $fvHasVideo          = (string) $request->get('fv_has_video', '');
+        $fvHasSpecialCase    = (string) $request->get('fv_has_special_case', '');
+        $fvCount             = (string) $request->get('fv_count', '');
         // Payment-specific filters
-        $hasIban             = $request->get('has_iban', '');
-        $hasBarcode          = $request->get('has_barcode', '');
+        $hasIban             = (string) $request->get('has_iban', '');
+        $hasBarcode          = (string) $request->get('has_barcode', '');
         $paymentReviewStatus = array_filter((array) $request->get('payment_review_status', []));
         $lastBatchDateFrom   = trim($request->get('last_batch_date_from', ''));
         $lastBatchDateTo     = trim($request->get('last_batch_date_to', ''));
@@ -895,7 +895,7 @@ class MemberController extends Controller
         $operation = $request->operation;
         $applyTo   = $request->apply_to;
 
-        $hasPayments = $request->get('has_payments', '');
+        $hasPayments = (string) $request->get('has_payments', '');
         $base        = $this->buildFilteredQuery($request);
         if ($hasPayments === '1') $base->whereNotNull('payments_count');
         if ($hasPayments === '0') $base->whereNull('payments_count');
@@ -993,20 +993,20 @@ class MemberController extends Controller
     public function paymentBatchesIndex(Request $request)
     {
         $search        = trim($request->get('search', ''));
-        $operation     = $request->get('operation', '');
-        $dateFrom      = $request->get('date_from', '');
-        $dateTo        = $request->get('date_to', '');
-        $appliedBy     = $request->get('applied_by', '');
-        $amountMin     = $request->get('amount_min', '');
-        $amountMax     = $request->get('amount_max', '');
-        $membersMin    = $request->get('members_min', '');
-        $membersMax    = $request->get('members_max', '');
-        $totalMin      = $request->get('total_min', '');
-        $totalMax      = $request->get('total_max', '');
-        $filterYear    = $request->get('year', '');
-        $filterMonth   = $request->get('month', '');
+        $operation     = (string) $request->get('operation', '');
+        $dateFrom      = (string) $request->get('date_from', '');
+        $dateTo        = (string) $request->get('date_to', '');
+        $appliedBy     = (string) $request->get('applied_by', '');
+        $amountMin     = (string) $request->get('amount_min', '');
+        $amountMax     = (string) $request->get('amount_max', '');
+        $membersMin    = (string) $request->get('members_min', '');
+        $membersMax    = (string) $request->get('members_max', '');
+        $totalMin      = (string) $request->get('total_min', '');
+        $totalMax      = (string) $request->get('total_max', '');
+        $filterYear    = (string) $request->get('year', '');
+        $filterMonth   = (string) $request->get('month', '');
         $memberSearch  = trim($request->get('member_search', ''));
-        $hasNotes      = $request->get('has_notes', '');
+        $hasNotes      = (string) $request->get('has_notes', '');
 
         $query = \App\Models\PaymentBatch::with('appliedBy')->withCount('members');
 
@@ -1059,7 +1059,7 @@ class MemberController extends Controller
         $search      = trim($request->get('search', ''));
         $amountFrom  = trim($request->get('amount_from', ''));
         $amountTo    = trim($request->get('amount_to', ''));
-        $diffFilter  = $request->get('diff', '');
+        $diffFilter  = (string) $request->get('diff', '');
 
         $query = \App\Models\PaymentBatchMember::with('member')
             ->where('payment_batch_members.batch_id', $batch->id)
@@ -1216,6 +1216,21 @@ class MemberController extends Controller
     private function isAdmin(): bool
     {
         return Auth::user()?->role === 'admin';
+    }
+
+    /** رقم إضبارة محجوز في طلب إضافة لم يُوافق عليه بعد — وإلا فشلت الموافقة لاحقاً بسبب التكرار */
+    private function notReservedByPendingRequest(): \Closure
+    {
+        return function (string $attribute, $value, \Closure $fail) {
+            $pendingId = PendingChange::where('status', 'pending')
+                ->where('model_type', 'member')
+                ->where('action', 'create')
+                ->where('payload->dossier_number', (string) $value)
+                ->value('id');
+            if ($pendingId) {
+                $fail("رقم الإضبارة {$value} محجوز في طلب إضافة قيد المراجعة (#{$pendingId}).");
+            }
+        };
     }
 
     public function updateRegion(Request $request, Member $member)
@@ -1549,7 +1564,7 @@ class MemberController extends Controller
             'national_id'                => 'required|string|unique:members,national_id',
             'verification_status_id'     => 'required|exists:verification_statuses,id',
             'final_status_id'            => 'nullable|exists:final_statuses,id',
-            'dossier_number'             => 'nullable|string|max:50|unique:members,dossier_number',
+            'dossier_number'             => ['nullable', 'string', 'max:50', 'unique:members,dossier_number', $this->notReservedByPendingRequest()],
             'current_address'            => 'nullable|string',
             'marital_status'             => 'nullable|string|max:100',
             'disease_type'               => 'nullable|string|max:255',
@@ -1729,7 +1744,8 @@ class MemberController extends Controller
             'national_id'                => 'required|string|unique:members,national_id,' . $member->id,
             'verification_status_id'     => 'required|exists:verification_statuses,id',
             'final_status_id'            => 'nullable|exists:final_statuses,id',
-            'dossier_number'             => 'nullable|string|max:50|unique:members,dossier_number,' . $member->id,
+            'dossier_number'             => ['nullable', 'string', 'max:50', 'unique:members,dossier_number,' . $member->id,
+                                             ...($request->input('dossier_number') !== $member->dossier_number ? [$this->notReservedByPendingRequest()] : [])],
             'current_address'            => 'nullable|string',
             'region_id'                  => 'nullable|exists:regions,id',
             'sector_id'                  => 'nullable|exists:sectors,id',
@@ -2251,8 +2267,8 @@ class MemberController extends Controller
         $tab          = $request->get('tab', 'deductions');
         $search       = trim($request->get('search', ''));
         $reasonFilter = trim($request->get('reason', ''));
-        $dateFrom     = $request->get('date_from', '');
-        $dateTo       = $request->get('date_to', '');
+        $dateFrom     = (string) $request->get('date_from', '');
+        $dateTo       = (string) $request->get('date_to', '');
         $sortBy       = $request->get('sort', 'dossier');
 
         // Deductions query
@@ -2413,7 +2429,7 @@ class MemberController extends Controller
     {
         $search    = trim($request->get('search', ''));
         $sortBy    = $request->get('sort', 'dossier');
-        $hasScores = $request->get('has_scores', '');
+        $hasScores = (string) $request->get('has_scores', '');
 
         $scoreComponents = [
             'work_score'             => 2,
@@ -2644,7 +2660,7 @@ class MemberController extends Controller
         $genders             = array_filter((array) $request->get('gender', []));
         $delegates           = array_filter((array) $request->get('delegate', []));
         $secondPersons       = array_filter((array) $request->get('second_person', []));
-        $specialCases        = $request->get('special_cases', '');
+        $specialCases        = (string) $request->get('special_cases', '');
         $specialDescriptions = array_filter((array) $request->get('special_cases_description', []));
         $addresses           = array_filter((array) $request->get('current_address', []));
         $associationIds      = array_filter((array) $request->get('association_id', []));
@@ -2664,14 +2680,14 @@ class MemberController extends Controller
         $fvAmountTo          = trim($request->get('fv_amount_to', ''));
         $fvHouseConditionIds = array_filter((array) $request->get('fv_house_condition_id', []));
         $fvNotes             = trim($request->get('fv_notes', ''));
-        $fvHasVideo          = $request->get('fv_has_video', '');
-        $fvHasSpecialCase    = $request->get('fv_has_special_case', '');
+        $fvHasVideo          = (string) $request->get('fv_has_video', '');
+        $fvHasSpecialCase    = (string) $request->get('fv_has_special_case', '');
         $fvCount             = trim($request->get('fv_count', ''));
 
         // national-ids tab filter
         $filters = array_values(array_filter((array) $request->get('filters', [])));
         if (empty($filters)) {
-            $legacy  = $request->get('filter', '');
+            $legacy  = (string) $request->get('filter', '');
             $filters = $legacy ? [$legacy] : ['missing'];
         }
 
@@ -2779,7 +2795,7 @@ class MemberController extends Controller
     {
         $filters = array_values(array_filter((array) $request->get('filters', [])));
         if (empty($filters)) {
-            $legacy  = $request->get('filter', '');
+            $legacy  = (string) $request->get('filter', '');
             $filters = $legacy ? [$legacy] : ['missing'];
         }
         $region = $request->get('region_id', '');

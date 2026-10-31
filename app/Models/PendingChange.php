@@ -247,6 +247,12 @@ class PendingChange extends Model
      */
     public function apply(): void
     {
+        // كله أو لا شيء: فشل خطوة (مثل رقم إضبارة مكرر) لا يترك عضواً بلا نقاط أو طلباً نصف مطبّق
+        DB::transaction(fn () => $this->applyChange());
+    }
+
+    private function applyChange(): void
+    {
         if ($this->action === 'bulk_amount') {
             $this->applyBulkAmount();
         } elseif ($this->action === 'bulk_fv_reduction') {
@@ -835,6 +841,8 @@ class PendingChange extends Model
         $payment   = $p['payment']    ?? [];
         $paymentAI = $p['payment_ai'] ?? [];
 
+        $this->ensureUniqueMemberFields($memberData);
+
         if ($this->action === 'create') {
             $member = Member::create($memberData);
             $this->updateQuietly(['model_id' => $member->id]);
@@ -885,6 +893,29 @@ class PendingChange extends Model
 
             if (isset($p['association_ids'])) {
                 $member->associations()->sync($p['association_ids']);
+            }
+        }
+    }
+
+    /**
+     * رقم الإضبارة ورقم الهوية فريدان، وقد يأخذهما عضو آخر بين إرسال الطلب والموافقة عليه:
+     * رسالة واضحة للمسؤول بدل خطأ قاعدة البيانات، فيعدّل الرقم في الطلب ثم يوافق.
+     */
+    private function ensureUniqueMemberFields(array $memberData): void
+    {
+        $current = $this->action === 'update' ? Member::find($this->model_id) : null;
+
+        foreach (['dossier_number' => 'رقم الإضبارة', 'national_id' => 'رقم الهوية'] as $field => $label) {
+            $value = trim((string) ($memberData[$field] ?? ''));
+            // تعديل لا يغيّر الرقم لا يُرفض بسبب تكرار قديم موجود أصلاً
+            if ($value === '' || ($current && (string) $current->{$field} === $value)) {
+                continue;
+            }
+            $taken = Member::where($field, $value)
+                ->when($current, fn ($q) => $q->whereKeyNot($current->id))
+                ->first(['full_name', 'dossier_number']);
+            if ($taken) {
+                throw new \RuntimeException("{$label} {$value} مستخدم مسبقاً للعضو «{$taken->full_name}» (ملف {$taken->dossier_number}) — عدّل {$label} في الطلب ثم وافق عليه.");
             }
         }
     }
