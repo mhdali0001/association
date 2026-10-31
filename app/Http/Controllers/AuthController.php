@@ -17,9 +17,10 @@ class AuthController extends Controller
             return redirect()->route('dashboard');
         }
 
-        return view('auth.login', [
-            'rememberedAccounts' => RememberedLogins::forDevice($request),
-        ]);
+        // no-store: زر «رجوع» يطلب الصفحة من جديد برمز حماية صالح بدل نسخة قديمة من ذاكرة المتصفح
+        return response()
+            ->view('auth.login', ['rememberedAccounts' => RememberedLogins::forDevice($request)])
+            ->header('Cache-Control', 'no-store, private');
     }
 
     public function login(Request $request)
