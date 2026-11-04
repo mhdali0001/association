@@ -83,7 +83,8 @@ class FieldVisitRecorder
             return 'pending';
         }
 
-        $member->fieldVisits()->create($data + ['created_by' => Auth::id(), 'client_id' => $clientId]);
+        // client_id فقط حين يوجد: نموذج صفحة العضو لا يحتاج عمود العمل الميداني
+        $member->fieldVisits()->create($data + ['created_by' => Auth::id()] + array_filter(['client_id' => $clientId]));
         ActivityLogger::log('created', "إضافة جولة ميدانية للمستفيد: {$member->full_name}", $member);
 
         return 'created';

@@ -1209,7 +1209,10 @@ class PendingChange extends Model
         if ($this->action === 'create') {
             if ($member) {
                 $data['created_by'] = $this->requested_by;
-                $data['client_id']  = $p['client_id'] ?? null;
+                // من صفحة العمل الميداني فقط — طلبات نموذج صفحة العضو لا تحتاج هذا العمود
+                if (! empty($p['client_id'])) {
+                    $data['client_id'] = $p['client_id'];
+                }
                 $visit = $member->fieldVisits()->create($data);
                 $this->updateQuietly(['model_id' => $visit->id]);
             }

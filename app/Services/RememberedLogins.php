@@ -29,13 +29,18 @@ class RememberedLogins
             return collect();
         }
 
-        $valid = RememberedLogin::with('user')
+        // تقرأها صفحة الدخول وكل صفحات النظام (تبديل الحساب): تعذّر القراءة يُسجَّل ولا يُعطّل الصفحة
+        $valid = rescue(fn () => RememberedLogin::with('user')
             ->whereIn('id', array_keys($entries))
             ->where('expires_at', '>', now())
             ->get()
             ->filter(fn (RememberedLogin $login) => $login->user && self::matches($login, $entries[$login->id]))
             ->sortByDesc('last_used_at')
-            ->values();
+            ->values(), null);
+
+        if ($valid === null) {
+            return collect();
+        }
 
         // حسابات انتهت أو أُلغيت (تغيير كلمة المرور، حذف المستخدم) تُزال من الكوكي
         if ($valid->count() !== count($entries)) {

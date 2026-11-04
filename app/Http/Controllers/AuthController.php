@@ -37,11 +37,12 @@ class AuthController extends Controller
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
 
+            // ما بعد الدخول خدمات إضافية: فشلها (جدول ناقص على الخادم مثلاً) يُسجَّل ولا يُفشل الدخول —
+            // وإلا ظهر 500 مع أن الجلسة حُفظت، فينجح الدخول في المحاولة الثانية فقط
             if ($request->boolean('remember')) {
-                RememberedLogins::remember($request, Auth::user());
+                rescue(fn () => RememberedLogins::remember($request, Auth::user()));
             }
-
-            ActivityLogger::log('login', 'تسجيل دخول ناجح');
+            rescue(fn () => ActivityLogger::log('login', 'تسجيل دخول ناجح'));
 
             return redirect()->intended(route('dashboard'));
         }

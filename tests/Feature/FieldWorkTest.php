@@ -165,6 +165,20 @@ it('still accepts visits saved on a phone by the previous version (member id)', 
         ->assertOk()->assertJson(['status' => 'created']);
 });
 
+it('keeps the member page visit form working on a server where the field work migration has not run', function () {
+    (require database_path('migrations/2026_10_31_000001_add_client_id_to_field_visits_table.php'))->down();
+
+    $this->actingAs(User::factory()->create(['role' => 'admin']));
+    $this->post(route('field-visits.store', $this->member), ['visitor' => 'سمير'])->assertSessionHas('success');
+
+    $this->actingAs(User::factory()->create());
+    $this->post(route('field-visits.store', $this->member), ['visitor' => 'هناء'])->assertSessionHas('pending');
+    $this->actingAs(User::factory()->create(['role' => 'admin']));
+    PendingChange::sole()->apply();
+
+    expect(FieldVisit::where('member_id', $this->member->id)->count())->toBe(2);
+});
+
 it('keeps the member page visit form working as before', function () {
     $this->actingAs(User::factory()->create(['role' => 'admin']));
     $this->post(route('field-visits.store', $this->member), ['visitor' => 'سمير', 'estimated_amount' => 300])
