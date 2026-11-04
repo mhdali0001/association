@@ -42,6 +42,21 @@ it('logs in even when saving the account on this device fails', function () {
     $this->assertAuthenticatedAs($user);
 });
 
+it('always opens the dashboard after login, even if a page was requested while logged out', function () {
+    $user = User::factory()->create();
+
+    $this->get('/field-work')->assertRedirect('/login'); // Laravel keeps it as the "intended" page
+    $this->post('/login', ['email' => $user->email, 'password' => 'password'])
+        ->assertRedirect(route('dashboard'));
+});
+
+it('does not keep the field work page as "intended" when the app saves it in the background', function () {
+    // what public/sw.js sends while the user is logged out
+    $this->get('/field-work', ['X-Requested-With' => 'XMLHttpRequest', 'Accept' => '*/*'])->assertUnauthorized();
+
+    expect(session('url.intended'))->toBeNull();
+});
+
 it('still shows the login page when the saved accounts cannot be read', function () {
     $this->withCookie(RememberedLogins::COOKIE, json_encode(['7' => str_repeat('a', 64)]))
         ->get('/login')

@@ -5,7 +5,7 @@
  * وصفحة "العمل الميداني" — نموذج جولة بلا بيانات مستفيدين، تُحفظ جولاته على الجهاز وتُرسل عند عودة الاتصال.
  * عند تعديل أي ملف في PRECACHE غيّر VERSION حتى يتحدث المخزن عند المستخدمين.
  */
-const VERSION = 'v3';
+const VERSION = 'v4';
 const CACHE = 'masalik-' + VERSION;
 const OFFLINE_URL = '/offline.html';
 const FIELD_WORK_URL = '/field-work';
@@ -36,9 +36,10 @@ self.addEventListener('message', (event) => {
     }
 });
 
-// تُحفظ فقط لمستخدم مسجّل الدخول: التحويل إلى صفحة الدخول لا يُحفظ مكانها
+// تُحفظ فقط لمستخدم مسجّل الدخول. X-Requested-With: طلب خلفي لا زيارة — بدونه، وهو خارج الحساب، يحفظ Laravel
+// /field-work «صفحةً مقصودة» في الجلسة فيُحوَّل إليها بعد تسجيل الدخول بدل لوحة التحكم
 function cacheFieldWork() {
-    return fetch(FIELD_WORK_URL, { credentials: 'same-origin', cache: 'no-store' })
+    return fetch(FIELD_WORK_URL, { credentials: 'same-origin', cache: 'no-store', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': '*/*' } })
         .then((response) => {
             if (response.ok && !response.redirected && response.type === 'basic') {
                 return caches.open(CACHE).then((cache) => cache.put(FIELD_WORK_URL, response));

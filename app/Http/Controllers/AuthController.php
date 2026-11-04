@@ -44,7 +44,10 @@ class AuthController extends Controller
             }
             rescue(fn () => ActivityLogger::log('login', 'تسجيل دخول ناجح'));
 
-            return redirect()->intended(route('dashboard'));
+            // الدخول يفتح لوحة التحكم دائماً — لا «الصفحة المقصودة» المحفوظة في الجلسة
+            $request->session()->forget('url.intended');
+
+            return redirect()->route('dashboard');
         }
 
         return back()->withErrors([

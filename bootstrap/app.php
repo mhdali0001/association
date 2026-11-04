@@ -39,7 +39,9 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->is('login', 'login/*')) {
                 // محاولة سابقة نجحت فعلاً — لا داعي لإعادة الدخول
                 if (Auth::check()) {
-                    return redirect()->intended(route('dashboard'));
+                    $request->session()->forget('url.intended');
+
+                    return redirect()->route('dashboard');
                 }
 
                 return $request->is('login')
