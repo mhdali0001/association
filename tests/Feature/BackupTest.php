@@ -50,10 +50,32 @@ beforeEach(function () {
     $this->admin = User::factory()->create(['role' => 'admin']);
 });
 
-it('is for admins only', function () {
+it('is available to every signed-in user, not only admins', function () {
     $this->get('/backups')->assertRedirect('/login');
-    $this->actingAs(User::factory()->create())->get('/backups')->assertForbidden();
-    $this->actingAs(User::factory()->create())->post('/backups')->assertForbidden();
+
+    $user = User::factory()->create(); // role "user"
+    Artisan::shouldReceive('call')->once()->andReturn(0);
+    Artisan::shouldReceive('output')->andReturn('Backup completed!');
+
+    $this->actingAs($user)->get('/backups')->assertOk()
+        ->assertSee('إرسال نسخة احتياطية الآن إلى Google Drive')
+        ->assertSee('href="' . route('backups.index') . '"', false); // sidebar link in the section every user sees
+    $this->actingAs($user)->from('/backups')->post('/backups')->assertSessionHas('success');
+
+    expect(\App\Models\ActivityLog::sole()->user_id)->toBe($user->id);
+});
+
+it('limits each user to 5 backups an hour, with a message instead of an error page', function () {
+    Artisan::shouldReceive('call')->times(5)->andReturn(0);
+    Artisan::shouldReceive('output')->andReturn('Backup completed!');
+    $user = User::factory()->create();
+
+    for ($i = 0; $i < 5; $i++) {
+        $this->actingAs($user)->from('/backups')->post('/backups')->assertSessionHas('success');
+    }
+    $this->actingAs($user)->from('/backups')->post('/backups')
+        ->assertRedirect('/backups')
+        ->assertSessionHas('error', fn ($msg) => str_contains($msg, '5 نسخ احتياطية في الساعة'));
 });
 
 it('lists the latest backups that are on Google Drive', function () {

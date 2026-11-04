@@ -5,8 +5,11 @@ namespace App\Providers;
 use App\Services\RememberedLogins;
 use Google\Client as GoogleClient;
 use Google\Service\Drive as GoogleDrive;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Filesystem\FilesystemAdapter;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -54,6 +57,11 @@ class AppServiceProvider extends ServiceProvider
 
             return new FilesystemAdapter(new Filesystem($adapter, $config), $adapter, $config);
         });
+
+        // زر «إرسال نسخة احتياطية الآن» متاح لكل المستخدمين: 5 نسخ في الساعة لكل مستخدم، وبعدها رسالة لا صفحة 429
+        RateLimiter::for('manual-backups', fn (Request $request) => Limit::perHour(5)
+            ->by($request->user()?->id ?: $request->ip())
+            ->response(fn () => back()->with('error', 'وصلت إلى حد 5 نسخ احتياطية في الساعة — حاول بعد قليل.')));
 
         // Google Drive يرفض عرض مجلد غير موجود («File not found») بدل إرجاع قائمة فارغة، فيفشل فحص
         // الوجهة قبل الرفع («Could not connect to disk google») ما دام مجلد النسخ لم يُنشأ بعد.

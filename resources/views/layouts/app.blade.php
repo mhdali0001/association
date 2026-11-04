@@ -249,12 +249,15 @@
         <nav id="sidebar-nav" class="flex-1 overflow-y-auto px-3 py-4 space-y-5">
 
             @php
-            function sidebarLink($route, $label, $icon, $activePattern = null) {
-                $isActive = $activePattern
-                    ? request()->routeIs($activePattern)
-                    : request()->routeIs($route);
-                $url = route($route);
-                return compact('url','label','icon','isActive');
+            // دالة عامة: تُعرَّف مرة واحدة حتى لو عُرض القالب أكثر من مرة في نفس العملية (الاختبارات مثلاً)
+            if (! function_exists('sidebarLink')) {
+                function sidebarLink($route, $label, $icon, $activePattern = null) {
+                    $isActive = $activePattern
+                        ? request()->routeIs($activePattern)
+                        : request()->routeIs($route);
+                    $url = route($route);
+                    return compact('url','label','icon','isActive');
+                }
             }
             @endphp
 
@@ -453,7 +456,6 @@
                         ['sectors.index',   'القطاعات',    'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'],
                         ['delegates.index', 'المندوبون',   'M17 20h5v-2a4 4 0 00-5-3.87M9 20H4v-2a4 4 0 015-3.87m6-4.13a4 4 0 11-8 0 4 4 0 018 0zm6-4a3 3 0 11-6 0 3 3 0 016 0z'],
                         ['users.index',     'المستخدمون',  'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z'],
-                        ['backups.index',   'النسخ الاحتياطي', 'M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12'],
                     ] as [$r, $lbl, $ico])
                     <a href="{{ route($r) }}" data-tip="{{ $lbl }}"
                        class="nav-link {{ request()->routeIs($r) ? 'active' : '' }}">
@@ -475,6 +477,13 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
                         </svg>
                         <span class="sidebar-label">تغيير كلمة المرور</span>
+                    </a>
+                    <a href="{{ route('backups.index') }}" data-tip="النسخ الاحتياطي"
+                       class="nav-link {{ request()->routeIs('backups.*') ? 'active' : '' }}">
+                        <svg class="nav-icon shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                        <span class="sidebar-label">النسخ الاحتياطي</span>
                     </a>
                 </div>
             </div>

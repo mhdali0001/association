@@ -73,8 +73,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/bulk-revert',                            [BulkRevertController::class,   'index'])  ->name('bulk-revert.index');
         Route::post('/bulk-revert/{session}',                 [BulkRevertController::class,   'revert']) ->name('bulk-revert.revert');
         Route::get('/archive',         [\App\Http\Controllers\ArchiveController::class, 'index'])->name('archive.index');
-        Route::get('/backups',         [BackupController::class, 'index'])->name('backups.index');
-        Route::post('/backups',        [BackupController::class, 'store'])->name('backups.store');
         Route::resource('expenses',    ExpenseController::class);
         // Budget & Beneficiaries
         Route::get('/budget',                          [BudgetController::class,     'index'])  ->name('budget.index');
@@ -104,6 +102,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/pending-changes/bulk-reject',                   [PendingChangeController::class, 'bulkReject'])      ->name('pending-changes.bulk-reject');
         // Config tables — admin only (index visible to all auth users below)
     });
+
+    // النسخ الاحتياطي لكل المستخدمين — حدّ 5 نسخ في الساعة لكل مستخدم حتى لا يمتلئ Google Drive بالضغط المتكرر
+    Route::get('/backups',  [BackupController::class, 'index'])->name('backups.index');
+    Route::post('/backups', [BackupController::class, 'store'])->middleware('throttle:manual-backups')->name('backups.store');
 
     Route::get('/my-requests', [PendingChangeController::class, 'myRequests'])->name('pending-changes.my');
     Route::get('/pending-changes/{pendingChange}/edit-request',    [PendingChangeController::class, 'editRequest'])   ->name('pending-changes.edit-request');
