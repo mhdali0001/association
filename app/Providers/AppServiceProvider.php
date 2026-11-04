@@ -6,11 +6,13 @@ use App\Services\RememberedLogins;
 use Google\Client as GoogleClient;
 use Google\Service\Drive as GoogleDrive;
 use Illuminate\Filesystem\FilesystemAdapter;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use League\Flysystem\Filesystem;
 use Masbug\Flysystem\GoogleDriveAdapter;
+use Spatie\Backup\Events\BackupZipWasCreated;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -51,6 +53,22 @@ class AppServiceProvider extends ServiceProvider
             $adapter = new GoogleDriveAdapter(new GoogleDrive($client), $config['folder'] ?? '/');
 
             return new FilesystemAdapter(new Filesystem($adapter, $config), $adapter, $config);
+        });
+
+        // Google Drive يرفض عرض مجلد غير موجود («File not found») بدل إرجاع قائمة فارغة، فيفشل فحص
+        // الوجهة قبل الرفع («Could not connect to disk google») ما دام مجلد النسخ لم يُنشأ بعد.
+        // ننشئه بعد تجهيز الأرشيف وقبل رفعه — يشمل النسخة اليومية وزر صفحة النسخ الاحتياطي.
+        Event::listen(BackupZipWasCreated::class, function () {
+            $folder = config('backup.backup.name');
+            foreach (config('backup.backup.destination.disks', []) as $diskName) {
+                if (config("filesystems.disks.{$diskName}.driver") !== 'google') {
+                    continue;
+                }
+                $disk = Storage::disk($diskName);
+                if (! $disk->directoryExists($folder)) {
+                    $disk->makeDirectory($folder);
+                }
+            }
         });
     }
 }

@@ -31,8 +31,10 @@ Artisan::command('backup:test-google', function () {
     }
 })->purpose('Test the Google Drive backup destination');
 
-Schedule::command('backup:clean')->daily()->at('01:30')->withoutOverlapping();
-Schedule::command('backup:run')->daily()->at('02:00')->withoutOverlapping()->runInBackground();
+// نسخة أسبوعية: كل جمعة الساعة 2 صباحاً (بتوقيت دمشق)، والتنظيف قبلها. للنسخة الفورية: صفحة «النسخ الاحتياطي».
+Schedule::command('backup:clean')->weeklyOn(5, '01:30')->withoutOverlapping();
+Schedule::command('backup:run')->weeklyOn(5, '02:00')->withoutOverlapping()->runInBackground();
+// الفحص يومي ليكشف الفشل مبكراً؛ حدّ عمر النسخة 8 أيام في config/backup.php يناسب النسخ الأسبوعي
 Schedule::command('backup:monitor')->daily()->at('06:00');
 
 // موقع تقريبي للمناطق الجديدة على خريطة الأعضاء (يعالج المناطق التي بلا موقع فقط)

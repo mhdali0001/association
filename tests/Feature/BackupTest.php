@@ -96,6 +96,28 @@ it('shows the real reason when the backup fails', function (string $output, stri
     'drive error'                 => ['Backup failed because: Google Drive رفض الربط: invalid_grant.', 'invalid_grant'],
 ]);
 
+it('creates the backup folder on Google Drive before uploading, so a fresh Drive does not fail', function () {
+    config(['backup.backup.destination.disks' => ['google', 'backups']]);
+    Storage::fake('backups');
+    expect(Storage::disk('google')->directoryExists('masalkalnour'))->toBeFalse();
+
+    event(new \Spatie\Backup\Events\BackupZipWasCreated('backup.zip'));
+    event(new \Spatie\Backup\Events\BackupZipWasCreated('backup.zip')); // already there: nothing to do
+
+    expect(Storage::disk('google')->directories())->toBe(['masalkalnour'])
+        ->and(Storage::disk('backups')->directoryExists('masalkalnour'))->toBeFalse(); // only Google Drive needs it
+});
+
+it('backs up automatically once a week, and only alerts when a weekly backup is missed', function () {
+    Artisan::call('schedule:list'); // loads routes/console.php
+    $cron = fn (string $command) => collect(app(\Illuminate\Console\Scheduling\Schedule::class)->events())
+        ->first(fn ($e) => str_ends_with((string) $e->command, $command))?->expression;
+
+    expect($cron('backup:run'))->toBe('0 2 * * 5')          // Friday 02:00
+        ->and($cron('backup:clean'))->toBe('30 1 * * 5')    // Friday 01:30
+        ->and(config('backup.monitor_backups.0.health_checks')[\Spatie\Backup\Tasks\Monitor\HealthChecks\MaximumAgeInDays::class])->toBe(8);
+});
+
 it('does not start a second backup while one is being sent', function () {
     Cache::lock('manual-database-backup', 60)->get();
     Artisan::shouldReceive('call')->never();

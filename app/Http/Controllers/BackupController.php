@@ -11,7 +11,7 @@ use Spatie\Backup\Config\Config as BackupConfig;
 
 /**
  * نسخة احتياطية يدوية لقاعدة البيانات إلى Google Drive بضغطة زر —
- * إضافة إلى النسخة اليومية التلقائية (routes/console.php)، وبنفس إعدادات config/backup.php (كلمة سر الأرشيف…).
+ * إضافة إلى النسخة الأسبوعية التلقائية (routes/console.php)، وبنفس إعدادات config/backup.php (كلمة سر الأرشيف…).
  */
 class BackupController extends Controller
 {
@@ -44,7 +44,7 @@ class BackupController extends Controller
             @set_time_limit(15 * 60);
             ignore_user_abort(true); // إغلاق الصفحة أثناء الإرسال لا يقطع النسخة
 
-            // الزر يرسل إلى Google Drive دائماً، مهما كانت وجهات النسخة اليومية في BACKUP_DISKS.
+            // الزر يرسل إلى Google Drive دائماً، مهما كانت وجهات النسخة التلقائية في BACKUP_DISKS.
             // إعدادات spatie تُقرأ مرة لكل طلب (scoped)، فنُسقط النسخة المقروءة لتُبنى من الإعداد الجديد.
             config(['backup.backup.destination.disks' => [self::DISK]]);
             app()->forgetInstance(BackupConfig::class);

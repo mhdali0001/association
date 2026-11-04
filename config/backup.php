@@ -303,7 +303,8 @@ return [
                 explode(',', (string) env('BACKUP_DISKS', 'backups'))
             ))),
             'health_checks' => [
-                MaximumAgeInDays::class => 1,
+                // النسخ التلقائي أسبوعي (routes/console.php): أسبوع + يوم سماح قبل تنبيه «نسخة قديمة»
+                MaximumAgeInDays::class => 8,
                 MaximumStorageInMegabytes::class => 5000,
             ],
         ],
