@@ -66,6 +66,8 @@ return [
             'dump' => [
                 'useSingleTransaction' => true,
                 'timeout' => 60 * 10,
+                // مجلد mysqldump إن لم يكن في PATH (مثلاً على ويندوز: C:\laragon\bin\mysql\mysql-8.4.3-winx64\bin)
+                'dump_binary_path' => env('DB_DUMP_BINARY_PATH'),
             ],
         ],
 
